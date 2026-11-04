@@ -1,0 +1,80 @@
+diff --git a/games/totk/runtime/game_patches_botw.c b/games/totk/runtime/game_patches_botw.c
+index 2d2397c..03201da 100644
+--- a/games/totk/runtime/game_patches_botw.c
++++ b/games/totk/runtime/game_patches_botw.c
+@@ -17,6 +17,45 @@
+ #include "botw_fov.h"   /* 1.9.0's field of view (TOTK_FOV_SCALE, graphics-fov.txt) */
+ #include <TargetConditionals.h>
+ #include <mach/mach.h>   /* vm_read_overwrite: TOTK_CDPOINT_TRACE reads guest pointers it cannot vouch for */
++#if defined(GAME_BOTW160) && !TARGET_OS_IPHONE
++#include "runtime.h"
++#include "botw_editor.h"
++#include "botw_editor_inventory.h"
++#include "botw_editor_world.h"
++#include "botw_editor_teleport.h"
++#include "botw_editor_destinations.h"
++
++static unsigned botw_editor_features(uintptr_t base) {
++    bed_load();
++    return be_inventory_features(base) | be_world_features(base) |
++        (bed_count ? be_teleport_features(base) : 0);
++}
++static int botw_editor_command(uintptr_t base, const char *verb, const char *argument,
++                               int value, char *result, size_t capacity) {
++    if (!strcmp(verb, "give") || !strcmp(verb, "quantity") || !strcmp(verb, "remove"))
++        return be_inventory_command(base, verb, argument, value, result, capacity);
++    if (!strcmp(verb, "teleport")) return bed_teleport(base, argument, result, capacity);
++    return be_world_command(base, verb, argument, value, result, capacity);
++}
++static void botw_editor_snapshot(FILE *output, uintptr_t base, int ready) {
++    be_inventory_snapshot(output, base, ready);
++    be_world_snapshot(output, base, ready);
++    be_teleport_snapshot(output, base, ready);
++    bed_snapshot(output, base, ready);
++}
++static void botw_editor_tick(uint64_t now_ns) {
++    static int registered;
++    if (!registered) {
++        runtime_botw_editor_extensions((BotwEditorExtensions){
++            .features = botw_editor_features,
++            .command = botw_editor_command,
++            .snapshot = botw_editor_snapshot
++        });
++        registered = 1;
++    }
++    runtime_botw_editor_tick(now_ns);
++}
++#endif
+ uint32_t runtime_thread_current_handle(void);
+ static void botw_aspect_install(Module *m);   /* the aspect ratio, end of the file */
+ static int patch_output_res(Module *m);   /* native output size, after runtime_output_res */
+@@ -177,6 +216,9 @@ static void pad_tick_advance(void) {
+     }
+ }
+ void runtime_frame_step_update(uint64_t now_ns) {
++#if defined(GAME_BOTW160) && !TARGET_OS_IPHONE
++    botw_editor_tick(now_ns);
++#endif
+     botw_aspect_apply();   /* the aspect ratio */
+     botw_output_tick();    /* key 3 */
+     if (!frame_step_data || !now_ns) return;
+diff --git a/games/totk/runtime/input.c b/games/totk/runtime/input.c
+index 0aae690..ad7131a 100644
+--- a/games/totk/runtime/input.c
++++ b/games/totk/runtime/input.c
+@@ -246,6 +246,7 @@ __attribute__((constructor)) static void input_script_start(void) {
+    kbtest / kbtype <text> / kbenter / kbesc / kbshot <path> (the text entry bar), threads (dump every guest thread's wait), hletrace <0|1|2> (host calls the game makes), framestep <ms> (pin the frame step), mscan ... (memory scan and write watch, runtime/mem_scan.h), close. */
+ extern void dm_gfx_shot_at(long frames, const char *path);
+ extern void runtime_front_request_close(void);
++extern int runtime_botw_editor_command(const char *line) __attribute__((weak_import));
+ /* "mscan ...": memory scan and write watch (runtime/mem_scan.h, in services.c); this default answers in the probes that
+    link input.c alone, which have no game memory. */
+ __attribute__((weak)) int runtime_mem_scan_command(const char *line) { (void)line; return 0; }
+@@ -267,6 +268,7 @@ static void *input_file(void *arg) {
+             }
+             continue;
+         }
++        if (runtime_botw_editor_command && runtime_botw_editor_command(line)) continue;
+         if (runtime_survey_command(line)) continue;
+         unsigned code, ms; int used = 0;
+         if (sscanf(line, "down %u %n", &code, &used) == 1 && used && !line[used] && code < 128) {

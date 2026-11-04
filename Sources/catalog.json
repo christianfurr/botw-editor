@@ -1,0 +1,5062 @@
+[
+  {
+    "id": "Weapon_Sword_001",
+    "name": "Traveler's Sword",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_002",
+    "name": "Soldier's Broadsword",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_003",
+    "name": "Knight's Broadsword",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_004",
+    "name": "Boko Club",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_005",
+    "name": "Spiked Boko Club",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_006",
+    "name": "Dragonbone Boko Club",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_007",
+    "name": "Lizal Boomerand",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_008",
+    "name": "Lizal Forked Boomerang",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_009",
+    "name": "Lizal Tri-Boomerang",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_013",
+    "name": "Guardian Sword",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_014",
+    "name": "Guardian Sword+",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_015",
+    "name": "Guardian Sword++",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_016",
+    "name": "Lynel Sword",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_017",
+    "name": "Mighty Lynel Sword",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_018",
+    "name": "Savage Lynel Sword",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_019",
+    "name": "Bokoblin Arm",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_020",
+    "name": "Lizalfos Arm",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_021",
+    "name": "Rusty Broadsword",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_022",
+    "name": "Soup ladle",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_023",
+    "name": "Ancient Short Sword",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_024",
+    "name": "Royal Broadsword",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_025",
+    "name": "Forest Dweller's Sword",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_027",
+    "name": "Zora Sword",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_029",
+    "name": "Gerudo Scimitar",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_030",
+    "name": "Moonlight Scimitar",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_031",
+    "name": "Feathered Edge",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_033",
+    "name": "Flameblade",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_034",
+    "name": "Frostblade",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_035",
+    "name": "Thunderblade",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_040",
+    "name": "Spring-Loaded Hammer",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_041",
+    "name": "Eightfold Blade",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_043",
+    "name": "Torch",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_044",
+    "name": "Tree Branch",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_047",
+    "name": "Royal Guard's Sword",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_048",
+    "name": "Meteor Rod",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_049",
+    "name": "Blizzard Rod",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_050",
+    "name": "Thunderstorm Rod",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_051",
+    "name": "Boomerang",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_052",
+    "name": "Scimitar of the Seven",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_053",
+    "name": "Vicious Sickle",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_056",
+    "name": "Master Sword (Broken/Unequippable)",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_057",
+    "name": "Goddess Sword",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_058",
+    "name": "Hero's Sword (amiibo 8-bit)",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_059",
+    "name": "Sea-Breeze Boomerang (amiibo WW)",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_060",
+    "name": "Fire Rod",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_061",
+    "name": "Ice Rod",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_062",
+    "name": "Lightning Rod",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_070",
+    "name": "Master Sword",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_071",
+    "name": "Master Sword (no near malice, no charge)",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_072",
+    "name": "Master Sword (near malice, no charge)",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_073",
+    "name": "Demon Carver",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_500",
+    "name": "Lantern",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Lsword_001",
+    "name": "Traveler's Claymore",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Lsword_002",
+    "name": "Soldier's Claymore",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Lsword_003",
+    "name": "Knight's Claymore",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Lsword_004",
+    "name": "Boko Bat",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Lsword_005",
+    "name": "Spiked Boko Bat",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Lsword_006",
+    "name": "Dragonbone Boko Bat",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Lsword_010",
+    "name": "Moblin Club",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Lsword_011",
+    "name": "Spiked Moblin Club",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Lsword_012",
+    "name": "Dragonbone Moblin Club",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Lsword_013",
+    "name": "Ancient Battle Axe",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Lsword_014",
+    "name": "Ancient Battle Axe+",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Lsword_015",
+    "name": "Ancient Battle Axe++",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Lsword_016",
+    "name": "Lynel Crusher",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Lsword_017",
+    "name": "Mighty Lynel Crusher",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Lsword_018",
+    "name": "Savage Lynel Crusher",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Lsword_019",
+    "name": "Moblin Arm",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Lsword_020",
+    "name": "Rusty Claymore",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Lsword_023",
+    "name": "Ancient Bladesaw",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Lsword_024",
+    "name": "Royal Claymore",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Lsword_027",
+    "name": "Silver Longsword",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Lsword_029",
+    "name": "Golden Claymore",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Lsword_030",
+    "name": "Double Axe",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Lsword_031",
+    "name": "Iron Sledgehammer",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Lsword_032",
+    "name": "Woodcutter's Axe",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Lsword_033",
+    "name": "Great Flameblade",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Lsword_034",
+    "name": "Great Frostblade",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Lsword_035",
+    "name": "Great Thunderblade",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Lsword_036",
+    "name": "Cobble Crusher",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Lsword_037",
+    "name": "Stone Smasher",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Lsword_038",
+    "name": "Boat Oar",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Lsword_041",
+    "name": "Eightfold Longblade",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Lsword_045",
+    "name": "Farming Hoe",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Lsword_047",
+    "name": "Royal Guard's Claymore",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Lsword_051",
+    "name": "Giant Boomerang",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Lsword_054",
+    "name": "Boulder Breaker",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Lsword_055",
+    "name": "Edge of Duality",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Lsword_056",
+    "name": "Korok Leaf",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Lsword_057",
+    "name": "Sword of the Six Sages (amiibo TP)",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Lsword_059",
+    "name": "Biggoron's Sword (amiibo OoT)",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Lsword_060",
+    "name": "Fierce Deity Sword (amiibo MM)",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Lsword_074",
+    "name": "Windcleaver",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Spear_001",
+    "name": "Traveler's Spear",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Spear_002",
+    "name": "Soldier's Spear",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Spear_003",
+    "name": "Knight's Halberd",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Spear_004",
+    "name": "Boko Spear",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Spear_005",
+    "name": "Spiked Boko Spear",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Spear_006",
+    "name": "Dragonbone Boko Spear",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Spear_007",
+    "name": "Lizal Spear",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Spear_008",
+    "name": "Enhanced Lizal Spear",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Spear_009",
+    "name": "Forked Lizal Spear",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Spear_010",
+    "name": "Moblin Spear",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Spear_011",
+    "name": "Spiked Moblin Spear",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Spear_012",
+    "name": "Dragonbone Moblin Spear",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Spear_013",
+    "name": "Guardian Spear",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Spear_014",
+    "name": "Guardian Spear+",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Spear_015",
+    "name": "Guardian Spear++",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Spear_016",
+    "name": "Lynel Spear",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Spear_017",
+    "name": "Mighty Lynel Spear",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Spear_018",
+    "name": "Savage Lynel Spear",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Spear_021",
+    "name": "Rusty Halberd",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Spear_022",
+    "name": "Farmer's Pichfork",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Spear_023",
+    "name": "Ancient Spear",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Spear_024",
+    "name": "Royal Halberd",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Spear_025",
+    "name": "Forest Dweller's Spear",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Spear_027",
+    "name": "Zora Spear",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Spear_028",
+    "name": "Silverscale Spear",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Spear_029",
+    "name": "Gerudo Spear",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Spear_030",
+    "name": "Throwing Spear",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Spear_031",
+    "name": "Drillshaft",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Spear_032",
+    "name": "Feathered Spear",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Spear_033",
+    "name": "Flamespear",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Spear_034",
+    "name": "Frostspear",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Spear_035",
+    "name": "Thunderspear",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Spear_036",
+    "name": "Wooden Mop",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Spear_037",
+    "name": "Serpentine Spear",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Spear_038",
+    "name": "Fishing Harpoon",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Spear_047",
+    "name": "Royal Guard's Spear",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Spear_049",
+    "name": "Ceremonial Trident",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Spear_050",
+    "name": "Lightscale Trident",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Sword_502",
+    "name": "One-Hit Obliterator (v1.4)",
+    "category": "weapons"
+  },
+  {
+    "id": "Weapon_Bow_001",
+    "name": "Traveler's Bow",
+    "category": "bows"
+  },
+  {
+    "id": "Weapon_Bow_002",
+    "name": "Soldier's Bow",
+    "category": "bows"
+  },
+  {
+    "id": "Weapon_Bow_003",
+    "name": "Spiked Boko Bow",
+    "category": "bows"
+  },
+  {
+    "id": "Weapon_Bow_004",
+    "name": "Boko Bow",
+    "category": "bows"
+  },
+  {
+    "id": "Weapon_Bow_006",
+    "name": "Lizal Bow",
+    "category": "bows"
+  },
+  {
+    "id": "Weapon_Bow_009",
+    "name": "Lynel Bow",
+    "category": "bows"
+  },
+  {
+    "id": "Weapon_Bow_011",
+    "name": "Strengthened Lizal Bow",
+    "category": "bows"
+  },
+  {
+    "id": "Weapon_Bow_013",
+    "name": "Forest Dweller's Bow",
+    "category": "bows"
+  },
+  {
+    "id": "Weapon_Bow_014",
+    "name": "Silver Bow",
+    "category": "bows"
+  },
+  {
+    "id": "Weapon_Bow_015",
+    "name": "Golden Bow",
+    "category": "bows"
+  },
+  {
+    "id": "Weapon_Bow_016",
+    "name": "Swallow Bow",
+    "category": "bows"
+  },
+  {
+    "id": "Weapon_Bow_017",
+    "name": "Falcon Bow",
+    "category": "bows"
+  },
+  {
+    "id": "Weapon_Bow_023",
+    "name": "Ancient Bow",
+    "category": "bows"
+  },
+  {
+    "id": "Weapon_Bow_026",
+    "name": "Mighty Lynel Bow",
+    "category": "bows"
+  },
+  {
+    "id": "Weapon_Bow_027",
+    "name": "Dragon Bone Boko Bow",
+    "category": "bows"
+  },
+  {
+    "id": "Weapon_Bow_028",
+    "name": "Great Eagle Bow",
+    "category": "bows"
+  },
+  {
+    "id": "Weapon_Bow_029",
+    "name": "Phrenic Bow",
+    "category": "bows"
+  },
+  {
+    "id": "Weapon_Bow_030",
+    "name": "Steel Lizal Bow",
+    "category": "bows"
+  },
+  {
+    "id": "Weapon_Bow_032",
+    "name": "Savage Lynel Bow",
+    "category": "bows"
+  },
+  {
+    "id": "Weapon_Bow_033",
+    "name": "Royal Guard's Bow",
+    "category": "bows"
+  },
+  {
+    "id": "Weapon_Bow_035",
+    "name": "Knight's Bow",
+    "category": "bows"
+  },
+  {
+    "id": "Weapon_Bow_036",
+    "name": "Royal Bow",
+    "category": "bows"
+  },
+  {
+    "id": "Weapon_Bow_038",
+    "name": "Wooden Bow",
+    "category": "bows"
+  },
+  {
+    "id": "Weapon_Bow_040",
+    "name": "Duplex Bow",
+    "category": "bows"
+  },
+  {
+    "id": "Weapon_Bow_071",
+    "name": "Bow of Light",
+    "category": "bows"
+  },
+  {
+    "id": "Weapon_Bow_072",
+    "name": "Twilight Bow (amiibo TP)",
+    "category": "bows"
+  },
+  {
+    "id": "NormalArrow",
+    "name": "Arrow",
+    "category": "bows"
+  },
+  {
+    "id": "FireArrow",
+    "name": "Fire Arrow",
+    "category": "bows"
+  },
+  {
+    "id": "IceArrow",
+    "name": "Ice Arrow",
+    "category": "bows"
+  },
+  {
+    "id": "ElectricArrow",
+    "name": "Shock Arrow",
+    "category": "bows"
+  },
+  {
+    "id": "BombArrow_A",
+    "name": "Bomb Arrow",
+    "category": "bows"
+  },
+  {
+    "id": "AncientArrow",
+    "name": "Ancient Arrow",
+    "category": "bows"
+  },
+  {
+    "id": "Weapon_Shield_001",
+    "name": "Wooden Shield",
+    "category": "shields"
+  },
+  {
+    "id": "Weapon_Shield_002",
+    "name": "Soldier's Shield",
+    "category": "shields"
+  },
+  {
+    "id": "Weapon_Shield_003",
+    "name": "Knight's Shield",
+    "category": "shields"
+  },
+  {
+    "id": "Weapon_Shield_004",
+    "name": "Boko Shield",
+    "category": "shields"
+  },
+  {
+    "id": "Weapon_Shield_005",
+    "name": "Spiked Boko Shield",
+    "category": "shields"
+  },
+  {
+    "id": "Weapon_Shield_006",
+    "name": "Dragonbone Boko Shield",
+    "category": "shields"
+  },
+  {
+    "id": "Weapon_Shield_007",
+    "name": "Lizal Shield",
+    "category": "shields"
+  },
+  {
+    "id": "Weapon_Shield_008",
+    "name": "Reinforced Lizal Shield",
+    "category": "shields"
+  },
+  {
+    "id": "Weapon_Shield_009",
+    "name": "Steel Lizal Shield",
+    "category": "shields"
+  },
+  {
+    "id": "Weapon_Shield_013",
+    "name": "Guardian Shield",
+    "category": "shields"
+  },
+  {
+    "id": "Weapon_Shield_014",
+    "name": "Guardian Shield+",
+    "category": "shields"
+  },
+  {
+    "id": "Weapon_Shield_015",
+    "name": "Guardian Shield++",
+    "category": "shields"
+  },
+  {
+    "id": "Weapon_Shield_016",
+    "name": "Lynel Shield",
+    "category": "shields"
+  },
+  {
+    "id": "Weapon_Shield_017",
+    "name": "Mighty Lynel Shield",
+    "category": "shields"
+  },
+  {
+    "id": "Weapon_Shield_018",
+    "name": "Savage Lynel Shield",
+    "category": "shields"
+  },
+  {
+    "id": "Weapon_Shield_021",
+    "name": "Rusty Shield",
+    "category": "shields"
+  },
+  {
+    "id": "Weapon_Shield_022",
+    "name": "Royal Shield",
+    "category": "shields"
+  },
+  {
+    "id": "Weapon_Shield_023",
+    "name": "Forest Dweller's Shield",
+    "category": "shields"
+  },
+  {
+    "id": "Weapon_Shield_025",
+    "name": "Silver Shield",
+    "category": "shields"
+  },
+  {
+    "id": "Weapon_Shield_026",
+    "name": "Gerudo Shield",
+    "category": "shields"
+  },
+  {
+    "id": "Weapon_Shield_030",
+    "name": "Hylian Shield",
+    "category": "shields"
+  },
+  {
+    "id": "Weapon_Shield_031",
+    "name": "Hunter's Shield",
+    "category": "shields"
+  },
+  {
+    "id": "Weapon_Shield_032",
+    "name": "Fisherman's Shield",
+    "category": "shields"
+  },
+  {
+    "id": "Weapon_Shield_033",
+    "name": "Royal Guard's Shield",
+    "category": "shields"
+  },
+  {
+    "id": "Weapon_Shield_034",
+    "name": "Emblazoned Shield",
+    "category": "shields"
+  },
+  {
+    "id": "Weapon_Shield_035",
+    "name": "Traveler's Shield",
+    "category": "shields"
+  },
+  {
+    "id": "Weapon_Shield_036",
+    "name": "Radiant Shield",
+    "category": "shields"
+  },
+  {
+    "id": "Weapon_Shield_037",
+    "name": "Daybreaker",
+    "category": "shields"
+  },
+  {
+    "id": "Weapon_Shield_038",
+    "name": "Ancient Shield",
+    "category": "shields"
+  },
+  {
+    "id": "Weapon_Shield_040",
+    "name": "Pot Lid",
+    "category": "shields"
+  },
+  {
+    "id": "Weapon_Shield_041",
+    "name": "Shield of the Mind's Eye",
+    "category": "shields"
+  },
+  {
+    "id": "Weapon_Shield_042",
+    "name": "Kite Shield",
+    "category": "shields"
+  },
+  {
+    "id": "Weapon_Shield_057",
+    "name": "Hero's Shield (Wind Waker)",
+    "category": "shields"
+  },
+  {
+    "id": "Armor_001_Head",
+    "name": "Hylian Hood",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_002_Head",
+    "name": "Hylian Hood ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_003_Head",
+    "name": "Hylian Hood ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_004_Head",
+    "name": "Hylian Hood ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_015_Head",
+    "name": "Hylian Hood ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_001_Upper",
+    "name": "Hylian Tunic",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_002_Upper",
+    "name": "Hylian Tunic ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_003_Upper",
+    "name": "Hylian Tunic ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_004_Upper",
+    "name": "Hylian Tunic ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_015_Upper",
+    "name": "Hylian Tunic ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_001_Lower",
+    "name": "Hylian Trousers",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_002_Lower",
+    "name": "Hylian Trousers ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_003_Lower",
+    "name": "Hylian Trousers ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_004_Lower",
+    "name": "Hylian Trousers ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_015_Lower",
+    "name": "Hylian Trousers ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_005_Head",
+    "name": "Cap of the Wild",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_035_Head",
+    "name": "Cap of the Wild ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_039_Head",
+    "name": "Cap of the Wild ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_060_Head",
+    "name": "Cap of the Wild ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_061_Head",
+    "name": "Cap of the Wild ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_005_Upper",
+    "name": "Tunic of the Wild",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_035_Upper",
+    "name": "Tunic of the Wild ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_039_Upper",
+    "name": "Tunic of the Wild ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_060_Upper",
+    "name": "Tunic of the Wild ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_061_Upper",
+    "name": "Tunic of the Wild ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_005_Lower",
+    "name": "Trousers of the Wild",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_035_Lower",
+    "name": "Trousers of the Wild ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_039_Lower",
+    "name": "Trousers of the Wild ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_060_Lower",
+    "name": "Trousers of the Wild ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_061_Lower",
+    "name": "Trousers of the Wild ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_006_Head",
+    "name": "Zora Helm",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_007_Head",
+    "name": "Zora Helm ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_062_Head",
+    "name": "Zora Helm ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_063_Head",
+    "name": "Zora Helm ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_064_Head",
+    "name": "Zora Helm ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_006_Upper",
+    "name": "Zora Armor",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_007_Upper",
+    "name": "Zora Armor ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_062_Upper",
+    "name": "Zora Armor ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_063_Upper",
+    "name": "Zora Armor ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_064_Upper",
+    "name": "Zora Armor ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_006_Lower",
+    "name": "Zora Greaves",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_007_Lower",
+    "name": "Zora Greaves ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_062_Lower",
+    "name": "Zora Greaves ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_063_Lower",
+    "name": "Zora Greaves ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_064_Lower",
+    "name": "Zora Greaves ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_008_Head",
+    "name": "Desert Voe Headband",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_040_Head",
+    "name": "Desert Voe Headband ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_065_Head",
+    "name": "Desert Voe Headband ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_066_Head",
+    "name": "Desert Voe Headband ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_067_Head",
+    "name": "Desert Voe Headband ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_008_Upper",
+    "name": "Desert Voe Spaulder",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_040_Upper",
+    "name": "Desert Voe Spaulder ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_065_Upper",
+    "name": "Desert Voe Spaulder ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_066_Upper",
+    "name": "Desert Voe Spaulder ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_067_Upper",
+    "name": "Desert Voe Spaulder ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_008_Lower",
+    "name": "Desert Voe Trousers",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_040_Lower",
+    "name": "Desert Voe Trousers ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_065_Lower",
+    "name": "Desert Voe Trousers ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_066_Lower",
+    "name": "Desert Voe Trousers ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_067_Lower",
+    "name": "Desert Voe Trousers ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_009_Head",
+    "name": "Snowquill Headdress",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_036_Head",
+    "name": "Snowquill Headdress ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_071_Head",
+    "name": "Snowquill Headdress ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_072_Head",
+    "name": "Snowquill Headdress ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_073_Head",
+    "name": "Snowquill Headdress ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_009_Upper",
+    "name": "Snowquill Tunic",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_036_Upper",
+    "name": "Snowquill Tunic ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_071_Upper",
+    "name": "Snowquill Tunic ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_072_Upper",
+    "name": "Snowquill Tunic ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_073_Upper",
+    "name": "Snowquill Tunic ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_009_Lower",
+    "name": "Snowquill Trousers",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_036_Lower",
+    "name": "Snowquill Trousers ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_071_Lower",
+    "name": "Snowquill Trousers ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_072_Lower",
+    "name": "Snowquill Trousers ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_073_Lower",
+    "name": "Snowquill Trousers ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_011_Head",
+    "name": "Flamebreaker Helm",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_037_Head",
+    "name": "Flamebreaker Helm ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_074_Head",
+    "name": "Flamebreaker Helm ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_075_Head",
+    "name": "Flamebreaker Helm ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_076_Head",
+    "name": "Flamebreaker Helm ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_011_Upper",
+    "name": "Flamebreaker Armor",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_037_Upper",
+    "name": "Flamebreaker Armor ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_074_Upper",
+    "name": "Flamebreaker Armor ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_075_Upper",
+    "name": "Flamebreaker Armor ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_076_Upper",
+    "name": "Flamebreaker Armor ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_011_Lower",
+    "name": "Flamebreaker Boots",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_037_Lower",
+    "name": "Flamebreaker Boots ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_074_Lower",
+    "name": "Flamebreaker Boots ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_075_Lower",
+    "name": "Flamebreaker Boots ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_076_Lower",
+    "name": "Flamebreaker Boots ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_012_Head",
+    "name": "Stealth Mask",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_042_Head",
+    "name": "Stealth Mask ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_077_Head",
+    "name": "Stealth Mask ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_078_Head",
+    "name": "Stealth Mask ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_079_Head",
+    "name": "Stealth Mask ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_012_Upper",
+    "name": "Stealth Chest Guard",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_042_Upper",
+    "name": "Stealth Chest Guard ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_077_Upper",
+    "name": "Stealth Chest Guard ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_078_Upper",
+    "name": "Stealth Chest Guard ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_079_Upper",
+    "name": "Stealth Chest Guard ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_012_Lower",
+    "name": "Stealth Tights",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_042_Lower",
+    "name": "Stealth Tights ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_077_Lower",
+    "name": "Stealth Tights ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_078_Lower",
+    "name": "Stealth Tights ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_079_Lower",
+    "name": "Stealth Tights ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_014_Head",
+    "name": "Climber's Bandanna",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_083_Head",
+    "name": "Climber's Bandanna ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_084_Head",
+    "name": "Climber's Bandanna ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_085_Head",
+    "name": "Climber's Bandanna ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_086_Head",
+    "name": "Climber's Bandanna ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_014_Upper",
+    "name": "Climbing Gear",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_083_Upper",
+    "name": "Climbing Gear ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_084_Upper",
+    "name": "Climbing Gear ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_085_Upper",
+    "name": "Climbing Gear ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_086_Upper",
+    "name": "Climbing Gear ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_014_Lower",
+    "name": "Climbing Boots",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_083_Lower",
+    "name": "Climbing Boots ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_084_Lower",
+    "name": "Climbing Boots ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_085_Lower",
+    "name": "Climbing Boots ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_086_Lower",
+    "name": "Climbing Boots ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_017_Head",
+    "name": "Radiant Mask",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_087_Head",
+    "name": "Radiant Mask ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_088_Head",
+    "name": "Radiant Mask ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_089_Head",
+    "name": "Radiant Mask ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_090_Head",
+    "name": "Radiant Mask ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_017_Upper",
+    "name": "Radiant Shirt",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_087_Upper",
+    "name": "Radiant Shirt ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_088_Upper",
+    "name": "Radiant Shirt ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_089_Upper",
+    "name": "Radiant Shirt ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_090_Upper",
+    "name": "Radiant Shirt ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_017_Lower",
+    "name": "Radiant Tights",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_087_Lower",
+    "name": "Radiant Tights ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_088_Lower",
+    "name": "Radiant Tights ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_089_Lower",
+    "name": "Radiant Tights ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_090_Lower",
+    "name": "Radiant Tights ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_020_Head",
+    "name": "Soldier's Helm",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_095_Head",
+    "name": "Soldier's Helm ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_096_Head",
+    "name": "Soldier's Helm ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_097_Head",
+    "name": "Soldier's Helm ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_098_Head",
+    "name": "Soldier's Helm ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_020_Upper",
+    "name": "Soldier's Armor",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_095_Upper",
+    "name": "Soldier's Armor ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_096_Upper",
+    "name": "Soldier's Armor ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_097_Upper",
+    "name": "Soldier's Armor ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_098_Upper",
+    "name": "Soldier's Armor ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_020_Lower",
+    "name": "Soldier's Greaves",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_095_Lower",
+    "name": "Soldier's Greaves ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_096_Lower",
+    "name": "Soldier's Greaves ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_097_Lower",
+    "name": "Soldier's Greaves ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_098_Lower",
+    "name": "Soldier's Greaves ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_021_Head",
+    "name": "Ancient Helm",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_099_Head",
+    "name": "Ancient Helm ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_100_Head",
+    "name": "Ancient Helm ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_101_Head",
+    "name": "Ancient Helm ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_102_Head",
+    "name": "Ancient Helm ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_021_Upper",
+    "name": "Ancient Cuirass",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_099_Upper",
+    "name": "Ancient Cuirass ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_100_Upper",
+    "name": "Ancient Cuirass ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_101_Upper",
+    "name": "Ancient Cuirass ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_102_Upper",
+    "name": "Ancient Cuirass ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_021_Lower",
+    "name": "Ancient Greaves",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_099_Lower",
+    "name": "Ancient Greaves ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_100_Lower",
+    "name": "Ancient Greaves ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_101_Lower",
+    "name": "Ancient Greaves ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_102_Lower",
+    "name": "Ancient Greaves ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_022_Head",
+    "name": "Bokoblin Mask",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_043_Upper",
+    "name": "Old Shirt",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_043_Lower",
+    "name": "Well-Worn Trousers",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_044_Upper",
+    "name": "Warm Doublet",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_045_Head",
+    "name": "Moblin Mask",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_046_Head",
+    "name": "Rubber Helm",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_103_Head",
+    "name": "Rubber Helm ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_104_Head",
+    "name": "Rubber Helm ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_105_Head",
+    "name": "Rubber Helm ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_106_Head",
+    "name": "Rubber Helm ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_046_Upper",
+    "name": "Rubber Armor",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_103_Upper",
+    "name": "Rubber Armor ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_104_Upper",
+    "name": "Rubber Armor ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_105_Upper",
+    "name": "Rubber Armor ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_106_Upper",
+    "name": "Rubber Armor ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_046_Lower",
+    "name": "Rubber Tights",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_103_Lower",
+    "name": "Rubber Tights ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_104_Lower",
+    "name": "Rubber Tights ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_105_Lower",
+    "name": "Rubber Tights ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_106_Lower",
+    "name": "Rubber Tights ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_048_Head",
+    "name": "Barbarian Helm",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_111_Head",
+    "name": "Barbarian Helm ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_112_Head",
+    "name": "Barbarian Helm ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_113_Head",
+    "name": "Barbarian Helm ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_114_Head",
+    "name": "Barbarian Helm ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_048_Upper",
+    "name": "Barbarian Armor",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_111_Upper",
+    "name": "Barbarian Armor ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_112_Upper",
+    "name": "Barbarian Armor ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_113_Upper",
+    "name": "Barbarian Armor ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_114_Upper",
+    "name": "Barbarian Armor ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_048_Lower",
+    "name": "Barbarian Wraps",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_111_Lower",
+    "name": "Barbarian Wraps ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_112_Lower",
+    "name": "Barbarian Wraps ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_113_Lower",
+    "name": "Barbarian Wraps ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_114_Lower",
+    "name": "Barbarian Wraps ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_053_Head",
+    "name": "Gerudo Veil",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_053_Upper",
+    "name": "Gerudo Top",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_053_Lower",
+    "name": "Gerudo Sirwal",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_055_Head",
+    "name": "Lizalfos Mask",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_056_Head",
+    "name": "Lynel Mask",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_115_Head",
+    "name": "Thunder Helm",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_024_Head",
+    "name": "Diamond Circlet",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_117_Head",
+    "name": "Diamond Circlet ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_118_Head",
+    "name": "Diamond Circlet ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_119_Head",
+    "name": "Diamond Circlet ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_120_Head",
+    "name": "Diamond Circlet ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_025_Head",
+    "name": "Ruby Circlet",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_121_Head",
+    "name": "Ruby Circlet ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_122_Head",
+    "name": "Ruby Circlet ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_123_Head",
+    "name": "Ruby Circlet ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_124_Head",
+    "name": "Ruby Circlet ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_026_Head",
+    "name": "Sapphire Circlet",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_125_Head",
+    "name": "Sapphire Circlet ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_126_Head",
+    "name": "Sapphire Circlet ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_127_Head",
+    "name": "Sapphire Circlet ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_128_Head",
+    "name": "Sapphire Circlet ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_027_Head",
+    "name": "Topaz Earrings",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_129_Head",
+    "name": "Topaz Earrings ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_130_Head",
+    "name": "Topaz Earrings ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_131_Head",
+    "name": "Topaz Earrings ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_132_Head",
+    "name": "Topaz Earrings ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_028_Head",
+    "name": "Opal Earrings",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_133_Head",
+    "name": "Opal Earrings ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_134_Head",
+    "name": "Opal Earrings ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_135_Head",
+    "name": "Opal Earrings ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_136_Head",
+    "name": "Opal Earrings ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_029_Head",
+    "name": "Amber Earrings",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_137_Head",
+    "name": "Amber Earrings ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_138_Head",
+    "name": "Amber Earrings ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_139_Head",
+    "name": "Amber Earrings ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_140_Head",
+    "name": "Amber Earrings ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_116_Upper",
+    "name": "Champion's Tunic",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_148_Upper",
+    "name": "Champion's Tunic ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_149_Upper",
+    "name": "Champion's Tunic ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_150_Upper",
+    "name": "Champion's Tunic ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_151_Upper",
+    "name": "Champion's Tunic ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_049_Lower",
+    "name": "Sand Boots",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_152_Lower",
+    "name": "Sand Boots ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_153_Lower",
+    "name": "Sand Boots ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_154_Lower",
+    "name": "Sand Boots ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_155_Lower",
+    "name": "Sand Boots ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_140_Lower",
+    "name": "Snow Boots?",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_141_Lower",
+    "name": "Snow Boots",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_156_Lower",
+    "name": "Snow Boots ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_157_Lower",
+    "name": "Snow Boots ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_158_Lower",
+    "name": "Snow Boots ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_159_Lower",
+    "name": "Snow Boots ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_160_Head",
+    "name": "Dark Hood",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_160_Upper",
+    "name": "Dark Tunic",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_160_Lower",
+    "name": "Dark Trousers",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_170_Upper",
+    "name": "Nintendo Switch Shirt",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_200_Head",
+    "name": "Cap of Time",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_201_Head",
+    "name": "Cap of Time ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_202_Head",
+    "name": "Cap of Time ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_203_Head",
+    "name": "Cap of Time ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_204_Head",
+    "name": "Cap of Time ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_200_Upper",
+    "name": "Tunic of Time",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_201_Upper",
+    "name": "Tunic of Time ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_202_Upper",
+    "name": "Tunic of Time ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_203_Upper",
+    "name": "Tunic of Time ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_204_Upper",
+    "name": "Tunic of Time ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_200_Lower",
+    "name": "Trousers of Time",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_201_Lower",
+    "name": "Trousers of Time ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_202_Lower",
+    "name": "Trousers of Time ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_203_Lower",
+    "name": "Trousers of Time ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_204_Lower",
+    "name": "Trousers of Time ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_205_Head",
+    "name": "Cap of Wind",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_206_Head",
+    "name": "Cap of Wind ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_207_Head",
+    "name": "Cap of Wind ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_208_Head",
+    "name": "Cap of Wind ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_209_Head",
+    "name": "Cap of Wind ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_205_Upper",
+    "name": "Tunic of Wind",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_206_Upper",
+    "name": "Tunic of Wind ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_207_Upper",
+    "name": "Tunic of Wind ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_208_Upper",
+    "name": "Tunic of Wind ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_209_Upper",
+    "name": "Tunic of Wind ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_205_Lower",
+    "name": "Trousers of Wind",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_206_Lower",
+    "name": "Trousers of Wind ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_207_Lower",
+    "name": "Trousers of Wind ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_208_Lower",
+    "name": "Trousers of Wind ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_209_Lower",
+    "name": "Trousers of Wind ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_210_Head",
+    "name": "Cap of Twilight",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_211_Head",
+    "name": "Cap of Twilight ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_212_Head",
+    "name": "Cap of Twilight ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_213_Head",
+    "name": "Cap of Twilight ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_214_Head",
+    "name": "Cap of Twilight ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_210_Upper",
+    "name": "Tunic of Twilight",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_211_Upper",
+    "name": "Tunic of Twilight ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_212_Upper",
+    "name": "Tunic of Twilight ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_213_Upper",
+    "name": "Tunic of Twilight ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_214_Upper",
+    "name": "Tunic of Twilight ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_210_Lower",
+    "name": "Trousers of Twilight",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_211_Lower",
+    "name": "Trousers of Twilight ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_212_Lower",
+    "name": "Trousers of Twilight ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_213_Lower",
+    "name": "Trousers of Twilight ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_214_Lower",
+    "name": "Trousers of Twilight ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_215_Head",
+    "name": "Cap of the Sky",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_216_Head",
+    "name": "Cap of the Sky ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_217_Head",
+    "name": "Cap of the Sky ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_218_Head",
+    "name": "Cap of the Sky ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_219_Head",
+    "name": "Cap of the Sky ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_215_Upper",
+    "name": "Tunic of the Sky",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_216_Upper",
+    "name": "Tunic of the Sky ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_217_Upper",
+    "name": "Tunic of the Sky ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_218_Upper",
+    "name": "Tunic of the Sky ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_219_Upper",
+    "name": "Tunic of the Sky ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_215_Lower",
+    "name": "Trousers of the Sky",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_216_Lower",
+    "name": "Trousers of the Sky ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_217_Lower",
+    "name": "Trousers of the Sky ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_218_Lower",
+    "name": "Trousers of the Sky ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_219_Lower",
+    "name": "Trousers of the Sky ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_220_Head",
+    "name": "Sheik's Mask",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_221_Head",
+    "name": "Sheik's Mask ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_222_Head",
+    "name": "Sheik's Mask ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_223_Head",
+    "name": "Sheik's Mask ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_224_Head",
+    "name": "Sheik's Mask ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_225_Head",
+    "name": "Fierce Deity's Mask",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_226_Head",
+    "name": "Fierce Deity's Mask ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_227_Head",
+    "name": "Fierce Deity's Mask ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_228_Head",
+    "name": "Fierce Deity's Mask ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_229_Head",
+    "name": "Fierce Deity's Mask ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_225_Upper",
+    "name": "Fierce Deity's Armor",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_226_Upper",
+    "name": "Fierce Deity's Armor ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_227_Upper",
+    "name": "Fierce Deity's Armor ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_228_Upper",
+    "name": "Fierce Deity's Armor ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_229_Upper",
+    "name": "Fierce Deity's Armor ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_225_Lower",
+    "name": "Fierce Deity's Boots",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_226_Lower",
+    "name": "Fierce Deity's Boots ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_227_Lower",
+    "name": "Fierce Deity's Boots ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_228_Lower",
+    "name": "Fierce Deity's Boots ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_229_Lower",
+    "name": "Fierce Deity's Boots ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_230_Head",
+    "name": "Cap of the Hero",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_231_Head",
+    "name": "Cap of the Hero ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_232_Head",
+    "name": "Cap of the Hero ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_233_Head",
+    "name": "Cap of the Hero ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_234_Head",
+    "name": "Cap of the Hero ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_230_Upper",
+    "name": "Tunic of the Hero",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_231_Upper",
+    "name": "Tunic of the Hero ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_232_Upper",
+    "name": "Tunic of the Hero ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_233_Upper",
+    "name": "Tunic of the Hero ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_234_Upper",
+    "name": "Tunic of the Hero ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_230_Lower",
+    "name": "Trousers of the Hero",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_231_Lower",
+    "name": "Trousers of the Hero ★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_232_Lower",
+    "name": "Trousers of the Hero ★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_233_Lower",
+    "name": "Trousers of the Hero ★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_234_Lower",
+    "name": "Trousers of the Hero ★★★★",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_171_Head",
+    "name": "Phantom Helmet (v1.3)",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_171_Upper",
+    "name": "Phantom Armor (v1.3)",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_171_Lower",
+    "name": "Phantom Greaves (v1.3)",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_172_Head",
+    "name": "Majora's Mask (v1.3)",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_173_Head",
+    "name": "Midna's Helmet (v1.3)",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_174_Head",
+    "name": "Tingle's Hood (v1.3)",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_174_Upper",
+    "name": "Tingle's Shirt (v1.3)",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_174_Lower",
+    "name": "Tingle's Tights (v1.3)",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_176_Head",
+    "name": "Korok Mask (v1.3)",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_185_Head",
+    "name": "Salvager Headwear (v1.3.3)",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_185_Upper",
+    "name": "Salvager Vest (v1.3.3)",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_185_Lower",
+    "name": "Salvager Trousers (v1.3.3)",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_181_Head",
+    "name": "Vah Ruta Divine Helm (v1.3.3)",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_182_Head",
+    "name": "Vah Medoh Divine Helm (v1.3.3)",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_183_Head",
+    "name": "Vah Rudania Divine Helm (v1.3.3)",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_184_Head",
+    "name": "Vah Naboris Divine Helm (v1.3.3)",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_186_Head",
+    "name": "Vah Ruta Divine Helm ★ (v1.3.3)",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_187_Head",
+    "name": "Vah Ruta Divine Helm ★★ (v1.3.3)",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_188_Head",
+    "name": "Vah Ruta Divine Helm ★★★ (v1.3.3)",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_189_Head",
+    "name": "Vah Ruta Divine Helm ★★★★ (v1.3.3)",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_190_Head",
+    "name": "Vah Medoh Divine Helm ★ (v1.3.3)",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_191_Head",
+    "name": "Vah Medoh Divine Helm ★★ (v1.3.3)",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_192_Head",
+    "name": "Vah Medoh Divine Helm ★★★ (v1.3.3)",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_193_Head",
+    "name": "Vah Medoh Divine Helm ★★★★ (v1.3.3)",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_194_Head",
+    "name": "Vah Rudania Divine Helm ★ (v1.3.3)",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_195_Head",
+    "name": "Vah Rudania Divine Helm ★★ (v1.3.3)",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_196_Head",
+    "name": "Vah Rudania Divine Helm ★★★ (v1.3.3)",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_197_Head",
+    "name": "Vah Rudania Divine Helm ★★★★ (v1.3.3)",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_198_Head",
+    "name": "Vah Naboris Divine Helm ★ (v1.3.3)",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_199_Head",
+    "name": "Vah Naboris Divine Helm ★★ (v1.3.3)",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_168_Head",
+    "name": "Vah Naboris Divine Helm ★★★ (v1.3.3)",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_169_Head",
+    "name": "Vah Naboris Divine Helm ★★★★ (v1.3.3)",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_175_Upper",
+    "name": "Island Lobster Shirt (v1.4)",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_177_Head",
+    "name": "Ravio's Hood (v1.4)",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_178_Head",
+    "name": "Zant's Helmet (v1.4)",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_179_Head",
+    "name": "Royal Guard Cap (v1.4)",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_179_Upper",
+    "name": "Royal Guard Uniform (v1.4)",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_179_Lower",
+    "name": "Royal Guard Boots (v1.4)",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_180_Head",
+    "name": "Phantom Ganon Skull (v1.4)",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_180_Upper",
+    "name": "Phantom Ganon Armor (v1.4)",
+    "category": "clothes"
+  },
+  {
+    "id": "Armor_180_Lower",
+    "name": "Phantom Ganon Greaves (v1.4)",
+    "category": "clothes"
+  },
+  {
+    "id": "Item_Fruit_A",
+    "name": "Apple",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Fruit_B",
+    "name": "Wildberry",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Fruit_C",
+    "name": "Voltfruit",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Fruit_D",
+    "name": "Hearty Durian",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Fruit_E",
+    "name": "Fleet-Lotus Seeds",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Fruit_E_00",
+    "name": "Fleet-Lotus Seeds x0",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Fruit_F",
+    "name": "Hydromelon",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Fruit_G",
+    "name": "Palm Fruit",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Fruit_H",
+    "name": "Mighty Bananas",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Fruit_I",
+    "name": "Spicy Pepper",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Fruit_J",
+    "name": "Fortified Pumpkin",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Fruit_K",
+    "name": "Acorn",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Fruit_L",
+    "name": "Chickaloo Tree Nut",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Mushroom_A",
+    "name": "Stamella Mushroom",
+    "category": "materials"
+  },
+  {
+    "id": "Item_MushroomGet_A",
+    "name": "Stamella Mushroom",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Mushroom_B",
+    "name": "Chillshroom",
+    "category": "materials"
+  },
+  {
+    "id": "Item_MushroomGet_B",
+    "name": "Chillshroom",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Mushroom_C",
+    "name": "Sunshroom",
+    "category": "materials"
+  },
+  {
+    "id": "Item_MushroomGet_C",
+    "name": "Sunshroom",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Mushroom_D",
+    "name": "Rushroom",
+    "category": "materials"
+  },
+  {
+    "id": "Item_MushroomGet_D",
+    "name": "Rushroom",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Mushroom_E",
+    "name": "Hylian Mushroom",
+    "category": "materials"
+  },
+  {
+    "id": "Item_MushroomGet_E",
+    "name": "Hylian Mushroom",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Mushroom_F",
+    "name": "Hearty Truffle",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Mushroom_F_00",
+    "name": "Hearty Truffle x0",
+    "category": "materials"
+  },
+  {
+    "id": "Item_MushroomGet_F",
+    "name": "Hearty Truffle",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Mushroom_H",
+    "name": "Zapshroom",
+    "category": "materials"
+  },
+  {
+    "id": "Item_MushroomGet_H",
+    "name": "Zapshroom",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Mushroom_J",
+    "name": "Silent Shroom",
+    "category": "materials"
+  },
+  {
+    "id": "Item_MushroomGet_J",
+    "name": "Silent Shroom",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Mushroom_L",
+    "name": "Razorshroom",
+    "category": "materials"
+  },
+  {
+    "id": "Item_MushroomGet_L",
+    "name": "Razorshroom",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Mushroom_M",
+    "name": "Ironshroom",
+    "category": "materials"
+  },
+  {
+    "id": "Item_MushroomGet_M",
+    "name": "Ironshroom",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Mushroom_N",
+    "name": "Big Hearty Truffle",
+    "category": "materials"
+  },
+  {
+    "id": "Item_MushroomGet_N",
+    "name": "Big Hearty Truffle",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Mushroom_N_00",
+    "name": "Big Hearty Truffle x0",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Mushroom_O",
+    "name": "Endura Shroom",
+    "category": "materials"
+  },
+  {
+    "id": "Item_MushroomGet_O",
+    "name": "Endura Shroom",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Plant_A",
+    "name": "Hyrule Herb",
+    "category": "materials"
+  },
+  {
+    "id": "Item_PlantGet_A",
+    "name": "Hyrule Herb",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Plant_B",
+    "name": "Hearty Radish",
+    "category": "materials"
+  },
+  {
+    "id": "Item_PlantGet_B",
+    "name": "Hearty Radish",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Plant_C",
+    "name": "Big Hearty Radish",
+    "category": "materials"
+  },
+  {
+    "id": "Item_PlantGet_C",
+    "name": "Big Hearty Radish",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Plant_E",
+    "name": "Cool Safflina",
+    "category": "materials"
+  },
+  {
+    "id": "Item_PlantGet_E",
+    "name": "Cool Safflina",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Plant_F",
+    "name": "Warm Safflina",
+    "category": "materials"
+  },
+  {
+    "id": "Item_PlantGet_F",
+    "name": "Warm Safflina",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Plant_G",
+    "name": "Mighty Thistle",
+    "category": "materials"
+  },
+  {
+    "id": "Item_PlantGet_G",
+    "name": "Mighty Thistle",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Plant_H",
+    "name": "Armoranth",
+    "category": "materials"
+  },
+  {
+    "id": "Item_PlantGet_H",
+    "name": "Armoranth",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Plant_I",
+    "name": "Blue Nightshade",
+    "category": "materials"
+  },
+  {
+    "id": "Item_PlantGet_I",
+    "name": "Blue Nightshade",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Plant_J",
+    "name": "Silent Princess",
+    "category": "materials"
+  },
+  {
+    "id": "Item_PlantGet_J",
+    "name": "Silent Princess",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Plant_L",
+    "name": "Electric Safflina",
+    "category": "materials"
+  },
+  {
+    "id": "Item_PlantGet_L",
+    "name": "Electric Safflina",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Plant_M",
+    "name": "Swift Carrot",
+    "category": "materials"
+  },
+  {
+    "id": "Item_PlantGet_M",
+    "name": "Swift Carrot",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Plant_O",
+    "name": "Swift Violet",
+    "category": "materials"
+  },
+  {
+    "id": "Item_PlantGet_O",
+    "name": "Swift Violet",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Plant_Q",
+    "name": "Endura Carrot",
+    "category": "materials"
+  },
+  {
+    "id": "Item_PlantGet_Q",
+    "name": "Endura Carrot",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Meat_01",
+    "name": "Raw Meat",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Meat_02",
+    "name": "Raw Prime Meat",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Meat_06",
+    "name": "Raw Bird Drumstick",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Meat_07",
+    "name": "Raw Bird Thigh",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Meat_11",
+    "name": "Raw Gourmet Meat",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Meat_12",
+    "name": "Raw Whole Meat",
+    "category": "materials"
+  },
+  {
+    "id": "Item_FishGet_A",
+    "name": "Hylian Bass",
+    "category": "materials"
+  },
+  {
+    "id": "Item_FishGet_B",
+    "name": "Hearty Bass",
+    "category": "materials"
+  },
+  {
+    "id": "Item_FishGet_C",
+    "name": "Chillfin Trout",
+    "category": "materials"
+  },
+  {
+    "id": "Item_FishGet_D",
+    "name": "Voltfin Trout",
+    "category": "materials"
+  },
+  {
+    "id": "Item_FishGet_E",
+    "name": "Mighty Carp",
+    "category": "materials"
+  },
+  {
+    "id": "Item_FishGet_F",
+    "name": "Mighty Porgy",
+    "category": "materials"
+  },
+  {
+    "id": "Item_FishGet_G",
+    "name": "Armored Porgy",
+    "category": "materials"
+  },
+  {
+    "id": "Item_FishGet_H",
+    "name": "Armored Carp",
+    "category": "materials"
+  },
+  {
+    "id": "Item_FishGet_I",
+    "name": "Hearty Salmon",
+    "category": "materials"
+  },
+  {
+    "id": "Item_FishGet_J",
+    "name": "Sizzlefin Trout",
+    "category": "materials"
+  },
+  {
+    "id": "Item_FishGet_K",
+    "name": "Hearty Blueshell Snail",
+    "category": "materials"
+  },
+  {
+    "id": "Item_FishGet_L",
+    "name": "Staminoka Bass",
+    "category": "materials"
+  },
+  {
+    "id": "Item_FishGet_M",
+    "name": "Sneaky River Snail",
+    "category": "materials"
+  },
+  {
+    "id": "Item_FishGet_X",
+    "name": "Stealthfin Trout",
+    "category": "materials"
+  },
+  {
+    "id": "Item_FishGet_Z",
+    "name": "Sanke Carp",
+    "category": "materials"
+  },
+  {
+    "id": "Animal_Insect_A",
+    "name": "Hot-Footed Frog",
+    "category": "materials"
+  },
+  {
+    "id": "Item_InsectGet_A",
+    "name": "Hot-Footed Frog",
+    "category": "materials"
+  },
+  {
+    "id": "Animal_Insect_B",
+    "name": "Tireless Frog",
+    "category": "materials"
+  },
+  {
+    "id": "Item_InsectGet_B",
+    "name": "Tireless Frog",
+    "category": "materials"
+  },
+  {
+    "id": "Animal_Insect_C",
+    "name": "Cold Darner",
+    "category": "materials"
+  },
+  {
+    "id": "Item_InsectGet_C",
+    "name": "Cold Darner",
+    "category": "materials"
+  },
+  {
+    "id": "Animal_Insect_E",
+    "name": "Sunset Firefly",
+    "category": "materials"
+  },
+  {
+    "id": "Item_InsectGet_E",
+    "name": "Sunset Firefly",
+    "category": "materials"
+  },
+  {
+    "id": "Animal_Insect_F",
+    "name": "Fairy",
+    "category": "materials"
+  },
+  {
+    "id": "Item_InsectGet_F",
+    "name": "Fairy",
+    "category": "materials"
+  },
+  {
+    "id": "Animal_Insect_G",
+    "name": "Bladed Rhino Beetle",
+    "category": "materials"
+  },
+  {
+    "id": "Item_InsectGet_G",
+    "name": "Bladed Rhino Beetle",
+    "category": "materials"
+  },
+  {
+    "id": "Animal_Insect_H",
+    "name": "Restless Cricket",
+    "category": "materials"
+  },
+  {
+    "id": "Item_InsectGet_H",
+    "name": "Restless Cricket",
+    "category": "materials"
+  },
+  {
+    "id": "Animal_Insect_I",
+    "name": "Electric Darner",
+    "category": "materials"
+  },
+  {
+    "id": "Item_InsectGet_I",
+    "name": "Electric Darner",
+    "category": "materials"
+  },
+  {
+    "id": "Animal_Insect_K",
+    "name": "Razorclaw Crab",
+    "category": "materials"
+  },
+  {
+    "id": "Item_InsectGet_K",
+    "name": "Razorclaw Crab",
+    "category": "materials"
+  },
+  {
+    "id": "Animal_Insect_M",
+    "name": "Hearty Lizard",
+    "category": "materials"
+  },
+  {
+    "id": "Item_InsectGet_M",
+    "name": "Hearty Lizard",
+    "category": "materials"
+  },
+  {
+    "id": "Animal_Insect_N",
+    "name": "Winterwing Butterfly",
+    "category": "materials"
+  },
+  {
+    "id": "Item_InsectGet_N",
+    "name": "Winterwing Butterfly",
+    "category": "materials"
+  },
+  {
+    "id": "Animal_Insect_O",
+    "name": "Ironshell Crab",
+    "category": "materials"
+  },
+  {
+    "id": "Item_InsectGet_O",
+    "name": "Ironshell Crab",
+    "category": "materials"
+  },
+  {
+    "id": "Animal_Insect_P",
+    "name": "Rugged Rhino Beetle",
+    "category": "materials"
+  },
+  {
+    "id": "Item_InsectGet_P",
+    "name": "Rugged Rhino Beetle",
+    "category": "materials"
+  },
+  {
+    "id": "Animal_Insect_Q",
+    "name": "Summerwing Butterfly",
+    "category": "materials"
+  },
+  {
+    "id": "Item_InsectGet_Q",
+    "name": "Summerwing Butterfly",
+    "category": "materials"
+  },
+  {
+    "id": "Animal_Insect_R",
+    "name": "Thunderwing Butterfly",
+    "category": "materials"
+  },
+  {
+    "id": "Item_InsectGet_R",
+    "name": "Thunderwing Butterfly",
+    "category": "materials"
+  },
+  {
+    "id": "Animal_Insect_S",
+    "name": "Hightail Lizard",
+    "category": "materials"
+  },
+  {
+    "id": "Item_InsectGet_S",
+    "name": "Hightail Lizard",
+    "category": "materials"
+  },
+  {
+    "id": "Animal_Insect_T",
+    "name": "Warm Darner",
+    "category": "materials"
+  },
+  {
+    "id": "Item_InsectGet_T",
+    "name": "Warm Darner",
+    "category": "materials"
+  },
+  {
+    "id": "Animal_Insect_X",
+    "name": "Fireproof Lizard",
+    "category": "materials"
+  },
+  {
+    "id": "Item_InsectGet_X",
+    "name": "Fireproof Lizard",
+    "category": "materials"
+  },
+  {
+    "id": "Animal_Insect_Z",
+    "name": "Bright-Eyed Crab",
+    "category": "materials"
+  },
+  {
+    "id": "Item_InsectGet_Z",
+    "name": "Bright-Eyed Crab",
+    "category": "materials"
+  },
+  {
+    "id": "Animal_Insect_AA",
+    "name": "Energetic Rhino Beetle",
+    "category": "materials"
+  },
+  {
+    "id": "Item_InsectGet_AA",
+    "name": "Energetic Rhino Beetle",
+    "category": "materials"
+  },
+  {
+    "id": "Animal_Insect_AB",
+    "name": "Smotherwing Butterfly",
+    "category": "materials"
+  },
+  {
+    "id": "Item_InsectGet_AB",
+    "name": "Smotherwing Butterfly",
+    "category": "materials"
+  },
+  {
+    "id": "BeeHome",
+    "name": "Courser Bee Honey",
+    "category": "materials"
+  },
+  {
+    "id": "Obj_FireWoodBundle",
+    "name": "Wood",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_00",
+    "name": "Bokoblin Horn",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_01",
+    "name": "Bokoblin Fang",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_02",
+    "name": "Bokoblin Guts",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_03",
+    "name": "Lizalfos Horn",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_04",
+    "name": "Lizalfos Talon",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_05",
+    "name": "Lizalfos Tail",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_06",
+    "name": "Moblin Horn",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_07",
+    "name": "Moblin Fang",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_08",
+    "name": "Moblin Guts",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_12",
+    "name": "Lynel Horn",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_13",
+    "name": "Lynel Hoof",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_14",
+    "name": "Lynel Guts",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_15",
+    "name": "Red Chuchu Jelly",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_16",
+    "name": "Yellow Chuchu Jelly",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_17",
+    "name": "White Chuchu Jelly",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_18",
+    "name": "Keese Wing",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_19",
+    "name": "Keese Eyeball",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_20",
+    "name": "Octorok Tentacle",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_21",
+    "name": "Tentacle Eyeball",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_24",
+    "name": "Molduga Fin",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_25",
+    "name": "Molduga Guts",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_26",
+    "name": "Ancient Gear",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_27",
+    "name": "Ancient Screw",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_28",
+    "name": "Ancient Spring",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_29",
+    "name": "Ancient Shaft",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_30",
+    "name": "Ancient Core",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_31",
+    "name": "Giant Ancient Core",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_32",
+    "name": "Hinox Toenail",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_33",
+    "name": "Hinox Tooth",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_34",
+    "name": "Hinox Guts",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_38",
+    "name": "Dinraal's Scale",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_39",
+    "name": "Dinraal's Claw",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_40",
+    "name": "Chuchu Jelly",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_41",
+    "name": "Red Lizalfos Tail",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_42",
+    "name": "Icy Lizalfos Tail",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_43",
+    "name": "Yellow Lizalfos Tail",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_44",
+    "name": "Fire Keese Wing",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_45",
+    "name": "Electric Keese Wing",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_46",
+    "name": "Ice Keese Wing",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_47",
+    "name": "Shard of Dinraal's Fang",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_48",
+    "name": "Shard of Dinraal's Horn",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_49",
+    "name": "Naydra's Scale",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_50",
+    "name": "Naydra's Claw",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_51",
+    "name": "Shard of Naydra's Fang",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_52",
+    "name": "Shard of Naydra's Horn",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_53",
+    "name": "Farosh's Scale",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_54",
+    "name": "Farosh's Claw",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_55",
+    "name": "Shard of Farosh's Fang",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_56",
+    "name": "Shard of Farosh's Horn",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_57",
+    "name": "Octo Balloon",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Enemy_Put_57",
+    "name": "Octo Balloon",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Material_01",
+    "name": "Cane Sugar",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Material_02",
+    "name": "Goron Spice",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Material_03",
+    "name": "Hylian Rice",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Material_04",
+    "name": "Bird Egg",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Material_05",
+    "name": "Fresh Milk",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Material_06",
+    "name": "Goat Butter",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Material_07",
+    "name": "Tabantha Wheat",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Material_08",
+    "name": "Monster Extract",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Ore_A",
+    "name": "Diamond",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Ore_A_00",
+    "name": "Diamant x0",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Ore_B",
+    "name": "Ruby",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Ore_C",
+    "name": "Sapphire",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Ore_D",
+    "name": "Topaz",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Ore_E",
+    "name": "Opal",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Ore_F",
+    "name": "Amber",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Ore_G",
+    "name": "Luminous Stone",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Ore_H",
+    "name": "Rock Salt",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Ore_I",
+    "name": "Flint",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Ore_J",
+    "name": "Star Fragment",
+    "category": "materials"
+  },
+  {
+    "id": "Item_Boiled_01",
+    "name": "Hard-Boiled Egg",
+    "category": "food"
+  },
+  {
+    "id": "Item_ChilledFish_01",
+    "name": "Frozen Bass",
+    "category": "food"
+  },
+  {
+    "id": "Item_ChilledFish_02",
+    "name": "Frozen Hearty Salmon",
+    "category": "food"
+  },
+  {
+    "id": "Item_ChilledFish_03",
+    "name": "Frozen Trout",
+    "category": "food"
+  },
+  {
+    "id": "Item_ChilledFish_04",
+    "name": "Frozen Carp",
+    "category": "food"
+  },
+  {
+    "id": "Item_ChilledFish_05",
+    "name": "Frozen Porgy",
+    "category": "food"
+  },
+  {
+    "id": "Item_ChilledFish_06",
+    "name": "Frozen Hearty Bass",
+    "category": "food"
+  },
+  {
+    "id": "Item_ChilledFish_07",
+    "name": "Frozen Crab",
+    "category": "food"
+  },
+  {
+    "id": "Item_ChilledFish_08",
+    "name": "Frozen River Snail",
+    "category": "food"
+  },
+  {
+    "id": "Item_ChilledFish_09",
+    "name": "Icy Hearty Blueshell Snail",
+    "category": "food"
+  },
+  {
+    "id": "Item_RoastFish_01",
+    "name": "Roasted Bass",
+    "category": "food"
+  },
+  {
+    "id": "Item_RoastFish_02",
+    "name": "Roasted Hearty Bass",
+    "category": "food"
+  },
+  {
+    "id": "Item_RoastFish_03",
+    "name": "Roasted Trout",
+    "category": "food"
+  },
+  {
+    "id": "Item_RoastFish_04",
+    "name": "Roasted Hearty Salmon",
+    "category": "food"
+  },
+  {
+    "id": "Item_RoastFish_07",
+    "name": "Roasted Carp",
+    "category": "food"
+  },
+  {
+    "id": "Item_RoastFish_09",
+    "name": "Roasted Porgy",
+    "category": "food"
+  },
+  {
+    "id": "Item_RoastFish_11",
+    "name": "Blueshell Escargot",
+    "category": "food"
+  },
+  {
+    "id": "Item_RoastFish_13",
+    "name": "Sneaky River Escargot",
+    "category": "food"
+  },
+  {
+    "id": "Item_RoastFish_15",
+    "name": "Blackened Crab",
+    "category": "food"
+  },
+  {
+    "id": "Item_Roast_01",
+    "name": "Seared Steak",
+    "category": "food"
+  },
+  {
+    "id": "Item_Roast_02",
+    "name": "Roasted Bird Drumstick",
+    "category": "food"
+  },
+  {
+    "id": "Item_Roast_03",
+    "name": "Baked Apple",
+    "category": "food"
+  },
+  {
+    "id": "Item_Roast_04",
+    "name": "Toasty Stamella Shroom",
+    "category": "food"
+  },
+  {
+    "id": "Item_Roast_05",
+    "name": "Toasted Hearty Truffle",
+    "category": "food"
+  },
+  {
+    "id": "Item_Roast_06",
+    "name": "Toasty Hylian Shroom",
+    "category": "food"
+  },
+  {
+    "id": "Item_Roast_07",
+    "name": "Roasted Wildberry",
+    "category": "food"
+  },
+  {
+    "id": "Item_Roast_08",
+    "name": "Roasted Voltfruit",
+    "category": "food"
+  },
+  {
+    "id": "Item_Roast_09",
+    "name": "Roasted Hearty Durian",
+    "category": "food"
+  },
+  {
+    "id": "Item_Roast_10",
+    "name": "Baked Palm Fruit",
+    "category": "food"
+  },
+  {
+    "id": "Item_Roast_11",
+    "name": "Roasted Mighty Bananas",
+    "category": "food"
+  },
+  {
+    "id": "Item_Roast_12",
+    "name": "Roasted Hydromelon",
+    "category": "food"
+  },
+  {
+    "id": "Item_Roast_13",
+    "name": "Charred Pepper",
+    "category": "food"
+  },
+  {
+    "id": "Item_Roast_15",
+    "name": "Baked Fortified Pumpkin",
+    "category": "food"
+  },
+  {
+    "id": "Item_Roast_16",
+    "name": "Roasted Lotus Seed",
+    "category": "food"
+  },
+  {
+    "id": "Item_Roast_18",
+    "name": "Roasted Radish",
+    "category": "food"
+  },
+  {
+    "id": "Item_Roast_19",
+    "name": "Roasted Big Radish",
+    "category": "food"
+  },
+  {
+    "id": "Item_Roast_24",
+    "name": "Roasted Swift Carrot",
+    "category": "food"
+  },
+  {
+    "id": "Item_Roast_27",
+    "name": "Roasted Mighty Thistle",
+    "category": "food"
+  },
+  {
+    "id": "Item_Roast_28",
+    "name": "Roasted Armoranth",
+    "category": "food"
+  },
+  {
+    "id": "Item_Roast_31",
+    "name": "Toasty Chillshroom",
+    "category": "food"
+  },
+  {
+    "id": "Item_Roast_32",
+    "name": "Toasty Sunshroom",
+    "category": "food"
+  },
+  {
+    "id": "Item_Roast_33",
+    "name": "Toasty Zapshroom",
+    "category": "food"
+  },
+  {
+    "id": "Item_Roast_36",
+    "name": "Toasty Rushroom",
+    "category": "food"
+  },
+  {
+    "id": "Item_Roast_37",
+    "name": "Toasty Razorshroom",
+    "category": "food"
+  },
+  {
+    "id": "Item_Roast_38",
+    "name": "Toasty Ironshroom",
+    "category": "food"
+  },
+  {
+    "id": "Item_Roast_39",
+    "name": "Toasty Silent Shroom",
+    "category": "food"
+  },
+  {
+    "id": "Item_Roast_40",
+    "name": "Seared Prime Steak",
+    "category": "food"
+  },
+  {
+    "id": "Item_Roast_41",
+    "name": "Roasted Bird Thigh",
+    "category": "food"
+  },
+  {
+    "id": "Item_Roast_45",
+    "name": "Seared Gourmet Steak",
+    "category": "food"
+  },
+  {
+    "id": "Item_Roast_46",
+    "name": "Roasted Whole Bird",
+    "category": "food"
+  },
+  {
+    "id": "Item_Roast_48",
+    "name": "Roasted Acorn",
+    "category": "food"
+  },
+  {
+    "id": "Item_Roast_49",
+    "name": "Toasted Big Heart Truffle",
+    "category": "food"
+  },
+  {
+    "id": "Item_Roast_50",
+    "name": "Roasted Endura Carrot",
+    "category": "food"
+  },
+  {
+    "id": "Item_Roast_51",
+    "name": "Campfire Egg",
+    "category": "food"
+  },
+  {
+    "id": "Item_Roast_52",
+    "name": "Roasted Tree Nut",
+    "category": "food"
+  },
+  {
+    "id": "Item_Roast_53",
+    "name": "Toasty Endura Shroom",
+    "category": "food"
+  },
+  {
+    "id": "Item_Chilled_01",
+    "name": "Icy Meat",
+    "category": "food"
+  },
+  {
+    "id": "Item_Chilled_02",
+    "name": "Icy Prime Meat",
+    "category": "food"
+  },
+  {
+    "id": "Item_Chilled_03",
+    "name": "Icy Gourmet Meat",
+    "category": "food"
+  },
+  {
+    "id": "Item_Chilled_04",
+    "name": "Frozen Bird Drumstick",
+    "category": "food"
+  },
+  {
+    "id": "Item_Chilled_05",
+    "name": "Frozen Bird Thigh",
+    "category": "food"
+  },
+  {
+    "id": "Item_Chilled_06",
+    "name": "Frozen Whole Bird",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_A_01",
+    "name": "Mushroom Skewer",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_A_02",
+    "name": "Steamed Mushrooms",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_A_03",
+    "name": "Steamed Fruit",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_A_04",
+    "name": "Steamed Fish",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_A_05",
+    "name": "Steamed Meat",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_A_07",
+    "name": "Fruit and Mushroom Mix",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_A_08",
+    "name": "Fish and Mushroom Skewer",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_A_09",
+    "name": "Meat and Mushroom Skewer",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_A_10",
+    "name": "Omelet",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_A_11",
+    "name": "Glazed Mushroom",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_A_12",
+    "name": "Glazed Meat",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_A_13",
+    "name": "Glazed Seafood",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_A_14",
+    "name": "Glazed Veggies",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_B_01",
+    "name": "Fried Wild Greens",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_B_02",
+    "name": "Simmered Fruits",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_B_05",
+    "name": "Fish Skewer",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_B_06",
+    "name": "Meat Skewer",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_B_11",
+    "name": "Copious Fried Wild Greens",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_B_12",
+    "name": "Copious Simmered Fruits",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_B_13",
+    "name": "Copious Mushroom Skewers",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_B_15",
+    "name": "Copious Seafood Skewers",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_B_16",
+    "name": "Copious Meat Skewers",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_B_17",
+    "name": "Meat and Seafood Fry",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_B_18",
+    "name": "Prime Meat and Seafood Fry",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_B_19",
+    "name": "Gourmet Meat and Seafood Fry",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_B_20",
+    "name": "Meat-Stuffed Pumpkin",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_B_21",
+    "name": "Sautéed Peppers",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_B_22",
+    "name": "Sautéed Nuts",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_B_23",
+    "name": "Seafood Skewers",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_C_16",
+    "name": "Fairy Tonic",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_C_17",
+    "name": "Elixir",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_D_01",
+    "name": "Salt-Grilled Mushrooms",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_D_02",
+    "name": "Salt-Grilled Greens",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_D_03",
+    "name": "Salt-Grilled Fish",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_D_04",
+    "name": "Salt-Grilled Meat",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_D_05",
+    "name": "Salt-Grilled Prime Meat",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_D_06",
+    "name": "Salt-Grilled Gourmet Meat",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_D_07",
+    "name": "Pepper Steak",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_D_08",
+    "name": "Pepper Seafood",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_D_09",
+    "name": "Salt-Grilled Crab",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_D_10",
+    "name": "Crab Stir-Fry",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_E_01",
+    "name": "Poultry Pilaf",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_E_02",
+    "name": "Prime Poultry Pilaf",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_E_03",
+    "name": "Gourmet Poultry Pilaf",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_E_04",
+    "name": "Fried Egg and Rice",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_F_01",
+    "name": "Creamy Meat Soup",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_F_02",
+    "name": "Creamy Seafood Soup",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_F_03",
+    "name": "Veggie Cream Soup",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_F_04",
+    "name": "Creamy Heart Soup",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_G_02",
+    "name": "Seafood Rice Balls",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_G_03",
+    "name": "Veggie Rice Balls",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_G_04",
+    "name": "Mushroom Rice Balls",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_G_05",
+    "name": "Meat and Rice Bowl",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_G_06",
+    "name": "Prime Meat and Rice Bowl",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_G_09",
+    "name": "Gourmet Meat and Rice Bowl",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_G_10",
+    "name": "Seafood Fried Rice",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_G_11",
+    "name": "Curry Pilaf",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_G_12",
+    "name": "Mushroom Risotto",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_G_13",
+    "name": "Vegetable Risotto",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_G_14",
+    "name": "Salmon Risotto",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_G_15",
+    "name": "Meaty Rice Balls",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_G_16",
+    "name": "Crab Omelet with Rice",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_G_17",
+    "name": "Crab Risotto",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_H_01",
+    "name": "Seafood Meunière",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_H_02",
+    "name": "Porgy Meunière",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_H_03",
+    "name": "Salmon Meunière",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_I_01",
+    "name": "Fruit Pie",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_I_02",
+    "name": "Apple Pie",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_I_03",
+    "name": "Egg Tart",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_I_04",
+    "name": "Meat Pie",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_I_05",
+    "name": "Carrot Cake",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_I_06",
+    "name": "Pumpkin Pie",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_I_07",
+    "name": "Hot Buttered Apple",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_I_08",
+    "name": "Honeyed Apple",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_I_09",
+    "name": "Honeyed Fruits",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_I_10",
+    "name": "Plain Crepe",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_I_11",
+    "name": "Wildberry Crepe",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_I_12",
+    "name": "Nutcake",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_I_13",
+    "name": "Fried Bananas",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_I_14",
+    "name": "Egg Pudding",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_I_15",
+    "name": "Fish Pie",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_I_16",
+    "name": "Honey Candy",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_I_17",
+    "name": "Honey Crepe",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_J_01",
+    "name": "Curry Rice",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_J_02",
+    "name": "Vegetable Curry",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_J_03",
+    "name": "Seafood Curry",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_J_04",
+    "name": "Poultry Curry",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_J_05",
+    "name": "Prime Poultry Curry",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_J_06",
+    "name": "Meat Curry",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_J_07",
+    "name": "Prime Meat Curry",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_J_08",
+    "name": "Gourmet Poultry Curry",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_J_09",
+    "name": "Gourmet Meat Curry",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_K_01",
+    "name": "Meat Stew",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_K_02",
+    "name": "Prime Meat Stew",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_K_03",
+    "name": "Pumpkin Stew",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_K_04",
+    "name": "Clam Chowder",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_K_05",
+    "name": "Gourmet Meat Stew",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_K_06",
+    "name": "Cream of Mushroom Soup",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_K_07",
+    "name": "Cream of Vegetable Soup",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_K_08",
+    "name": "Carrot Stew",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_K_09",
+    "name": "Milk",
+    "category": "food"
+  },
+  {
+    "id": "Item_Material_05_00",
+    "name": "Milk x0",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_L_01",
+    "name": "Monster Stew",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_L_02",
+    "name": "Monster Soup",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_L_03",
+    "name": "Monster Cake",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_L_04",
+    "name": "Monster Rice Balls",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_L_05",
+    "name": "Monster Curry",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_M_01",
+    "name": "Wheat Bread",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_N_01",
+    "name": "Seafood Paella",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_N_02",
+    "name": "Fruitcake",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_N_03",
+    "name": "Vegetable Omelet",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_N_04",
+    "name": "Mushroom Omelet",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_O_01",
+    "name": "Dubious Food",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_O_02",
+    "name": "Rock-Hard Food",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_P_01",
+    "name": "Fragrant Mushroom Sauté",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_P_02",
+    "name": "Herb Sauté",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_P_03",
+    "name": "Spiced Meat Skewer",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_P_04",
+    "name": "Prime Spiced Meat Skewer",
+    "category": "food"
+  },
+  {
+    "id": "Item_Cook_P_05",
+    "name": "Gourmet Spiced Meat Skewer",
+    "category": "food"
+  },
+  {
+    "id": "Obj_DungeonClearSeal",
+    "name": "Spirit Orb",
+    "category": "other"
+  },
+  {
+    "id": "Obj_KorokNuts",
+    "name": "Korok Seed",
+    "category": "other"
+  },
+  {
+    "id": "PlayerStole2",
+    "name": "Paraglider",
+    "category": "other"
+  },
+  {
+    "id": "Obj_ProofBook",
+    "name": "Classified Envelope",
+    "category": "other"
+  },
+  {
+    "id": "Obj_DRStone_Get",
+    "name": "Sheikah Slate",
+    "category": "other"
+  },
+  {
+    "id": "Obj_HeroSoul_Zora",
+    "name": "Mipha's Grace",
+    "category": "other"
+  },
+  {
+    "id": "Obj_HeroSoul_Gerudo",
+    "name": "Urbosa's Fury",
+    "category": "other"
+  },
+  {
+    "id": "Obj_HeroSoul_Goron",
+    "name": "Daruk's Protection",
+    "category": "other"
+  },
+  {
+    "id": "Obj_HeroSoul_Rito",
+    "name": "Revali's Gale",
+    "category": "other"
+  },
+  {
+    "id": "Obj_DLC_HeroSoul_Zora",
+    "name": "Mipha's Grace + (v1.4)",
+    "category": "other"
+  },
+  {
+    "id": "Obj_DLC_HeroSoul_Gerudo",
+    "name": "Urbosa's Fury + (v1.4)",
+    "category": "other"
+  },
+  {
+    "id": "Obj_DLC_HeroSoul_Goron",
+    "name": "Daruk's Protection + (v1.4)",
+    "category": "other"
+  },
+  {
+    "id": "Obj_DLC_HeroSoul_Rito",
+    "name": "Revali's Gale + (v1.4)",
+    "category": "other"
+  },
+  {
+    "id": "Obj_Maracas",
+    "name": "Hestu's Maracas",
+    "category": "other"
+  },
+  {
+    "id": "Obj_ProofKorok",
+    "name": "Hestu's Gift",
+    "category": "other"
+  },
+  {
+    "id": "Obj_ProofSandwormKiller",
+    "name": "Medal of Honor: Molduga",
+    "category": "other"
+  },
+  {
+    "id": "Obj_ProofGiantKiller",
+    "name": "Medal of Honor: Hinox",
+    "category": "other"
+  },
+  {
+    "id": "Obj_ProofGolemKiller",
+    "name": "Medal of Honor: Talus",
+    "category": "other"
+  },
+  {
+    "id": "KeySmall",
+    "name": "Small Key",
+    "category": "other"
+  },
+  {
+    "id": "Obj_Armor_115_Head",
+    "name": "Thunder Helm",
+    "category": "other"
+  },
+  {
+    "id": "GameRomHorseReins_00",
+    "name": "Stable Bridle",
+    "category": "other"
+  },
+  {
+    "id": "GameRomHorseReins_01",
+    "name": "Traveler's Bridle",
+    "category": "other"
+  },
+  {
+    "id": "GameRomHorseReins_02",
+    "name": "Royal Reins",
+    "category": "other"
+  },
+  {
+    "id": "GameRomHorseReins_03",
+    "name": "Knight's Bridle",
+    "category": "other"
+  },
+  {
+    "id": "GameRomHorseReins_04",
+    "name": "Monster Bridle",
+    "category": "other"
+  },
+  {
+    "id": "GameRomHorseReins_05",
+    "name": "Extravagant Bridle",
+    "category": "other"
+  },
+  {
+    "id": "GameRomHorseReins_10",
+    "name": "Ancient Bridle (v1.4)",
+    "category": "other"
+  },
+  {
+    "id": "GameRomHorseSaddle_00",
+    "name": "Stable Saddle",
+    "category": "other"
+  },
+  {
+    "id": "GameRomHorseSaddle_01",
+    "name": "Traveler's Saddle",
+    "category": "other"
+  },
+  {
+    "id": "GameRomHorseSaddle_02",
+    "name": "Royal Saddle",
+    "category": "other"
+  },
+  {
+    "id": "GameRomHorseSaddle_03",
+    "name": "Knight's Saddle",
+    "category": "other"
+  },
+  {
+    "id": "GameRomHorseSaddle_04",
+    "name": "Monster Saddle",
+    "category": "other"
+  },
+  {
+    "id": "GameRomHorseSaddle_05",
+    "name": "Extravagant Saddle",
+    "category": "other"
+  },
+  {
+    "id": "GameRomHorseSaddle_10",
+    "name": "Ancient Saddle (v1.4)",
+    "category": "other"
+  },
+  {
+    "id": "GameRomHorse00S",
+    "name": "Donkey",
+    "category": "other"
+  },
+  {
+    "id": "GameRomHorseNushi",
+    "name": "Lord of the Mountain",
+    "category": "other"
+  },
+  {
+    "id": "GameRomHorseEpona",
+    "name": "Epona",
+    "category": "other"
+  },
+  {
+    "id": "GameRomHorseBone",
+    "name": "Stalhorse",
+    "category": "other"
+  },
+  {
+    "id": "GameRomHorse00L",
+    "name": "Giant Horse",
+    "category": "other"
+  },
+  {
+    "id": "GameRomHorseZelda",
+    "name": "Royal White Stallion",
+    "category": "other"
+  },
+  {
+    "id": "Obj_WarpDLC",
+    "name": "Travel Medallion (v1.3)",
+    "category": "other"
+  },
+  {
+    "id": "Get_TwnObj_DLC_MemorialPicture_A_01",
+    "name": "Picture of the Champions (v1.4)",
+    "category": "other"
+  }
+]
