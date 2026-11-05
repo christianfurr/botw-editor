@@ -19,8 +19,16 @@ xcrun swiftc -O -target arm64-apple-macosx26.0 -D MODEL_CHECKS \
 xcrun swiftc -O -target arm64-apple-macosx26.0 -D UI_SNAPSHOT \
     "$REPO_ROOT/Sources/PlaygroundModel.swift" \
     "$REPO_ROOT/Sources/BOTWPlayground.swift" \
+    "$REPO_ROOT/Sources/GraphicsModel.swift" \
+    "$REPO_ROOT/Sources/GraphicsSettingsView.swift" \
     "$REPO_ROOT/tests/ui_value_checks.swift" \
     -o "$BUILD_DIR/ui-value-checks" -framework SwiftUI -framework AppKit
 "$BUILD_DIR/ui-value-checks"
+xcrun swiftc -O -target arm64-apple-macosx26.0 -D MODEL_CHECKS \
+    "$REPO_ROOT/Sources/GraphicsModel.swift" \
+    "$REPO_ROOT/tests/graphics_model_checks.swift" \
+    -o "$BUILD_DIR/graphics-model-checks"
+"$BUILD_DIR/graphics-model-checks"
 bash "$REPO_ROOT/scripts/test-runtime.sh"
 python3 "$REPO_ROOT/scripts/test_install_bridge.py"
+bash "$REPO_ROOT/scripts/test-postfx.sh"

@@ -17,6 +17,8 @@ struct ModelChecks {
         precondition(state.lastRequest == 123 && !state.lastOK && state.health == 12)
         precondition(state.playerCacheReady == nil && state.maxHeartsLive == nil && state.towersRaised == nil)
         precondition(state.position == nil)
+        precondition(state.inventoryReady == nil && state.inventoryBlockReason == nil)
+        precondition(!TrainerConnection.canEditInventory("items",state:state,alive:true,fresh:true,inputExists:true))
         precondition(TrainerConnection.canSetMaximum("health",state:state,alive:true,fresh:true,inputExists:true))
         precondition(TrainerConnection.canUse("health", state: state, alive: true, fresh: true, inputExists: true))
         precondition(!TrainerConnection.canUse("health", state: state, alive: false, fresh: true, inputExists: true))
@@ -72,17 +74,21 @@ struct ModelChecks {
         let full = try TrainerCommand.fullAccess.payload()
         precondition(hearts == "max_hearts 30" && stamina == "max_stamina 3" && full == "full_access")
         var extended = try JSONSerialization.jsonObject(with: Data(json.utf8)) as! [String:Any]
+        extended["features"] = ["health":true,"stamina":true,"items":true,"inventory_edit":true]
         extended["inventory"] = [["slot":12,"name":"Item_Fruit_A","type":5,"value":10,"equipped":false]]
         extended["destinations"] = [["id":"Dungeon001","name":"A destination","kind":"shrine","x":10.0,"y":20.0,"z":30.0,"unlocked":false]]
         let extendedState = try decoder.decode(TrainerState.self, from: JSONSerialization.data(withJSONObject: extended))
         precondition(extendedState.inventory?.first?.slot == 12)
         precondition(extendedState.destinations?.first?.z == 30)
         precondition(extendedState.destinations?.first?.permitsTeleport == true)
+        precondition(TrainerConnection.canEditInventory("items",state:extendedState,alive:true,fresh:true,inputExists:true))
         extended["player_cache_ready"] = false
         extended["max_hearts_live"] = 20.0
         extended["max_stamina_live"] = 2.0
         extended["towers_raised"] = false
         extended["position"] = ["x": -666.043, "y": 173.104, "z": 1518.725]
+        extended["inventory_ready"] = false
+        extended["inventory_block_reason"] = "Put away held materials first."
         extended["destinations"] = [
             ["id":"north","name":"North","kind":"tower","x":-10.0,"y":20.0,"z":-100.0,"teleportable":false],
             ["id":"south","name":"South","kind":"shrine","x":10.0,"y":20.0,"z":100.0,"teleportable":true]
@@ -90,6 +96,8 @@ struct ModelChecks {
         let cacheLoading = try decoder.decode(TrainerState.self,from:JSONSerialization.data(withJSONObject:extended))
         precondition(cacheLoading.maxHeartsLive == 20 && cacheLoading.maxStaminaLive == 2 && cacheLoading.towersRaised == false)
         precondition(cacheLoading.position?.isFinite == true && cacheLoading.position?.x == -666.043)
+        precondition(cacheLoading.inventoryReady == false && cacheLoading.inventoryBlockReason == "Put away held materials first.")
+        precondition(!TrainerConnection.canEditInventory("items",state:cacheLoading,alive:true,fresh:true,inputExists:true))
         precondition(TrainerConnection.canUse("health",state:cacheLoading,alive:true,fresh:true,inputExists:true))
         precondition(!TrainerConnection.canSetMaximum("health",state:cacheLoading,alive:true,fresh:true,inputExists:true))
         precondition(cacheLoading.destinations?.first?.permitsTeleport == false)
@@ -101,8 +109,10 @@ struct ModelChecks {
         let single = WorldMapProjection(points:[locations[0]]).location(x:locations[0].x,z:locations[0].z,width:600,height:400)
         precondition(single.x == 300 && single.y == 200)
         extended["player_cache_ready"] = true
+        extended["inventory_ready"] = true
         let cacheReady = try decoder.decode(TrainerState.self,from:JSONSerialization.data(withJSONObject:extended))
         precondition(TrainerConnection.canSetMaximum("stamina",state:cacheReady,alive:true,fresh:true,inputExists:true))
+        precondition(TrainerConnection.canEditInventory("inventory_edit",state:cacheReady,alive:true,fresh:true,inputExists:true))
         extended["teleport_busy"] = true
         extended["teleport_state"] = 4
         extended["max_hearts"] = 12.0

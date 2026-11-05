@@ -48,6 +48,15 @@ static uintptr_t bei_manager(uintptr_t base) {
         return 0;
     return manager;
 }
+/* Armor uses -1 for a non-dyeable piece, 0 for its original color, and 1..15
+   for dye colors. NX160 addToPouch writes this sentinel at 0x10b9f40. It is
+   metadata, never a stack quantity or durability value. */
+static int bei_native_value_valid(int type, int value) {
+    if (type >= 4 && type <= 6) return value >= -1 && value <= 15;
+    if (type == 0 || type == 1 || type == 3)
+        return value >= 0 && value <= BE_MAX_RAW_DURABILITY;
+    return type >= 0 && type <= 9 && value >= 0 && value <= BE_MAX_STACK_QUANTITY;
+}
 static int bei_item(uintptr_t base, uintptr_t manager, uintptr_t address, BeiItem *item) {
     uintptr_t start = manager + BEI_BUFFER;
     unsigned char header[0x40];
@@ -60,7 +69,7 @@ static int bei_item(uintptr_t base, uintptr_t manager, uintptr_t address, BeiIte
     memcpy(&text, header + 0x30, 8); memcpy(&capacity, header + 0x38, 4);
     if (vtable != base + 0x2b877a0 || name_vtable != base + 0x2a6faf0 ||
         text != address + 0x3c || capacity != 64 || type < 0 || type > 9 ||
-        header[0x24] > 1 || header[0x25] != 1 || value < 0 || value > BE_MAX_RAW_DURABILITY ||
+        header[0x24] > 1 || header[0x25] != 1 || !bei_native_value_valid(type, value) ||
         !be_read(text, item->name, sizeof item->name) || !bei_name(item->name)) return 0;
     item->address = address; item->slot = (int)((address - start) / BEI_ITEM_SIZE);
     item->type = type; item->value = value; item->equipped = header[0x24];
@@ -111,10 +120,26 @@ static int bei_set_value(const BeiItem *item, int value) {
 static unsigned be_inventory_features(uintptr_t base) {
     return bei_api(base) && bei_manager(base) ? BE_FEATURE_ITEMS | BE_FEATURE_INVENTORY : 0;
 }
+/* A game menu is not, by itself, evidence of a changing inventory. Only report
+   actual validation/held-material conditions; never prescribe closing a menu
+   for a failed layout check. Call while holding the inventory mutex. */
+static const char *bei_inventory_block_reason(uintptr_t manager, int scan_valid) {
+    if (!manager) return "Wait for BOTW's inventory to load.";
+    if (!scan_valid) return "Inventory data could not be validated. Wait for a refresh before trying again.";
+    for (int i = 0; i < 5; ++i) {
+        uintptr_t held = 0;
+        if (!be_read(manager + 0x444a0 + (uintptr_t)i * 16, &held, sizeof held))
+            return "Inventory data is not available yet. Wait for a refresh.";
+        if (held) return "Put away the materials Link is holding in BOTW, then try again.";
+    }
+    return NULL;
+}
 static void be_inventory_snapshot(FILE *output, uintptr_t base, int ready) {
     BeiItem items[BEI_SLOTS]; int count = 0;
     uintptr_t manager = ready && bei_api(base) ? bei_manager(base) : 0;
+    if (manager) bei_mutex(base, manager, 1);
     int valid = manager && bei_scan(base, manager, items, &count);
+    const char *blocked = !ready ? "Load a gameplay session to edit inventory." : bei_inventory_block_reason(manager, valid);
     memset(bei_published_names, 0, sizeof bei_published_names);
     fputs(",\"inventory\":[", output);
     for (int i = 0; valid && i < count; ++i) {
@@ -127,6 +152,9 @@ static void be_inventory_snapshot(FILE *output, uintptr_t base, int ready) {
         memcpy(bei_published_names[item->slot], item->name, sizeof item->name);
     }
     fputc(']', output);
+    fprintf(output, ",\"inventory_ready\":%s,\"inventory_block_reason\":", blocked ? "false" : "true");
+    if (blocked) be_json_string(output, blocked); else fputs("null", output);
+    if (manager) bei_mutex(base, manager, 0);
 }
 static int be_inventory_command(uintptr_t base, const char *verb, const char *argument,
                                 int value, char *result, size_t capacity) {
@@ -135,15 +163,10 @@ static int be_inventory_command(uintptr_t base, const char *verb, const char *ar
     if (!manager) { snprintf(result, capacity, "Inventory is not ready or this game build differs"); return 0; }
     BeiItem items[BEI_SLOTS]; int count = 0, ok = 0;
     bei_mutex(base, manager, 1);
-    for (int i = 0; i < 5; ++i) {
-        uintptr_t held = 0;
-        if (!be_read(manager + 0x444a0 + (uintptr_t)i * 16, &held, 8) || held) {
-            snprintf(result, capacity, "Put away the materials Link is holding before editing inventory");
-            goto done;
-        }
-    }
-    if (!bei_scan(base, manager, items, &count)) {
-        snprintf(result, capacity, "Inventory is changing; try again after closing the game menu");
+    int valid = bei_scan(base, manager, items, &count);
+    const char *blocked = bei_inventory_block_reason(manager, valid);
+    if (blocked) {
+        snprintf(result, capacity, "%s", blocked);
         goto done;
     }
     if (!strcmp(verb, "give")) {

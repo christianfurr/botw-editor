@@ -26,6 +26,8 @@ Add `--check` to the installer command to validate compatibility and report whet
 
 The installer preserves unrelated checkout changes. It refuses differing bridge headers that it does not own, and it records ownership hashes under `~/Library/Application Support/BOTWEditor/Installations/`. Backups and runtime build logs remain local under `~/Library/Application Support/BOTWEditor/Backups/`.
 
+Upgrading from **0.1.0 to 0.1.1** keeps the existing bridge hooks and adds the renderer hook needed for post-processing. The installer checks each of the three allowed source files separately and applies only missing hooks, so a partly integrated checkout is supported. Conflicting local edits still stop installation before source changes. The post-processing header is installed alongside the renderer; the other bridge headers stay with the runtime.
+
 When the bridge source and installed runtime already match, it reuses hash-verified artwork caches. Missing or invalid local artwork is regenerated without rebuilding the game runtime; extraction logs are kept under `~/Library/Application Support/BOTWEditor/logs/`. The installer verifies the extracted outputs before reporting success.
 
 ### Opening the downloaded app
@@ -46,10 +48,14 @@ No step requires disabling Gatekeeper or removing quarantine attributes.
 | Stale or missing bridge state | Verify that the bridge installer finished successfully and that you launched the updated app. |
 | Feature unavailable | That operation failed its compatibility/readiness checks. Do not substitute offsets from another game version. |
 | Request rejected | Read the editor's result; a queued command or button click is not proof of an applied edit. |
+| Inventory edits unavailable while holding materials | Put away the materials Link is holding, then retry. Browsing the catalog remains available. |
+| Inventory data could not be validated | Wait for a fresh snapshot and verify the 0.1.1 bridge is installed. An open game menu alone does not require closing it. |
 
 ## Inventory values
 
 Materials and arrows use stack quantities from 1 to 999. Swords, bows, and shields show **durability points**, with up to two decimal places. The bridge uses 100 raw units per point, so 20 displayed points correspond to a native value of 2,000. The UI converts points to the validated native integer; it requires weapons to be unequipped before editing. Armor, food, and key-item values are not editable. See [Testing](TESTING.md) for the latest durability revision's live status.
+
+The 0.1.1 bridge recognizes the game's armor dye metadata, including its non-dyeable marker. Owning such armor no longer hides the pouch or produces an incorrect instruction to close the game menu.
 
 ## World changes
 

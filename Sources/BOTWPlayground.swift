@@ -8,12 +8,12 @@ struct BOTWEditorApp: App {
     @StateObject private var model = PlaygroundModel()
     var body: some Scene {
         WindowGroup("BOTW Editor") { EditorView(model: model) }
-            .defaultSize(width: 1000, height: 760)
+            .defaultSize(width: 1280, height: 820)
             .windowResizability(.contentMinSize)
             .commands {
                 CommandGroup(replacing: .newItem) {}
                 CommandGroup(after: .toolbar) {
-                    Button("Refresh Connection") { model.refresh(); model.send(.status) }
+                    Button("Refresh Connection") { model.refresh(); if model.connected { model.send(.status) } }
                         .keyboardShortcut("r", modifiers: .command)
                 }
             }
@@ -47,17 +47,74 @@ private enum Slate {
     static let orange = Color(red: 0.96, green: 0.61, blue: 0.30)
 }
 
+private struct CutCornerShape: Shape {
+    var cut: CGFloat = 7
+    func path(in r: CGRect) -> Path {
+        Path { p in
+            p.move(to:CGPoint(x:r.minX+cut,y:r.minY)); p.addLine(to:CGPoint(x:r.maxX-cut,y:r.minY))
+            p.addLine(to:CGPoint(x:r.maxX,y:r.midY)); p.addLine(to:CGPoint(x:r.maxX-cut,y:r.maxY))
+            p.addLine(to:CGPoint(x:r.minX+cut,y:r.maxY)); p.addLine(to:CGPoint(x:r.minX,y:r.midY)); p.closeSubpath()
+        }
+    }
+}
+
 private struct SlateButtonStyle: ButtonStyle {
     var primary = false
     var destructive = false
     @Environment(\.isEnabled) private var enabled
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label.font(.system(size: 12, weight: .semibold))
-            .foregroundStyle(!enabled ? Slate.ivory.opacity(0.7) : primary ? Slate.background : destructive ? Color(red: 0.96, green: 0.57, blue: 0.51) : Slate.ivory)
-            .padding(.horizontal, 13).frame(minHeight: 31)
-            .background(!enabled ? Slate.cyan.opacity(primary ? 0.13 : 0.035) : primary ? Slate.cyan.opacity(configuration.isPressed ? 0.7 : 1) : Slate.raised.opacity(configuration.isPressed ? 0.9 : 0.6), in: RoundedRectangle(cornerRadius: 4))
-            .overlay(RoundedRectangle(cornerRadius: 4).stroke(primary ? Slate.cyan : Slate.line, lineWidth: 1))
-            .opacity(enabled ? 1 : 0.9)
+        configuration.label.font(.system(size:primary ? 15 : 13,weight:.medium,design:.serif)).italic()
+            .foregroundStyle(!enabled ? Slate.ivory.opacity(0.48) : primary ? Slate.background : destructive ? Slate.gold : Slate.ivory)
+            .padding(.horizontal,primary ? 19 : 14).frame(minHeight:primary ? 38 : 33)
+            .background {
+                CutCornerShape(cut:primary ? 8 : 4).fill(primary ? Slate.cyan.opacity(enabled ? (configuration.isPressed ? 0.75 : 1) : 0.09) : Slate.raised.opacity(configuration.isPressed ? 0.65 : 0.27))
+            }
+            .overlay { CutCornerShape(cut:primary ? 8 : 4).stroke(primary ? Slate.cyan.opacity(enabled ? 1 : 0.25) : Slate.ivory.opacity(enabled ? 0.42 : 0.13),lineWidth:0.7) }
+            .shadow(color:primary && enabled ? Slate.cyan.opacity(0.14) : .clear,radius:8)
+    }
+}
+
+private struct QuantityControl: View {
+    @Binding var value: String
+    var durability = false
+    var maximum = 999
+    private func step(_ direction: Int) {
+        if durability {
+            let fixture = InventoryEntry(slot:0,name:"",type:0,value:1,equipped:false)
+            let raw = Int(InventoryValuePresentation.commandText(for:fixture,input:value)) ?? 100
+            value = InventoryValuePresentation.durabilityText(rawValue:max(1,min(InventoryEntry.maximumRawDurability,raw+direction*100)))
+        } else { value = String(max(1,min(maximum,(Int(value) ?? 1)+direction))) }
+    }
+    var body: some View {
+        HStack(spacing:0) {
+            Button { step(-1) } label: { Image(systemName:"minus").frame(width:31,height:31) }.accessibilityLabel("Decrease value")
+            Rectangle().fill(Slate.line).frame(width:1)
+            TextField("Value",text:$value).textFieldStyle(.plain).multilineTextAlignment(.center).font(.system(size:16,design:.serif)).frame(minWidth:42).padding(.horizontal,5).accessibilityLabel(durability ? "Durability in points" : "Quantity")
+            Rectangle().fill(Slate.line).frame(width:1)
+            Button { step(1) } label: { Image(systemName:"plus").frame(width:31,height:31) }.accessibilityLabel("Increase value")
+        }.frame(height:33).buttonStyle(.plain).background(Slate.background.opacity(0.7),in:RoundedRectangle(cornerRadius:3)).overlay(RoundedRectangle(cornerRadius:3).stroke(Slate.ivory.opacity(0.45),lineWidth:0.7))
+    }
+}
+
+private struct DestinationSymbol: View {
+    var tower = false
+    var color = Slate.cyan
+    var body: some View {
+        Canvas { c,s in
+            let cx=s.width/2,cy=s.height/2
+            var p=Path()
+            if tower {
+                p.move(to:CGPoint(x:cx,y:2)); p.addLine(to:CGPoint(x:cx-5,y:s.height-3)); p.addLine(to:CGPoint(x:cx+5,y:s.height-3)); p.closeSubpath()
+                c.stroke(p,with:.color(color),lineWidth:1.2)
+                for y in [cy-1,s.height-5] { var bar=Path();bar.move(to:CGPoint(x:cx-6,y:y));bar.addLine(to:CGPoint(x:cx+6,y:y));c.stroke(bar,with:.color(color),lineWidth:1.2) }
+                c.stroke(Path(ellipseIn:CGRect(x:cx-2,y:0,width:4,height:4)),with:.color(color),lineWidth:1)
+            } else {
+                for radius:CGFloat in [8,4] {
+                    var diamond=Path();diamond.move(to:CGPoint(x:cx,y:cy-radius));diamond.addLine(to:CGPoint(x:cx+radius,y:cy));diamond.addLine(to:CGPoint(x:cx,y:cy+radius));diamond.addLine(to:CGPoint(x:cx-radius,y:cy));diamond.closeSubpath();c.stroke(diamond,with:.color(color),lineWidth:1.2)
+                }
+                var stem=Path();stem.move(to:CGPoint(x:cx,y:cy+4));stem.addLine(to:CGPoint(x:cx,y:s.height));c.stroke(stem,with:.color(color),lineWidth:1.2)
+            }
+        }.frame(width:21,height:24).shadow(color:color.opacity(0.45),radius:4).accessibilityHidden(true)
     }
 }
 
@@ -209,12 +266,15 @@ struct EditorView: View {
     @State private var tab: EditorTab = .inventory
     @State private var search = ""
     @State private var category = -1
+    @State private var sortOrder = "Name (A–Z)"
+    @State private var gridView = true
     @State private var selectedSlot: Int?
     @State private var itemValue = "1"
     @State private var rupees = "10000"
     @State private var maxHearts = "30"
     @State private var maxStamina = "3"
     @State private var showAdd = false
+    @State private var showGraphics = false
     @State private var worldSearch = ""
     @State private var worldKind = "All"
     @State private var selectedDestination: String?
@@ -230,7 +290,11 @@ struct EditorView: View {
     private var inventory: [InventoryEntry] { model.state?.inventory ?? [] }
     private var selectedItem: InventoryEntry? { inventory.first { $0.slot == selectedSlot } }
     private var filteredInventory: [InventoryEntry] {
-        inventory.filter { (category < 0 || $0.type == category) && (search.isEmpty || model.name(for:$0.name).localizedCaseInsensitiveContains(search) || $0.name.localizedCaseInsensitiveContains(search)) }
+        inventory.filter { categoryMatches($0.type) && (search.isEmpty || model.name(for:$0.name).localizedCaseInsensitiveContains(search) || $0.name.localizedCaseInsensitiveContains(search)) }.sorted { a,b in
+            if sortOrder == "Quantity" && a.value != b.value { return a.value > b.value }
+            let order = model.name(for:a.name).localizedStandardCompare(model.name(for:b.name))
+            return order == .orderedSame ? a.slot < b.slot : sortOrder == "Name (Z–A)" ? order == .orderedDescending : order == .orderedAscending
+        }
     }
     private var destinations: [WorldDestination] { model.state?.destinations ?? [] }
     private var filteredDestinations: [WorldDestination] {
@@ -246,20 +310,21 @@ struct EditorView: View {
     var body: some View {
         VStack(spacing:0) {
             toolbar
-            navigationBar
             if !model.available { connectionNotice }
             Group {
                 switch tab { case .inventory: inventoryTab; case .player: playerTab; case .world: worldTab }
             }.frame(maxWidth:.infinity,maxHeight:.infinity).transition(.opacity)
             feedbackBar
         }
-        .frame(minWidth:1000,minHeight:760)
+        .frame(minWidth:1000,minHeight:680)
         .background { Slate.background; ContourEngraving() }.foregroundStyle(Slate.ivory).tint(Slate.cyan).preferredColorScheme(.dark)
         .font(.system(size:13))
         .onChange(of:selectedSlot) { _,_ in itemValue = selectedItem.map { $0.usesDurability ? InventoryValuePresentation.durabilityText(rawValue:$0.value) : String($0.value) } ?? "1" }
         .onAppear { selectFirstItemIfNeeded() }
+        .onChange(of:selectedItem?.name) { _,_ in itemValue=selectedItem.map { $0.usesDurability ? InventoryValuePresentation.durabilityText(rawValue:$0.value) : String($0.value) } ?? "1" }
         .onChange(of:inventory.map(\.slot)) { _,_ in selectFirstItemIfNeeded() }
         .sheet(isPresented:$showAdd) { AddItemView(model:model) }
+        .sheet(isPresented:$showGraphics) { GraphicsSettingsView() }
         .alert(item:$confirmation) { action in
             let primary: Alert.Button = action.destructive ? .destructive(Text(action.button),action:{ model.send(action.command) }) : .default(Text(action.button),action:{ model.send(action.command) })
             return Alert(title:Text(action.title),message:Text(action.detail),primaryButton:primary,secondaryButton:.cancel())
@@ -267,23 +332,50 @@ struct EditorView: View {
     }
 
     private var toolbar: some View {
-        HStack(spacing:10) {
-            SlateEye()
-            Text("BOTW Editor").font(.system(size:18,weight:.medium,design:.serif)).italic()
-            Rectangle().fill(Slate.line).frame(width:1,height:20).padding(.horizontal,5)
+        HStack(spacing:18) {
+            Text("BOTW Editor").font(.system(size:17,weight:.medium,design:.serif)).italic().padding(.trailing,8)
+            navigationBar
+            Spacer(minLength:8)
+            if model.available {
+                healthDisplay
+                staminaDisplay
+                Rectangle().fill(Slate.line).frame(width:1,height:20)
+            }
             HStack(spacing:6) {
-                Circle().fill(model.available ? Slate.cyan : Slate.gold).frame(width:5,height:5)
-                Text(model.available ? "Connected" : model.connected ? "Waiting for game" : "Game closed")
-                    .font(.system(size:10,weight:.medium)).foregroundStyle(model.available ? Slate.cyan : Slate.muted)
+                Circle().fill(model.available ? Color.green : Slate.gold).frame(width:5,height:5)
+                Text(model.available ? "Connected" : model.connected ? "Waiting" : "Game closed").font(.system(size:11,design:.serif)).italic()
             }.help(model.connectionMessage)
-            Spacer(minLength:12)
-            hud("heart.fill",value:heartHUD,color:Color(red:0.96,green:0.52,blue:0.44))
-            hud("circle.dashed",value:staminaHUD,color:Color(red:0.57,green:0.87,blue:0.56))
             hud("diamond.fill",value:liveRupees,color:Slate.cyan)
-            Button { model.refresh(); model.send(.status) } label: { Image(systemName:"arrow.clockwise").font(.system(size:12)) }
-                .buttonStyle(.plain).padding(8).background(Slate.raised,in:RoundedRectangle(cornerRadius:4))
-                .disabled(model.pending).accessibilityLabel("Refresh game connection").help("Refresh connection")
-        }.padding(.horizontal,20).frame(height:48).background { Slate.panel; ContourEngraving().clipped() }
+            Button { showGraphics=true } label: { Image(systemName:"slider.horizontal.3").font(.system(size:12)) }.buttonStyle(.plain).accessibilityLabel("Graphics and shader settings").help("Graphics and shaders")
+            Button { model.refresh(); if model.connected { model.send(.status) } } label: { Image(systemName:"arrow.clockwise").font(.system(size:12)) }
+                .buttonStyle(.plain).disabled(model.pending).accessibilityLabel("Refresh game connection")
+        }.padding(.horizontal,20).frame(height:48).background { Slate.panel.opacity(0.6); ContourEngraving().clipped() }
+            .overlay(alignment:.bottom) { line() }
+    }
+    private var healthDisplay: some View {
+        let current = Double(model.state?.health ?? 0)/4
+        let maximum = max(1,min(30,Int(maximumHearts ?? 3)))
+        return VStack(alignment:.trailing,spacing:2) {
+            ForEach(0..<max(1,(maximum+14)/15),id:\.self) { row in
+                HStack(spacing:2) {
+                    ForEach(row*15..<min(maximum,(row+1)*15),id:\.self) { index in
+                        Image(systemName:Double(index)<current ? "heart.fill" : "heart").font(.system(size:9)).foregroundStyle(Color(red:1,green:0.36,blue:0.35))
+                    }
+                }
+            }
+        }.accessibilityElement(children:.ignore).accessibilityLabel("Hearts, \(heartHUD)")
+    }
+    private var staminaDisplay: some View {
+        let current = (model.state?.stamina ?? 0)/1000
+        let maximum = max(1,min(3,Int(maximumStamina ?? 1)))
+        return HStack(spacing:4) {
+            ForEach(0..<maximum,id:\.self) { index in
+                ZStack {
+                    Circle().stroke(Color.green.opacity(0.2),lineWidth:2.5)
+                    Circle().trim(from:0,to:max(0,min(1,current-Double(index)))).stroke(Color(red:0.38,green:0.9,blue:0.52),style:StrokeStyle(lineWidth:2.5,lineCap:.round)).rotationEffect(.degrees(-90))
+                }.frame(width:15,height:15)
+            }
+        }.accessibilityElement(children:.ignore).accessibilityLabel("Stamina wheels, \(staminaHUD)")
     }
     private var heartHUD: String {
         guard model.available, let health = model.state?.health else { return "— / —" }
@@ -307,20 +399,15 @@ struct EditorView: View {
                 Button {
                     withAnimation(reduceMotion ? nil : .easeInOut(duration:0.18)) { tab = section }
                 } label: {
-                    VStack(spacing:0) {
-                        HStack(spacing:8) { Image(systemName:section.icon); Text(section.rawValue).font(.system(size:14,weight:.medium,design:.serif)).italic() }
-                            .font(.system(size:12,weight:tab == section ? .semibold : .regular))
-                            .foregroundStyle(tab == section ? Slate.ivory : Slate.muted)
-                            .frame(width:125,height:43)
-                        ZStack {
-                            Color.clear.frame(height:2)
-                            if tab == section { Slate.cyan.frame(height:2).matchedGeometryEffect(id:"navigation",in:navigation) }
+                    Text(section.rawValue).font(.system(size:16,weight:.medium,design:.serif)).italic()
+                        .foregroundStyle(tab == section ? Slate.cyan : Slate.ivory.opacity(0.8))
+                        .frame(width:86,height:48)
+                        .overlay(alignment:.bottom) {
+                            if tab == section { Slate.cyan.frame(height:2).matchedGeometryEffect(id:"navigation",in:navigation).shadow(color:Slate.cyan.opacity(0.7),radius:5) }
                         }
-                    }
-                }.frame(width:125).buttonStyle(.plain).accessibilityAddTraits(tab == section ? .isSelected : [])
+                }.buttonStyle(.plain).accessibilityAddTraits(tab == section ? .isSelected : [])
             }
-            Spacer()
-        }.background(Slate.panel.opacity(0.45)).overlay(alignment:.bottom) { Rectangle().fill(Slate.line).frame(height:1) }
+        }.fixedSize()
     }
     private var connectionNotice: some View {
         HStack(spacing:8) {
@@ -331,124 +418,157 @@ struct EditorView: View {
             .overlay(alignment:.bottom) { Rectangle().fill(Slate.gold.opacity(0.12)).frame(height:1) }
     }
 
+    private func categoryMatches(_ type:Int) -> Bool {
+        category < 0 || (category == 4 ? (4...6).contains(type) : category == 1 ? [1,2].contains(type) : category == type)
+    }
     private var inventoryTab: some View {
-        HStack(spacing:0) {
-            inventoryCategories.frame(width:154)
-            VStack(alignment:.leading,spacing:16) {
-                HStack {
-                    VStack(alignment:.leading,spacing:3) {
-                        Text(category < 0 ? "Inventory" : typeName(category)).font(.system(size:23,weight:.medium,design:.serif)).italic()
-                        Text("\(filteredInventory.count) items in your pouch").font(.system(size:11)).foregroundStyle(Slate.muted)
+        VStack(spacing:0) {
+            HStack(spacing:0) {
+                inventoryCategories.frame(width:148)
+                VStack(alignment:.leading,spacing:19) {
+                    HStack(spacing:10) {
+                        SearchBox(placeholder:"Search items…",text:$search)
+                        Menu {
+                            Picker("Sort items",selection:$sortOrder) { Text("Name (A–Z)").tag("Name (A–Z)");Text("Name (Z–A)").tag("Name (Z–A)");Text("Quantity").tag("Quantity") }
+                        } label: { HStack(spacing:10) { Text("Sort: \(sortOrder)").font(.system(size:11,design:.serif)).italic();Image(systemName:"chevron.down").font(.system(size:8)) } }
+                            .menuStyle(.borderlessButton).padding(.horizontal,11).frame(width:153,height:33).overlay(RoundedRectangle(cornerRadius:3).stroke(Slate.ivory.opacity(0.35),lineWidth:0.7))
+                        HStack(spacing:0) {
+                            Button { gridView=true } label: { Image(systemName:"square.grid.2x2.fill").frame(width:27,height:31).foregroundStyle(gridView ? Slate.cyan : Slate.muted) }.accessibilityLabel("Grid view")
+                            line(vertical:true)
+                            Button { gridView=false } label: { Image(systemName:"list.bullet").frame(width:27,height:31).foregroundStyle(gridView ? Slate.muted : Slate.cyan) }.accessibilityLabel("List view")
+                        }.buttonStyle(.plain).fixedSize().overlay(RoundedRectangle(cornerRadius:3).stroke(Slate.line,lineWidth:0.7))
                     }
-                    Spacer()
-                    Button { showAdd = true } label: { Label("Add item",systemImage:"plus") }.buttonStyle(SlateButtonStyle(primary:true)).disabled(!model.canUse("items"))
-                }
-                SearchBox(placeholder:"Search your inventory",text:$search)
-                if filteredInventory.isEmpty {
-                    emptyState(search.isEmpty ? "Your inventory will appear here" : "No items found",icon:"backpack",detail:search.isEmpty ? "Load a gameplay session, then open the pouch in BOTW to inspect your items." : "Try another name or choose a different category.")
-                        .frame(maxWidth:.infinity,maxHeight:.infinity)
-                } else {
-                    ScrollView {
-                        LazyVGrid(columns:[GridItem(.adaptive(minimum:102,maximum:145),spacing:10)],spacing:10) {
-                            ForEach(filteredInventory) { item in inventoryTile(item) }
-                        }.padding(2)
-                    }.scrollIndicators(.hidden)
-                }
-                HStack(spacing:5) { Image(systemName:"arrow.triangle.2.circlepath"); Text("Values refresh from the game. Save in BOTW to keep changes.") }
-                    .font(.system(size:10)).foregroundStyle(Slate.muted)
-            }.padding(20).frame(maxWidth:.infinity,maxHeight:.infinity,alignment:.top)
-            line(vertical:true)
-            inventoryInspector.frame(width:254)
+                    line()
+                    if let reason = model.inventoryBlockedReason {
+                        inventoryNotice(reason)
+                    }
+                    if filteredInventory.isEmpty {
+                        VStack(spacing:18) {
+                            emptyState(search.isEmpty ? (model.available && model.inventoryBlockedReason == nil ? "Your pouch is empty" : "Waiting for your pouch") : "No items found",icon:"backpack",detail:search.isEmpty ? (model.available && model.inventoryBlockedReason == nil ? "Give yourself an item from the catalog to begin exploring." : "You can browse the item catalog while waiting for the game.") : "Try another name or choose a different category.")
+                            if search.isEmpty { Button("Browse item catalog") { showAdd=true }.buttonStyle(SlateButtonStyle()) }
+                        }.frame(maxWidth:.infinity,maxHeight:.infinity)
+                    } else {
+                        ScrollView {
+                            if gridView {
+                                LazyVGrid(columns:[GridItem(.adaptive(minimum:110,maximum:142),spacing:13)],spacing:15) {
+                                    ForEach(filteredInventory) { item in inventoryTile(item) }
+                                }.padding(3)
+                            } else {
+                                LazyVStack(spacing:2) { ForEach(filteredInventory) { item in inventoryListRow(item) } }
+                            }
+                        }.scrollIndicators(.hidden)
+                    }
+                }.padding(.horizontal,22).padding(.top,23).padding(.bottom,16).frame(maxWidth:.infinity,maxHeight:.infinity,alignment:.top)
+                line(vertical:true)
+                inventoryInspector.frame(width:248)
+            }
+            line()
+            HStack(spacing:20) {
+                Button { showAdd=true } label: { Label("Give item…",systemImage:"plus") }.buttonStyle(SlateButtonStyle()).foregroundStyle(Slate.gold)
+                line(vertical:true).frame(height:20)
+                Text("Changes appear in your game").font(.system(size:12,design:.serif)).italic().foregroundStyle(Slate.muted)
+                Spacer()
+                Text("\(inventory.count) \(inventory.count == 1 ? "item" : "items")").font(.system(size:10)).foregroundStyle(Slate.muted)
+            }.padding(.horizontal,25).frame(height:55).background { Slate.panel.opacity(0.65);ContourEngraving().clipped() }
         }
     }
+    private func inventoryNotice(_ text:String) -> some View {
+        Label(text,systemImage:"info.circle").font(.system(size:11)).foregroundStyle(Slate.gold).fixedSize(horizontal:false,vertical:true)
+            .padding(10).frame(maxWidth:.infinity,alignment:.leading).background(Slate.gold.opacity(0.05)).overlay(Rectangle().stroke(Slate.gold.opacity(0.18),lineWidth:0.6))
+    }
     private var inventoryCategories: some View {
-        VStack(alignment:.leading,spacing:4) {
-            Text("Pouch").font(.system(size:11,weight:.semibold)).foregroundStyle(Slate.muted).padding(.horizontal,16).padding(.top,21).padding(.bottom,12)
+        VStack(alignment:.leading,spacing:7) {
+            Text("Inventory").font(.system(size:18,weight:.medium,design:.serif)).italic().padding(.horizontal,17).padding(.top,23).padding(.bottom,3)
+            line().padding(.horizontal,13).padding(.bottom,8)
             categoryButton(-1,"All items","square.grid.2x2")
-            ForEach(0..<10,id:\.self) { type in categoryButton(type,typeName(type),typeIcon(type)) }
+            categoryButton(0,"Weapons","figure.fencing")
+            categoryButton(1,"Bows & arrows","arrow.up.right")
+            categoryButton(3,"Shields","shield.lefthalf.filled")
+            categoryButton(4,"Armor","tshirt")
+            categoryButton(7,"Materials","leaf")
+            categoryButton(8,"Food","carrot")
+            categoryButton(9,"Key items","key")
             Spacer()
-            HStack(spacing:6) { Image(systemName:"square.stack.3d.up"); Text("\(inventory.count) entries") }.font(.system(size:10)).foregroundStyle(Slate.muted).padding(16)
-        }.background(Slate.panel.opacity(0.45)).overlay(alignment:.trailing) { line(vertical:true) }
+        }.background { Slate.panel.opacity(0.25);ContourEngraving().clipped() }.overlay(alignment:.trailing) { line(vertical:true) }
     }
     private func categoryButton(_ value:Int,_ name:String,_ icon:String) -> some View {
         Button {
-            withAnimation(reduceMotion ? nil : .easeInOut(duration:0.15)) { category = value }
+            withAnimation(reduceMotion ? nil : .easeInOut(duration:0.15)) { category=value }
         } label: {
             HStack(spacing:10) {
-                Image(systemName:icon).font(.system(size:12)).frame(width:17)
-                Text(name).font(.system(size:12,weight:category == value ? .semibold : .regular,design:.serif)).italic()
+                Image(systemName:icon).font(.system(size:14)).frame(width:18)
+                Text(name).font(.system(size:14,weight:.medium,design:.serif)).italic().lineLimit(1).minimumScaleFactor(0.8)
                 Spacer(minLength:0)
-                if value >= 0 {
-                    let count = inventory.filter { $0.type == value }.count
-                    if count > 0 { Text("\(count)").font(.system(size:9)).foregroundStyle(Slate.muted) }
-                }
-            }.foregroundStyle(category == value ? Slate.cyan : Slate.muted).padding(.horizontal,15).frame(height:35)
-                .background(category == value ? Slate.cyan.opacity(0.08) : Color.clear)
-                .overlay(alignment:.leading) { if category == value { Slate.cyan.frame(width:2) } }
+            }.foregroundStyle(category == value ? Slate.cyan : Slate.ivory.opacity(0.8)).padding(.horizontal,14).frame(height:35)
+                .background { if category == value { CutCornerShape(cut:8).fill(Slate.cyan.opacity(0.10)) } }
+                .overlay { if category == value { CutCornerShape(cut:8).stroke(Slate.cyan.opacity(0.75),lineWidth:0.8) } }
         }.buttonStyle(.plain).accessibilityAddTraits(category == value ? .isSelected : [])
     }
     private func inventoryTile(_ item:InventoryEntry) -> some View {
         Button {
-            withAnimation(reduceMotion ? nil : .easeInOut(duration:0.16)) { selectedSlot = item.slot }
+            withAnimation(reduceMotion ? nil : .easeInOut(duration:0.16)) { selectedSlot=item.slot }
         } label: {
-            VStack(alignment:.leading,spacing:5) {
-                ZStack {
-                    RadialGradient(colors:[Slate.cyan.opacity(0.06),.clear],center:.center,startRadius:0,endRadius:55)
-                    ItemArtwork(actor:item.name,type:item.type,size:65)
-                }.frame(maxWidth:.infinity).frame(height:79)
-                Text(model.name(for:item.name)).font(.system(size:11,weight:.medium,design:.serif)).italic().lineLimit(2).frame(height:27,alignment:.topLeading)
-                HStack {
-                    Text(item.usesDurability ? "\(InventoryValuePresentation.durabilityText(rawValue:item.value)) dur." : item.maximumEditableValue != nil ? "× \(item.value.formatted())" : typeName(item.type)).font(.system(size:9)).foregroundStyle(Slate.muted).lineLimit(1)
-                    Spacer(minLength:0)
-                    if item.equipped { Image(systemName:"checkmark.circle.fill").font(.system(size:10)).foregroundStyle(Slate.cyan).help("Equipped") }
-                }
-            }.padding(9).frame(maxWidth:.infinity,alignment:.leading)
-                .background(selectedSlot == item.slot ? Slate.cyan.opacity(0.08) : Slate.panel)
-                .overlay(Rectangle().stroke(selectedSlot == item.slot ? Slate.cyan.opacity(0.5) : Slate.line.opacity(0.6),lineWidth:1))
-                .overlay { if selectedSlot == item.slot { SelectionGlow() } }
-        }.buttonStyle(.plain).modifier(SlateHover()).accessibilityLabel("\(model.name(for:item.name)), \(item.equipped ? "equipped, " : "")\(item.usesDurability ? "durability" : "value") \(item.value)")
+            VStack(spacing:6) {
+                ZStack(alignment:.bottomTrailing) {
+                    ZStack {
+                        RadialGradient(colors:[Slate.cyan.opacity(selectedSlot == item.slot ? 0.11 : 0.035),.clear],center:.center,startRadius:0,endRadius:65)
+                        ItemArtwork(actor:item.name,type:item.type,size:77)
+                    }.frame(maxWidth:.infinity).frame(height:88)
+                    Text(item.usesDurability ? InventoryValuePresentation.durabilityText(rawValue:item.value) : item.maximumEditableValue != nil ? "×\(item.value)" : "")
+                        .font(.system(size:13,design:.serif)).italic().foregroundStyle(Slate.ivory).shadow(color:.black,radius:3).padding(6)
+                    if item.equipped { Image(systemName:"checkmark.circle.fill").font(.system(size:10)).foregroundStyle(Slate.cyan).frame(maxWidth:.infinity,maxHeight:.infinity,alignment:.topLeading).padding(5) }
+                }.background(Slate.panel.opacity(0.25)).overlay(RoundedRectangle(cornerRadius:3).stroke(Slate.ivory.opacity(selectedSlot == item.slot ? 0.22 : 0.28),lineWidth:0.55))
+                    .overlay { if selectedSlot == item.slot { SelectionGlow() } }
+                Text(model.name(for:item.name)).font(.system(size:12,weight:.medium,design:.serif)).italic().lineLimit(2).multilineTextAlignment(.center).frame(height:30,alignment:.top).foregroundStyle(Slate.ivory)
+            }.frame(maxWidth:.infinity)
+        }.buttonStyle(.plain).modifier(SlateHover()).accessibilityLabel("\(model.name(for:item.name)), \(item.equipped ? "equipped, " : "")\(item.usesDurability ? "durability" : "quantity") \(item.usesDurability ? InventoryValuePresentation.durabilityText(rawValue:item.value) : String(item.value))")
             .accessibilityAddTraits(selectedSlot == item.slot ? .isSelected : [])
+    }
+    private func inventoryListRow(_ item:InventoryEntry) -> some View {
+        Button { selectedSlot=item.slot } label: {
+            HStack(spacing:12) {
+                ItemArtwork(actor:item.name,type:item.type,size:35)
+                Text(model.name(for:item.name)).font(.system(size:13,design:.serif)).italic()
+                Spacer()
+                Text(item.usesDurability ? InventoryValuePresentation.durabilityText(rawValue:item.value) : item.maximumEditableValue != nil ? "×\(item.value)" : item.equipped ? "Equipped" : (4...6).contains(item.type) ? "1 piece" : "").font(.system(size:12)).foregroundStyle(Slate.muted)
+            }.padding(.horizontal,10).padding(.vertical,4).background(selectedSlot == item.slot ? Slate.cyan.opacity(0.1) : Color.clear)
+        }.buttonStyle(.plain)
     }
     private var inventoryInspector: some View {
         VStack(alignment:.leading,spacing:0) {
-            HStack { Text("Item details").font(.system(size:11,weight:.semibold)); Spacer(); Image(systemName:"sidebar.right").foregroundStyle(Slate.muted) }.padding(18)
-            line()
-            if let item = selectedItem {
+            if let item=selectedItem {
                 ScrollView {
-                    VStack(alignment:.leading,spacing:16) {
+                    VStack(alignment:.leading,spacing:18) {
                         ZStack {
-                            RadialGradient(colors:[Slate.cyan.opacity(0.1),.clear],center:.center,startRadius:5,endRadius:100)
-                            ItemArtwork(actor:item.name,type:item.type,size:115)
-                        }.frame(maxWidth:.infinity).frame(height:137)
-                        VStack(alignment:.leading,spacing:6) {
-                            Text(model.name(for:item.name)).font(.system(size:22,weight:.medium,design:.serif)).italic().fixedSize(horizontal:false,vertical:true)
-                            Text(typeName(item.type)).font(.system(size:11)).foregroundStyle(Slate.gold)
-                        }
-                        Text(item.name).font(.system(size:9,design:.monospaced)).foregroundStyle(Slate.muted).textSelection(.enabled).lineLimit(2)
-                        HStack { Text("Slot \(item.slot)"); Spacer(); if item.equipped { Label("Equipped",systemImage:"checkmark.circle").foregroundStyle(Slate.cyan) } }.font(.system(size:10)).foregroundStyle(Slate.muted)
+                            RadialGradient(colors:[Slate.cyan.opacity(0.07),.clear],center:.center,startRadius:5,endRadius:125)
+                            ItemArtwork(actor:item.name,type:item.type,size:158)
+                        }.frame(maxWidth:.infinity).frame(height:185)
+                        Text(model.name(for:item.name)).font(.system(size:28,weight:.medium,design:.serif)).italic().fixedSize(horizontal:false,vertical:true)
+                        Label(typeName(item.type),systemImage:typeIcon(item.type)).font(.system(size:14,design:.serif)).italic().foregroundStyle(Slate.ivory.opacity(0.8))
                         line()
-                        VStack(alignment:.leading,spacing:8) {
-                            Text(item.usesDurability ? "Durability points" : "Quantity").font(.system(size:12,weight:.semibold))
-                            HStack { Text("Current").foregroundStyle(Slate.muted); Spacer(); Text(item.usesDurability ? InventoryValuePresentation.durabilityText(rawValue:item.value) : item.value.formatted()).monospacedDigit() }.font(.system(size:11))
-                            TextField(item.usesDurability ? "Durability points" : "Quantity",text:$itemValue).textFieldStyle(.roundedBorder).font(.system(size:14,design:.monospaced)).accessibilityLabel(item.usesDurability ? "New durability in points" : "New quantity")
-                            Text(item.usesDurability ? "0.01–1,000,000 points. Up to two decimal places." : item.maximumEditableValue != nil ? "Choose a stack quantity from 1 to 999." : "This item has a special value and cannot be edited here.")
-                                .font(.system(size:10)).foregroundStyle(Slate.muted).fixedSize(horizontal:false,vertical:true)
-                            Button("Apply \(item.usesDurability ? "durability" : "quantity")") { model.send(.quantity(item,commandValue(for:item))) }
-                                .buttonStyle(SlateButtonStyle(primary:true)).disabled(!model.canUse("inventory_edit") || !item.canEditValue || commandValue(for:item).isEmpty)
-                            if item.usesDurability && item.equipped { Text("Unequip this weapon in BOTW before editing durability.").font(.system(size:10)).foregroundStyle(Slate.gold).fixedSize(horizontal:false,vertical:true) }
+                        HStack {
+                            Text(item.usesDurability ? "Durability" : item.maximumEditableValue != nil ? "Quantity" : "Item").font(.system(size:14,design:.serif)).italic()
+                            Spacer(minLength:8)
+                            if item.maximumEditableValue != nil { QuantityControl(value:$itemValue,durability:item.usesDurability).frame(width:116) }
+                            else { Text((4...6).contains(item.type) ? "1 piece" : "Read only").font(.system(size:12,design:.serif)).italic().foregroundStyle(Slate.muted) }
                         }
-                        line()
-                        Button { confirmation = ConfirmAction(title:"Remove \(model.name(for:item.name))?",detail:"This removes the entire selected entry from your running game. Save in BOTW to keep the change.",button:"Remove item",command:.remove(item.slot),destructive:true) } label: { Label("Remove item…",systemImage:"trash") }
-                            .buttonStyle(SlateButtonStyle(destructive:true)).disabled(!model.canUse("inventory_edit") || item.equipped)
-                        if item.equipped { Text("Unequip this item in BOTW before removing it.").font(.system(size:10)).foregroundStyle(Slate.muted) }
-                    }.padding(18)
-                }
+                        if item.usesDurability { Text("Shown in durability points.").font(.system(size:10)).foregroundStyle(Slate.muted) }
+                        Button { confirmation=ConfirmAction(title:"Remove \(model.name(for:item.name))?",detail:"This removes the entire selected entry from your running game. Save in BOTW to keep the change.",button:"Remove item",command:.remove(item.slot),destructive:true) } label: { Label("Remove item",systemImage:"trash").font(.system(size:13,design:.serif)).italic().underline() }
+                            .buttonStyle(.plain).foregroundStyle(Slate.gold).disabled(!model.canEditInventory(feature:"inventory_edit") || item.equipped)
+                        Button { model.send(.quantity(item,commandValue(for:item))) } label: { Text("Apply \(item.usesDurability ? "durability" : "quantity")").frame(maxWidth:.infinity) }
+                            .buttonStyle(SlateButtonStyle(primary:true)).frame(maxWidth:.infinity).disabled(!model.canEditInventory(feature:"inventory_edit") || !item.canEditValue || commandValue(for:item).isEmpty)
+                        if item.equipped { inventoryNotice("Unequip this item in BOTW before changing or removing it.") }
+                        DisclosureGroup("Item details") {
+                            VStack(alignment:.leading,spacing:5) { Text(item.name).textSelection(.enabled);Text("Slot \(item.slot)") }.font(.system(size:10,design:.monospaced)).foregroundStyle(Slate.muted).frame(maxWidth:.infinity,alignment:.leading).padding(.top,6)
+                        }.font(.system(size:10)).foregroundStyle(Slate.muted)
+                    }.padding(.horizontal,22).padding(.top,25).padding(.bottom,20)
+                }.scrollIndicators(.hidden)
             } else {
                 Spacer()
                 emptyState("Select an item",icon:"cursorarrow",detail:"Choose something from your pouch to inspect or edit it.").padding(20)
                 Spacer()
             }
-        }.frame(maxHeight:.infinity).background(Slate.panel.opacity(0.6))
+        }.frame(maxHeight:.infinity).background(Slate.panel.opacity(0.25))
     }
 
     private var playerTab: some View {
@@ -533,79 +653,81 @@ struct EditorView: View {
     private var worldTab: some View {
         HStack(spacing:0) {
             VStack(alignment:.leading,spacing:12) {
-                HStack { Text("Destinations").font(.system(size:20,weight:.medium,design:.serif)).italic(); Spacer(); Text("\(filteredDestinations.count)").font(.system(size:10)).foregroundStyle(Slate.muted) }
-                SearchBox(placeholder:"Search Hyrule",text:$worldSearch)
-                Picker("Destination type",selection:$worldKind) { Text("All").tag("All"); Text("Shrines").tag("Shrines"); Text("Towers").tag("Towers") }.pickerStyle(.segmented).labelsHidden().controlSize(.small)
+                SearchBox(placeholder:"Find a shrine or tower",text:$worldSearch)
+                HStack(spacing:6) {
+                    ForEach(["All","Shrines","Towers"],id:\.self) { kind in
+                        Button { worldKind=kind } label: { Text(kind).font(.system(size:12,design:.serif)).italic().frame(maxWidth:.infinity).frame(height:29).foregroundStyle(worldKind == kind ? Slate.cyan : Slate.ivory) }
+                            .buttonStyle(.plain).background(worldKind == kind ? Slate.cyan.opacity(0.08) : Slate.raised.opacity(0.2),in:RoundedRectangle(cornerRadius:3)).overlay(RoundedRectangle(cornerRadius:3).stroke(worldKind == kind ? Slate.cyan : Slate.ivory.opacity(0.3),lineWidth:0.7))
+                    }
+                }
+                line().padding(.top,3)
                 if filteredDestinations.isEmpty {
-                    emptyState("No destinations",icon:"mappin",detail:destinations.isEmpty ? "Your local destination catalog appears when the editor runtime is ready." : "Try a different search.").frame(maxHeight:.infinity)
+                    emptyState("No destinations",icon:"mappin",detail:destinations.isEmpty ? "Load your game to see local travel points." : "Try a different search.").frame(maxHeight:.infinity)
                 } else {
                     ScrollViewReader { proxy in
                         ScrollView {
-                            LazyVStack(spacing:2) {
-                                ForEach(filteredDestinations) { point in destinationRow(point).id(point.id) }
-                            }
-                        }.scrollIndicators(.hidden)
-                            .onChange(of:selectedDestination) { _,id in if let id { withAnimation(reduceMotion ? nil : .easeInOut(duration:0.15)) { proxy.scrollTo(id,anchor:.center) } } }
+                            LazyVStack(spacing:2) { ForEach(filteredDestinations) { point in destinationRow(point).id(point.id) } }
+                        }.scrollIndicators(.hidden).onChange(of:selectedDestination) { _,id in if let id { withAnimation(reduceMotion ? nil : .easeInOut(duration:0.15)) { proxy.scrollTo(id,anchor:.center) } } }
                     }
                 }
+                line()
                 Menu {
-                    Button("Unlock all shrine travel…") { confirmAllShrines() }.disabled(!model.canUse("shrines"))
-                    Button("Reveal map regions…") { confirmMap() }.disabled(!model.canUse("map"))
-                    Divider()
                     Button("Unlock runes…") { confirmRunes() }.disabled(!model.canUse("runes"))
                     Button("Get paraglider…") { confirmParaglider() }.disabled(!model.canUse("runes"))
                     Divider()
                     Button("Full access…") { confirmFullAccess() }.disabled(!model.canUse("runes"))
-                } label: { HStack { Image(systemName:"lock.open"); Text("World access"); Spacer(); Image(systemName:"chevron.down") } }
-                    .menuStyle(.borderlessButton).font(.system(size:11,weight:.medium)).padding(10).background(Slate.raised,in:RoundedRectangle(cornerRadius:4))
-            }.padding(15).frame(width:235).background(Slate.panel.opacity(0.55))
+                } label: { HStack { Image(systemName:"chevron.down").font(.system(size:9));Text("World access").font(.system(size:14,design:.serif)).italic();Spacer() } }
+                    .menuStyle(.borderlessButton).padding(.vertical,6)
+                Button { confirmMap() } label: { Label("Reveal map",systemImage:"map").frame(maxWidth:.infinity,alignment:.leading) }.buttonStyle(SlateButtonStyle()).disabled(!model.canUse("map"))
+                Button { confirmAllShrines() } label: { Label("Unlock shrines",systemImage:"diamond").frame(maxWidth:.infinity,alignment:.leading) }.buttonStyle(SlateButtonStyle()).disabled(!model.canUse("shrines"))
+            }.padding(.horizontal,13).padding(.top,22).padding(.bottom,20).frame(width:224).background { Slate.panel.opacity(0.35);ContourEngraving().clipped() }
             line(vertical:true)
-            VStack(spacing:0) {
-                HyruleMapView(points:destinations,visibleIDs:Set(filteredDestinations.map(\.id)),selected:$selectedDestination,playerPosition:model.available ? model.state?.position : nil)
-                line()
-                destinationInspector
-            }.frame(maxWidth:.infinity,maxHeight:.infinity)
+            HyruleMapView(points:destinations,visibleIDs:Set(filteredDestinations.map(\.id)),selected:$selectedDestination,playerPosition:model.available ? model.state?.position : nil)
+                .overlay(alignment:.bottomTrailing) { destinationInspector.padding(.trailing,18).padding(.bottom,18) }
+                .frame(maxWidth:.infinity,maxHeight:.infinity)
         }
     }
     private func destinationRow(_ point:WorldDestination) -> some View {
-        Button {
-            withAnimation(reduceMotion ? nil : .easeInOut(duration:0.15)) { selectedDestination = point.id }
+        let tower=point.kind.localizedCaseInsensitiveContains("tower")
+        return Button {
+            withAnimation(reduceMotion ? nil : .easeInOut(duration:0.15)) { selectedDestination=point.id }
         } label: {
-            HStack(spacing:10) {
-                Image(systemName:point.kind.localizedCaseInsensitiveContains("tower") ? "antenna.radiowaves.left.and.right" : "diamond").font(.system(size:13)).foregroundStyle(point.unlocked == true ? Slate.cyan : Slate.gold).frame(width:18)
-                VStack(alignment:.leading,spacing:4) {
-                    Text(point.name).font(.system(size:12,weight:.medium,design:.serif)).italic().foregroundStyle(selectedDestination == point.id ? Slate.ivory : Slate.ivory.opacity(0.85)).lineLimit(1)
-                    Text("\(point.kind.capitalized)\(point.unlocked == true ? " · Active" : "")").font(.system(size:9)).foregroundStyle(Slate.muted)
-                }
+            HStack(spacing:9) {
+                DestinationSymbol(tower:tower,color:tower ? Slate.gold : point.unlocked == true ? Slate.cyan : Slate.orange)
+                Text(point.name).font(.system(size:13,weight:.medium,design:.serif)).italic().foregroundStyle(Slate.ivory.opacity(selectedDestination == point.id ? 1 : 0.86)).lineLimit(2)
                 Spacer(minLength:0)
-            }.padding(.horizontal,8).padding(.vertical,9).background(selectedDestination == point.id ? Slate.cyan.opacity(0.09) : Color.clear)
-                .overlay(alignment:.leading) { if selectedDestination == point.id { Slate.cyan.frame(width:2) } }
+                if point.unlocked == true { Image(systemName:"checkmark").font(.system(size:10)).foregroundStyle(tower ? Slate.gold : Slate.cyan) }
+            }.padding(.horizontal,7).frame(minHeight:43).background(selectedDestination == point.id ? Slate.cyan.opacity(0.10) : Color.clear,in:RoundedRectangle(cornerRadius:3))
+                .overlay(RoundedRectangle(cornerRadius:3).stroke(selectedDestination == point.id ? Slate.cyan : .clear,lineWidth:0.8))
         }.buttonStyle(.plain).accessibilityAddTraits(selectedDestination == point.id ? .isSelected : [])
     }
     private var destinationInspector: some View {
-        VStack(alignment:.leading,spacing:11) {
-            if let point = destination {
-                HStack(alignment:.center,spacing:16) {
-                    VStack(alignment:.leading,spacing:5) {
-                        HStack(spacing:8) { Text(point.name).font(.system(size:21,weight:.medium,design:.serif)).italic(); if point.unlocked == true { Text("Active").font(.system(size:9,weight:.medium)).foregroundStyle(Slate.cyan).padding(.horizontal,6).padding(.vertical,3).background(Slate.cyan.opacity(0.08),in:Capsule()) } }
-                        Text("\(point.kind.capitalized)  ·  X \(Int(point.x))  Y \(Int(point.y))  Z \(Int(point.z))").font(.system(size:10)).foregroundStyle(Slate.muted).monospacedDigit()
+        VStack(alignment:.leading,spacing:13) {
+            if let point=destination {
+                HStack(spacing:14) {
+                    DestinationSymbol(tower:point.kind.localizedCaseInsensitiveContains("tower"),color:point.kind.localizedCaseInsensitiveContains("tower") ? Slate.gold : Slate.cyan).scaleEffect(1.5).frame(width:32,height:38)
+                    VStack(alignment:.leading,spacing:6) {
+                        Text(point.name).font(.system(size:22,weight:.medium,design:.serif)).italic().fixedSize(horizontal:false,vertical:true)
+                        HStack(spacing:5) {
+                            Image(systemName:point.unlocked == true ? "checkmark" : "lock")
+                            Text(point.unlocked == true ? "Activated" : "Not activated")
+                        }.font(.system(size:12,design:.serif)).italic().foregroundStyle(point.unlocked == true ? Slate.cyan : Slate.gold)
                     }
                     Spacer(minLength:0)
-                    if !point.kind.localizedCaseInsensitiveContains("tower") {
-                        Button("Activate shrine…") { confirmation = ConfirmAction(title:"Activate \(point.name)?",detail:"Enable this shrine's travel point. This does not mark the shrine completed. Save in BOTW to keep it.",button:"Activate shrine",command:.unlockShrine(point.id)) }.buttonStyle(SlateButtonStyle()).disabled(!model.canUse("shrines"))
-                    }
-                    Button { confirmation = ConfirmAction(title:"Travel to \(point.name)?",detail:"BOTW will load this destination using its normal travel system. Wait for loading to finish before sending another edit.",button:"Travel",command:.teleport(point.id)) } label: { Label("Teleport here…",systemImage:"location.north.fill") }
+                }
+                HStack(spacing:10) {
+                    Button { confirmation=ConfirmAction(title:"Travel to \(point.name)?",detail:"BOTW will load this destination using its normal travel system. Wait for loading to finish before sending another edit.",button:"Travel",command:.teleport(point.id)) } label: { Label("Teleport here",systemImage:"scope").frame(maxWidth:.infinity) }
                         .buttonStyle(SlateButtonStyle(primary:true)).disabled(!model.canUse("teleport") || !point.permitsTeleport)
+                    if !point.kind.localizedCaseInsensitiveContains("tower") {
+                        Button("Activate shrine") { confirmation=ConfirmAction(title:"Activate \(point.name)?",detail:"Enable this shrine's travel point. This does not mark the shrine completed. Save in BOTW to keep it.",button:"Activate shrine",command:.unlockShrine(point.id)) }.buttonStyle(SlateButtonStyle()).disabled(!model.canUse("shrines"))
+                    }
                 }
-                if !point.permitsTeleport { Text("Raise towers with Full Access, or activate the first tower in BOTW.").font(.system(size:10)).foregroundStyle(Slate.gold) }
+                if !point.permitsTeleport { Text("Activate the first tower in BOTW or use Full Access before tower travel.").font(.system(size:10)).foregroundStyle(Slate.gold).fixedSize(horizontal:false,vertical:true) }
             } else {
-                HStack(spacing:13) {
-                    Image(systemName:"mappin.and.ellipse").font(.system(size:24,weight:.light)).foregroundStyle(Slate.cyan)
-                    VStack(alignment:.leading,spacing:5) { Text("Choose your next destination").font(.system(size:19,weight:.medium,design:.serif)).italic(); Text("Select a shrine or tower on the map, or search the list.").font(.system(size:11)).foregroundStyle(Slate.muted) }
-                    Spacer()
-                }
+                HStack(spacing:10) { DestinationSymbol();Text("Select a destination to travel").font(.system(size:15,design:.serif)).italic() }
             }
-        }.padding(.horizontal,23).padding(.vertical,18).frame(minHeight:100,maxHeight:122,alignment:.center).background(Slate.panel)
+        }.padding(18).frame(width:364,alignment:.leading).background { Slate.background.opacity(0.94);ContourEngraving().clipped() }
+            .overlay(RoundedRectangle(cornerRadius:5).stroke(Slate.gold.opacity(0.65),lineWidth:0.7)).clipShape(RoundedRectangle(cornerRadius:5))
     }
 
     private var feedbackBar: some View {
@@ -710,7 +832,7 @@ private struct HyruleMapView: View {
                 Slate.background
                 if let terrain {
                     Image(nsImage:terrain.image).resizable().interpolation(.high).frame(width:rect.width,height:rect.height).position(x:rect.midX,y:rect.midY)
-                        .saturation(0.8).brightness(-0.05)
+                        .saturation(1.02).brightness(0.015)
                 }
                 Canvas { c,size in
                     if terrain == nil {
@@ -723,22 +845,25 @@ private struct HyruleMapView: View {
                         let p = position(point,in:rect)
                         guard p.x >= -15,p.y >= -15,p.x <= size.width+15,p.y <= size.height+15 else { continue }
                         let active = point.unlocked == true
-                        let color = active ? Slate.cyan : Slate.orange
+                        let tower = point.kind.localizedCaseInsensitiveContains("tower")
+                        let color = tower ? Slate.gold : active ? Slate.cyan : Slate.orange
                         let highlighted = selected == point.id || hover == point.id
                         let opacity = visibleIDs.contains(point.id) ? 1.0 : 0.15
-                        let tower = point.kind.localizedCaseInsensitiveContains("tower")
                         let radius:CGFloat = highlighted ? 7 : tower ? 5 : 4
                         var path = Path()
                         if tower {
-                            path.move(to:CGPoint(x:p.x,y:p.y-radius-2)); path.addLine(to:CGPoint(x:p.x+radius,y:p.y+radius)); path.addLine(to:CGPoint(x:p.x-radius,y:p.y+radius)); path.closeSubpath()
-                            c.fill(path,with:.color(Slate.background.opacity(0.9)))
-                            c.stroke(path,with:.color(color.opacity(opacity)),lineWidth:highlighted ? 2 : 1.5)
-                            var bar = Path(); bar.move(to:CGPoint(x:p.x-3,y:p.y+1)); bar.addLine(to:CGPoint(x:p.x+3,y:p.y+1)); c.stroke(bar,with:.color(color.opacity(opacity)),lineWidth:1)
+                            path.move(to:CGPoint(x:p.x,y:p.y-radius-3));path.addLine(to:CGPoint(x:p.x+radius*0.65,y:p.y+radius));path.addLine(to:CGPoint(x:p.x-radius*0.65,y:p.y+radius));path.closeSubpath()
+                            c.fill(path,with:.color(Slate.background.opacity(0.85)));c.stroke(path,with:.color(color.opacity(opacity)),lineWidth:highlighted ? 1.7 : 1.1)
+                            for dy in [CGFloat(-2),radius] { var bar=Path();bar.move(to:CGPoint(x:p.x-radius,y:p.y+dy));bar.addLine(to:CGPoint(x:p.x+radius,y:p.y+dy));c.stroke(bar,with:.color(color.opacity(opacity)),lineWidth:1) }
+                            c.stroke(Path(ellipseIn:CGRect(x:p.x-1.6,y:p.y-radius-5,width:3.2,height:3.2)),with:.color(color.opacity(opacity)),lineWidth:1)
                         } else {
-                            path.move(to:CGPoint(x:p.x,y:p.y-radius));path.addLine(to:CGPoint(x:p.x+radius,y:p.y));path.addLine(to:CGPoint(x:p.x,y:p.y+radius));path.addLine(to:CGPoint(x:p.x-radius,y:p.y));path.closeSubpath()
-                            c.fill(path,with:.color(Slate.background.opacity(0.9)))
-                            c.stroke(path,with:.color(color.opacity(opacity)),lineWidth:highlighted ? 2 : 1)
-                            if active { c.fill(Path(ellipseIn:CGRect(x:p.x-1.3,y:p.y-1.3,width:2.6,height:2.6)),with:.color(color.opacity(opacity))) }
+                            for inset:CGFloat in [0,2.8] {
+                                let r=max(1.3,radius-inset)
+                                var diamond=Path();diamond.move(to:CGPoint(x:p.x,y:p.y-r));diamond.addLine(to:CGPoint(x:p.x+r,y:p.y));diamond.addLine(to:CGPoint(x:p.x,y:p.y+r));diamond.addLine(to:CGPoint(x:p.x-r,y:p.y));diamond.closeSubpath()
+                                if inset == 0 { c.fill(diamond,with:.color(Slate.background.opacity(0.85))) }
+                                c.stroke(diamond,with:.color(color.opacity(opacity)),lineWidth:highlighted ? 1.5 : 0.9)
+                            }
+                            var stem=Path();stem.move(to:CGPoint(x:p.x,y:p.y+2));stem.addLine(to:CGPoint(x:p.x,y:p.y+radius+2));c.stroke(stem,with:.color(color.opacity(opacity)),lineWidth:0.9)
                         }
                         if selected == point.id {
                             c.stroke(Path(ellipseIn:CGRect(x:p.x-13,y:p.y-13,width:26,height:26)),with:.color(Slate.cyan.opacity(0.8)),lineWidth:1)
@@ -776,37 +901,37 @@ private struct HyruleMapView: View {
         }
     }
     private func mapChrome(size:CGSize) -> some View {
-        VStack(spacing:0) {
-            HStack(alignment:.top) {
-                VStack(alignment:.leading,spacing:5) {
-                    Text("Hyrule").font(.system(size:25,weight:.medium,design:.serif)).italic().foregroundStyle(Slate.ivory)
-                    Text(terrain == nil ? "Coordinate view · Terrain not installed" : "Surface map").font(.system(size:10)).foregroundStyle(Slate.ivory.opacity(0.7))
-                }.padding(.horizontal,14).padding(.vertical,11).background(Slate.background.opacity(0.8),in:RoundedRectangle(cornerRadius:4))
+        HStack(alignment:.top) {
+            VStack(alignment:.leading) {
+                if terrain == nil { Text("Install the bridge to load your game’s terrain map.").font(.system(size:11)).foregroundStyle(Slate.ivory).padding(10).background(Slate.background.opacity(0.9)) }
                 Spacer()
-                VStack(spacing:2) { Text("N").font(.system(size:10,weight:.semibold)); Image(systemName:"location.north.fill").font(.system(size:20,weight:.light)); Rectangle().fill(Slate.ivory.opacity(0.45)).frame(width:1,height:15) }.foregroundStyle(Slate.ivory).padding(10)
+                HStack(spacing:8) {
+                    DestinationSymbol().scaleEffect(0.55).frame(width:12,height:14);Text("Shrine")
+                    DestinationSymbol(tower:true,color:Slate.gold).scaleEffect(0.55).frame(width:12,height:14);Text("Tower")
+                }.font(.system(size:10,design:.serif)).italic().foregroundStyle(Slate.ivory.opacity(0.8)).padding(8).background(Slate.background.opacity(0.8),in:RoundedRectangle(cornerRadius:3))
             }
             Spacer()
-            if terrain == nil {
-                Text("Install the editor bridge to extract terrain from your own game files.").font(.system(size:11)).foregroundStyle(Slate.ivory).padding(10).background(Slate.background.opacity(0.9),in:RoundedRectangle(cornerRadius:4)).padding(.bottom,10)
-            }
-            HStack(alignment:.bottom) {
-                HStack(spacing:13) {
-                    if let playerPosition, playerPosition.isFinite { Label("Link",systemImage:"circle.inset.filled").foregroundStyle(Slate.ivory) }
-                    Label("Shrine",systemImage:"diamond").foregroundStyle(Slate.ivory.opacity(0.85))
-                    Label("Tower",systemImage:"triangle").foregroundStyle(Slate.ivory.opacity(0.85))
-                    HStack(spacing:4) { Circle().fill(Slate.cyan).frame(width:4,height:4); Text("Active") }
-                    HStack(spacing:4) { Circle().fill(Slate.orange).frame(width:4,height:4); Text("Inactive") }
-                }.font(.system(size:9)).padding(9).background(Slate.background.opacity(0.85),in:RoundedRectangle(cornerRadius:4))
-                Spacer(minLength:6)
+            VStack(spacing:14) {
+                VStack(spacing:4) { Text("N").font(.system(size:12,design:.serif)).italic();Image(systemName:"location.north.fill").font(.system(size:26,weight:.ultraLight));Rectangle().fill(Slate.gold.opacity(0.5)).frame(width:1,height:20) }.foregroundStyle(Slate.gold).padding(.bottom,4)
+                Button { centerOnPlayer(size:size) } label: { Image(systemName:"location.fill").frame(width:31,height:31) }.buttonStyle(.plain).background(Slate.background.opacity(0.85),in:RoundedRectangle(cornerRadius:4)).overlay(RoundedRectangle(cornerRadius:4).stroke(Slate.ivory.opacity(0.35),lineWidth:0.7)).disabled(playerPosition?.isFinite != true).accessibilityLabel("Center on Link")
                 VStack(spacing:0) {
-                    Button { changeZoom(min(6,zoom*1.4),size:size) } label: { Image(systemName:"plus").frame(width:30,height:29) }.accessibilityLabel("Zoom in")
+                    Button { changeZoom(min(6,zoom*1.4),size:size) } label: { Image(systemName:"plus").frame(width:31,height:31) }.accessibilityLabel("Zoom in")
                     Rectangle().fill(Slate.line).frame(height:1)
-                    Button { changeZoom(max(1,zoom/1.4),size:size) } label: { Image(systemName:"minus").frame(width:30,height:29) }.accessibilityLabel("Zoom out")
+                    Button { changeZoom(max(1,zoom/1.4),size:size) } label: { Image(systemName:"minus").frame(width:31,height:31) }.accessibilityLabel("Zoom out")
                     Rectangle().fill(Slate.line).frame(height:1)
-                    Button { withAnimation(reduceMotion ? nil : .easeInOut(duration:0.18)) { zoom=1;previousZoom=1;offset = .zero } } label: { Image(systemName:"arrow.up.left.and.arrow.down.right").font(.system(size:10)).frame(width:30,height:29) }.accessibilityLabel("Show whole map")
-                }.frame(width:32).buttonStyle(.plain).font(.system(size:12)).foregroundStyle(Slate.ivory).background(Slate.background.opacity(0.9),in:RoundedRectangle(cornerRadius:4)).overlay(RoundedRectangle(cornerRadius:4).stroke(Slate.line,lineWidth:1))
-            }
-        }.padding(17)
+                    Button { withAnimation(reduceMotion ? nil : .easeInOut(duration:0.18)) { zoom=1;previousZoom=1;offset = .zero } } label: { Image(systemName:"arrow.up.left.and.arrow.down.right").font(.system(size:10)).frame(width:31,height:31) }.accessibilityLabel("Show whole map")
+                }.frame(width:33).buttonStyle(.plain).font(.system(size:13)).background(Slate.background.opacity(0.9),in:RoundedRectangle(cornerRadius:4)).overlay(RoundedRectangle(cornerRadius:4).stroke(Slate.ivory.opacity(0.35),lineWidth:0.7))
+                Spacer()
+            }.foregroundStyle(Slate.ivory)
+        }.padding(18)
+    }
+    private func centerOnPlayer(size:CGSize) {
+        guard let player=playerPosition,player.isFinite else { return }
+        let nextZoom=max(zoom,2.2)
+        let aspect=(bounds.maxX-bounds.minX)/(bounds.maxZ-bounds.minZ)
+        let width=min(size.width,size.height*aspect)*nextZoom,height=width/aspect
+        let desired=CGSize(width:(0.5-(player.x-bounds.minX)/(bounds.maxX-bounds.minX))*width,height:(0.5-(player.z-bounds.minZ)/(bounds.maxZ-bounds.minZ))*height)
+        withAnimation(reduceMotion ? nil : .easeInOut(duration:0.2)) { zoom=nextZoom;previousZoom=nextZoom;offset=clamped(desired,size:size,width:width,height:height) }
     }
     private func changeZoom(_ value:CGFloat,size:CGSize) {
         let aspect = (bounds.maxX-bounds.minX)/(bounds.maxZ-bounds.minZ)
@@ -819,7 +944,7 @@ private struct HyruleMapView: View {
     }
 }
 
-private struct AddItemView: View {
+struct AddItemView: View {
     @ObservedObject var model:PlaygroundModel
     @Environment(\.dismiss) private var dismiss
     @State private var search = ""
@@ -827,34 +952,104 @@ private struct AddItemView: View {
     @State private var selected:String?
     @State private var customID = ""
     @State private var quantity = "1"
+    @State private var showCustom = false
+    init(model:PlaygroundModel,initialSelection:String? = nil,initialCategory:String = "all") {
+        self.model=model
+        _selected=State(initialValue:initialSelection)
+        _category=State(initialValue:initialCategory)
+    }
     private var filtered:[CatalogItem] { model.catalog.filter { (category == "all" || $0.category == category) && (search.isEmpty || $0.name.localizedCaseInsensitiveContains(search) || $0.id.localizedCaseInsensitiveContains(search)) } }
     private var chosen:String { customID.isEmpty ? selected ?? "" : customID.trimmingCharacters(in:.whitespaces) }
+    private var chosenItem:CatalogItem? { model.catalog.first { $0.id == chosen } }
+    private var validQuantity:Bool { (1...999).contains(Int(quantity) ?? 0) }
     private func iconType(_ category:String) -> Int {
-        switch category { case "weapons":return 0;case "bows":return 1;case "shields":return 3;case "armors":return 5;case "materials":return 7;case "food":return 8;default:return 9 }
+        switch category { case "weapons":return 0;case "bows":return 1;case "shields":return 3;case "clothes":return 5;case "materials":return 7;case "food":return 8;default:return 9 }
+    }
+    private func categoryName(_ category:String) -> String {
+        switch category { case "all":return "All items";case "clothes":return "Armor";case "other":return "Key items";default:return category.capitalized }
     }
     var body:some View {
-        VStack(alignment:.leading,spacing:17) {
-            HStack { VStack(alignment:.leading,spacing:5) { Text("Add an item").font(.system(size:26,weight:.medium,design:.serif)).italic(); Text("Choose from the catalog or enter an actor ID.").font(.system(size:11)).foregroundStyle(Slate.muted) }; Spacer(); Button { dismiss() } label: { Image(systemName:"xmark") }.buttonStyle(.plain).accessibilityLabel("Close item catalog") }
-            HStack { SearchBox(placeholder:"Search 1,012 items",text:$search); Picker("Category",selection:$category) { Text("All categories").tag("all"); ForEach(Array(Set(model.catalog.map(\.category))).sorted(),id:\.self) { Text($0.capitalized).tag($0) } }.frame(width:160).controlSize(.small) }
+        VStack(spacing:0) {
+            HStack {
+                Text("Give item").font(.system(size:22,weight:.medium,design:.serif)).italic()
+                Spacer()
+                Text("Item catalog").font(.system(size:12,design:.serif)).italic().foregroundStyle(Slate.muted)
+                Button { dismiss() } label: { Image(systemName:"xmark").font(.system(size:13)).padding(7) }.buttonStyle(.plain).accessibilityLabel("Close item catalog")
+            }.padding(.horizontal,22).frame(height:57).background(Slate.panel.opacity(0.6))
+            Rectangle().fill(Slate.line).frame(height:1)
             HStack(spacing:0) {
-                List(selection:$selected) {
-                    ForEach(filtered) { item in
-                        HStack(spacing:12) { ItemArtwork(actor:item.id,type:iconType(item.category),size:38); VStack(alignment:.leading,spacing:4) { Text(item.name).font(.system(size:12)); Text(item.id).font(.system(size:9)).foregroundStyle(Slate.muted) }; Spacer() }.padding(.vertical,3).tag(item.id)
+                VStack(alignment:.leading,spacing:7) {
+                    ForEach(["all","weapons","bows","shields","clothes","materials","food","other"],id:\.self) { itemCategory in
+                        Button { category=itemCategory } label: {
+                            HStack(spacing:8) {
+                                Image(systemName:itemCategory == "all" ? "square.grid.2x2" : typeIcon(iconType(itemCategory))).font(.system(size:13)).frame(width:17)
+                                Text(categoryName(itemCategory)).font(.system(size:13,design:.serif)).italic()
+                                Spacer(minLength:0)
+                            }.padding(.horizontal,12).frame(height:33).foregroundStyle(category == itemCategory ? Slate.cyan : Slate.ivory.opacity(0.8))
+                                .background { if category == itemCategory { CutCornerShape(cut:6).fill(Slate.cyan.opacity(0.1)) } }
+                                .overlay { if category == itemCategory { CutCornerShape(cut:6).stroke(Slate.cyan.opacity(0.65),lineWidth:0.7) } }
+                        }.buttonStyle(.plain)
                     }
-                }.listStyle(.plain).scrollContentBackground(.hidden).background(Slate.background).onChange(of:selected) { _,_ in customID="" }
-                Rectangle().fill(Slate.line).frame(width:1)
-                VStack(alignment:.leading,spacing:15) {
-                    ItemArtwork(actor:chosen,type:iconType(model.catalog.first { $0.id == chosen }?.category ?? ""),size:100).frame(maxWidth:.infinity)
-                    Text(model.catalog.first { $0.id == chosen }?.name ?? (chosen.isEmpty ? "Select an item" : chosen)).font(.system(size:21,weight:.medium,design:.serif)).italic()
-                    Text("Quantity").font(.system(size:11,weight:.semibold))
-                    TextField("1–999",text:$quantity).textFieldStyle(.roundedBorder).accessibilityLabel("Item quantity, 1 to 999")
-                    Text("The game checks pouch capacity and item restrictions.").font(.system(size:10)).foregroundStyle(Slate.muted).fixedSize(horizontal:false,vertical:true)
                     Spacer()
-                    Button("Give item") { model.send(.give(chosen,quantity)) }.buttonStyle(SlateButtonStyle(primary:true)).disabled(chosen.isEmpty || !model.canUse("items"))
-                }.padding(20).frame(width:220)
-            }.overlay(Rectangle().stroke(Slate.line,lineWidth:1))
-            HStack { Text("Custom actor ID").font(.system(size:11)).foregroundStyle(Slate.muted); TextField("e.g. Item_Fruit_A",text:$customID).textFieldStyle(.roundedBorder).font(.system(size:11,design:.monospaced)) }
-            HStack { if model.pending { ProgressView().controlSize(.mini) }; Text(model.feedback).font(.system(size:10)).foregroundStyle(model.feedbackIsError ? Slate.orange : Slate.muted); Spacer(); Button("Done") { dismiss() }.buttonStyle(SlateButtonStyle()).keyboardShortcut(.cancelAction) }
-        }.padding(24).frame(width:760,height:620).background(Slate.panel).foregroundStyle(Slate.ivory).tint(Slate.cyan).preferredColorScheme(.dark)
+                    Text("\(model.catalog.count.formatted()) items").font(.system(size:10)).foregroundStyle(Slate.muted).padding(15)
+                }.padding(.top,19).frame(width:145).background(Slate.panel.opacity(0.25))
+                Rectangle().fill(Slate.line).frame(width:1)
+                VStack(alignment:.leading,spacing:16) {
+                    SearchBox(placeholder:"Search items…",text:$search)
+                    ScrollView {
+                        LazyVGrid(columns:[GridItem(.adaptive(minimum:88,maximum:122),spacing:12)],spacing:13) {
+                            ForEach(filtered) { item in
+                                Button { selected=item.id;customID="" } label: {
+                                    VStack(spacing:5) {
+                                        ItemArtwork(actor:item.id,type:iconType(item.category),size:64).frame(maxWidth:.infinity).frame(height:80)
+                                            .background(Slate.panel.opacity(0.3)).overlay(RoundedRectangle(cornerRadius:3).stroke(Slate.ivory.opacity(0.25),lineWidth:0.6))
+                                            .overlay { if chosen == item.id { SelectionGlow() } }
+                                        Text(item.name).font(.system(size:12,design:.serif)).italic().multilineTextAlignment(.center).lineLimit(2).frame(height:29,alignment:.top)
+                                    }.frame(maxWidth:.infinity).foregroundStyle(Slate.ivory)
+                                }.buttonStyle(.plain).modifier(SlateHover()).accessibilityAddTraits(chosen == item.id ? .isSelected : [])
+                            }
+                        }.padding(3)
+                    }.scrollIndicators(.hidden)
+                    if filtered.isEmpty { Text("No items match this search.").font(.system(size:12)).foregroundStyle(Slate.muted) }
+                }.padding(19).frame(maxWidth:.infinity,maxHeight:.infinity)
+                Rectangle().fill(Slate.line).frame(width:1)
+                VStack(spacing:0) {
+                    ScrollView {
+                        VStack(alignment:.leading,spacing:15) {
+                            ItemArtwork(actor:chosen,type:iconType(chosenItem?.category ?? "other"),size:145).frame(maxWidth:.infinity).frame(height:158)
+                            Text(chosenItem?.name ?? (chosen.isEmpty ? "Select an item" : chosen)).font(.system(size:26,weight:.medium,design:.serif)).italic().fixedSize(horizontal:false,vertical:true)
+                            if let chosenItem { Text(categoryName(chosenItem.category)).font(.system(size:13,design:.serif)).italic().foregroundStyle(Slate.muted) }
+                            DisclosureGroup("Custom item ID",isExpanded:$showCustom) { TextField("e.g. Item_Fruit_A",text:$customID).textFieldStyle(.plain).font(.system(size:10,design:.monospaced)).padding(7).overlay(Rectangle().stroke(Slate.line,lineWidth:1)).padding(.top,6) }.font(.system(size:10)).foregroundStyle(Slate.muted)
+                        }.padding(21).frame(maxWidth:.infinity,alignment:.leading)
+                    }.scrollIndicators(.hidden)
+                    Rectangle().fill(Slate.line).frame(height:1)
+                    VStack(alignment:.leading,spacing:13) {
+                        HStack {
+                            Text("Quantity").font(.system(size:14,design:.serif)).italic()
+                            Spacer()
+                            QuantityControl(value:$quantity).frame(width:113)
+                        }
+                        if !model.available {
+                            Label(model.connectionMessage,systemImage:"info.circle").font(.system(size:11)).foregroundStyle(Slate.gold).fixedSize(horizontal:false,vertical:true)
+                        } else if let reason=model.inventoryBlockedReason {
+                            Label(reason,systemImage:"info.circle").font(.system(size:11)).foregroundStyle(Slate.gold).fixedSize(horizontal:false,vertical:true)
+                        }
+                        if !validQuantity { Text("Choose a quantity from 1 to 999.").font(.system(size:11)).foregroundStyle(Slate.orange) }
+                        Text("The game checks pouch capacity and item restrictions.").font(.system(size:10)).foregroundStyle(Slate.muted).fixedSize(horizontal:false,vertical:true)
+                        Button { model.send(.give(chosen,quantity)) } label: { Text(model.pending ? "Waiting for game…" : "Give item").frame(maxWidth:.infinity) }
+                            .buttonStyle(SlateButtonStyle(primary:true)).disabled(chosen.isEmpty || !validQuantity || !model.canEditInventory(feature:"items"))
+                        if model.pending { HStack { ProgressView().controlSize(.small);Text("Waiting for confirmation").font(.system(size:10)) } }
+                    }.padding(19)
+                }.frame(width:247).frame(maxHeight:.infinity).background(Slate.panel.opacity(0.25))
+            }
+            Rectangle().fill(Slate.line).frame(height:1)
+            HStack(spacing:8) {
+                Image(systemName:model.feedbackIsError ? "exclamationmark.circle" : "info.circle").foregroundStyle(model.feedbackIsError ? Slate.orange : Slate.cyan)
+                Text(model.feedback).font(.system(size:11)).foregroundStyle(model.feedbackIsError ? Slate.orange : Slate.muted).lineLimit(2).textSelection(.enabled)
+                Spacer()
+                Button("Done") { dismiss() }.buttonStyle(SlateButtonStyle()).keyboardShortcut(.cancelAction)
+            }.padding(.horizontal,21).frame(height:55).background(Slate.panel.opacity(0.6))
+        }.frame(width:940,height:650).background { Slate.background;ContourEngraving() }.foregroundStyle(Slate.ivory).tint(Slate.cyan).preferredColorScheme(.dark)
+            .onAppear { if selected == nil { selected=filtered.first?.id } }
     }
 }

@@ -78,3 +78,63 @@ index 0aae690..ad7131a 100644
          if (runtime_survey_command(line)) continue;
          unsigned code, ms; int used = 0;
          if (sscanf(line, "down %u %n", &code, &used) == 1 && used && !line[used] && code < 128) {
+diff --git a/games/totk/third_party/d2r_gfx/gfx/nvn/nvn_mtl.m b/games/totk/third_party/d2r_gfx/gfx/nvn/nvn_mtl.m
+index 09e5cd9..35f01c2 100644
+--- a/games/totk/third_party/d2r_gfx/gfx/nvn/nvn_mtl.m
++++ b/games/totk/third_party/d2r_gfx/gfx/nvn/nvn_mtl.m
+@@ -134,6 +134,7 @@ static int guarded_memcmp(const void *a, const void *b, size_t n, int *differ, c
+ static id<MTL4ArgumentTable> g_vt, g_ft, g_ct, g_up_ct;
+ static id<MTL4ArgumentTable> g_present_args[3];
+ static id<MTLBuffer> g_present_uv[3];
++static id<MTLRenderPipelineState> g_present_postfx_psos[3];   // Keep each MTL4 slot's custom PSO alive until its GPU work completes.
+ static id<MTLBuffer> g_present_probe_src[3], g_present_probe_dst[3];
+ static int g_present_probe;
+ // TOTK: FPS / picture-size overlay textures (BGRA8, shared). Slots 0..2 follow the present allocator index (the previous
+@@ -16230,6 +16231,7 @@ int mtl_display_hz(void) {
+ static _Atomic uint64_t g_present_stall_ns;   // 单测用：出图线程每次出图前额外停顿（模拟 drawable 迟迟不可用） | For unit tests: an extra pause before each present on the present thread (simulating a drawable that stays unavailable)
+ static CAMetalLayer *g_present_layer_resident;
+ void mtl_present_test_stall(uint64_t ns) { g_present_stall_ns = ns; }
++#include "botw_postfx.h"   // Optional BOTW 1.6.0 Mac output filter; off keeps the original picture pipeline.
+ static void present_pipeline(MTLPixelFormat format, BOOL hdrSource) {
+     BOOL hdrAvailable=hdrSource || format==MTLPixelFormatRGBA16Float;
+     if (!g_blit_pso || g_blit_fmt != format || g_blit_hdr_source!=hdrAvailable) {
+@@ -16502,7 +16504,7 @@ static int present_encode(id<MTLCommandBuffer> cb, id<MTLTexture> src, id<MTLTex
+     rp.colorAttachments[0].storeAction = MTLStoreActionStore;
+     id<MTLRenderCommandEncoder> en = [cb renderCommandEncoderWithDescriptor:rp]; es_reset();
+     [en setViewport:vp];
+-    [en setRenderPipelineState:g_blit_hdr_pso && (src.pixelFormat==MTLPixelFormatRGBA16Float || dst.pixelFormat==MTLPixelFormatRGBA16Float) ? g_blit_hdr_pso : g_blit_pso];   // an FP16 picture or drawable: the HDR copy (it decodes SDR input) [en setFragmentTexture:src atIndex:0]; [en setFragmentSamplerState:g_blit_samp atIndex:0];
++    [en setFragmentTexture:src atIndex:0]; [en setFragmentSamplerState:g_blit_samp atIndex:0];
+     float uv[12] = {(float)cx / src.width, (float)cy / src.height, (float)cw / src.width, (float)ch / src.height,
+                    (cx + 0.5f) / src.width, (cy + 0.5f) / src.height, (cx + cw - 0.5f) / src.width, (cy + ch - 0.5f) / src.height};
+     uv[8]=1;uv[9]=1;
+@@ -16510,8 +16512,13 @@ static int present_encode(id<MTLCommandBuffer> cb, id<MTLTexture> src, id<MTLTex
+     if(dst.pixelFormat==MTLPixelFormatRGBA16Float && front_hdr_headroom)uv[8]=front_hdr_headroom();
+     uv[8]=fminf(uv[8],t_hdr_present_peak);uv[9]=t_hdr_present_white;
+ #endif
++    float post_values[4];
++    id<MTLRenderPipelineState> post = src.pixelFormat != MTLPixelFormatRGBA16Float ? bpf_pipeline(dst.pixelFormat,post_values) : nil;
++    if (post) memcpy(uv+8,post_values,sizeof post_values);   // Off / failed filters preserve the original copy and HDR uniforms.
++    [en setRenderPipelineState:post ?: (g_blit_hdr_pso && (src.pixelFormat==MTLPixelFormatRGBA16Float || dst.pixelFormat==MTLPixelFormatRGBA16Float) ? g_blit_hdr_pso : g_blit_pso)];
+     [en setFragmentBytes:uv length:sizeof uv atIndex:0];
+     [en drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];
++    if (post) bpf_encoded();
+     [en setRenderPipelineState:g_blit_pso];
+     MTLViewport ovp; float fuv[8];
+     if (fps_overlay && fps_overlay_prepare(3, vp, &ovp, fuv)) {
+@@ -16565,10 +16572,15 @@ static int present_encode_m4(id<MTL4CommandBuffer> cb, id<MTLTexture> src, id<MT
+     if(dst.pixelFormat==MTLPixelFormatRGBA16Float && front_hdr_headroom)uv[8]=front_hdr_headroom();
+     uv[8]=fminf(uv[8],t_hdr_present_peak);uv[9]=t_hdr_present_white;
+ #endif
++    float post_values[4];
++    id<MTLRenderPipelineState> post = pic.pixelFormat != MTLPixelFormatRGBA16Float ? bpf_pipeline(dst.pixelFormat,post_values) : nil;
++    if (post) memcpy(uv+8,post_values,sizeof post_values);   // The fallback PSO must receive its untouched original uniforms.
++    g_present_postfx_psos[uv_i] = post;   // This slot is reused only after its preceding GPU feedback completed.
+     [args setAddress:g_present_uv[uv_i].gpuAddress atIndex:0];
+     [en setArgumentTable:args atStages:MTLRenderStageFragment];
+-    [en setViewport:vp]; [en setRenderPipelineState:g_blit_hdr_pso && (pic.pixelFormat==MTLPixelFormatRGBA16Float || dst.pixelFormat==MTLPixelFormatRGBA16Float) ? g_blit_hdr_pso : g_blit_pso];   // as present_encode
++    [en setViewport:vp]; [en setRenderPipelineState:post ?: (g_blit_hdr_pso && (pic.pixelFormat==MTLPixelFormatRGBA16Float || dst.pixelFormat==MTLPixelFormatRGBA16Float) ? g_blit_hdr_pso : g_blit_pso)];
+     [en drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];
++    if (post) bpf_encoded();
+     MTLViewport ovp; float fuv[8];
+     [en setRenderPipelineState:g_blit_pso];
+     if (fps_overlay_prepare(uv_i, vp, &ovp, fuv)) {   // argument-table bindings are captured per draw, so rebinding here leaves the game picture's draw intact

@@ -2,11 +2,11 @@
 
 A native Mac editor for your running **Breath of the Wild 1.6.0** session in [MacNativeGames](https://github.com/ly05010419/MacNativeGames).
 
-Browse your pouch, give items, change player stats, and travel around Hyrule from a separate window. A compact Sheikah-inspired interface keeps the controls visible while BOTW runs.
+Browse your pouch, give items, change player stats, and travel around Hyrule from a separate window. The Sheikah-inspired interface uses compact navigation, an item grid with a persistent inspector, and travel controls over the actual local map.
 
-**0.1.0 is an early prerelease for one specific game/runtime version.** See the [live testing record](docs/TESTING.md) for verified operations and remaining checks.
+**0.1.1 is an early prerelease for one specific game/runtime version.** See the [live testing record](docs/TESTING.md) for verified operations and remaining checks.
 
-[Download 0.1.0](https://github.com/christianfurr/botw-editor/releases/tag/v0.1.0) · [Source and setup](docs/INSTALLATION.md)
+[Download 0.1.1](https://github.com/christianfurr/botw-editor/releases/tag/v0.1.1) · [Source and setup](docs/INSTALLATION.md)
 
 ![BOTW Editor player controls](Assets/screenshots/main.png)
 
@@ -19,12 +19,15 @@ Browse your pouch, give items, change player stats, and travel around Hyrule fro
 | World | Activate a selected shrine or all 120 base-game shrine travel points; reveal the 15 tower map regions; acquire base runes and the paraglider. Activation does not clear a shrine. |
 | Full Access | Apply those travel unlocks and raise the world towers. **This skips the opening tower activation sequence.** It does not directly mark shrines or story quests complete. |
 | Map | Browse the game's Hyrule terrain map, search 120 base shrines and 15 towers, and select a destination for travel. A live player marker shows your position. |
+| Graphics | Use Off, Natural, Vivid, or Cinematic picture filters, adjust strength and sharpness, or write a custom Metal color shader. |
 
 The installer builds the terrain map and item icons **locally from your own game**. They stay in your private Application Support cache and are not included in this repository or the editor download. [Local artwork and map extraction](docs/MAP-EXTRACTION.md)
 
+Version 0.1.1 fixes an inventory scan that treated undyed armor as an invalid entry and incorrectly told players to close the game menu. The catalog now uses the same icon-grid layout as the pouch, keeps quantity and **Give item** visible, and displays the actual inventory blocker when one exists. Browsing remains available while the game is closed.
+
 Controls wait for a supported gameplay session and fresh runtime state. The editor displays the game's acknowledgement and readback for each request. During travel, it disables edits while the game loads; an accepted request does not confirm arrival.
 
-Live checks have covered item grants and removal, an unequipped weapon durability round trip, rupees, 30 hearts, three stamina wheels, world-access flags, save/reload persistence, and three travel destinations. The [testing record](docs/TESTING.md) lists the exact observations and remaining limits.
+The 0.1.0 live checks covered item grants and removal, an unequipped weapon durability round trip, rupees, 30 hearts, three stamina wheels, world-access flags, save/reload persistence, and three travel destinations. The 0.1.1 runtime also passed grants while the system and Materials menus were open, the undyed-armor case, and visible custom-shader/error-recovery checks. The [testing record](docs/TESTING.md) keeps these results separate.
 
 ## Requirements
 
@@ -56,9 +59,10 @@ The current app is **ad hoc signed and not Apple-notarized**. If macOS blocks th
 
 ## Use
 
-- **Inventory:** select a tile to inspect it. Apply a new stack quantity or durability value in the detail pane, or choose **Remove Item…**. Unequip gear before editing its durability or removing it. Use **Add Item…** to search the catalog and choose **Give Item**.
+- **Inventory:** select a tile to inspect it. Apply a new stack quantity or durability value in the detail pane, or choose **Remove Item…**. Unequip gear before editing its durability or removing it. Use **Give item…** to browse the catalog, choose a quantity, and select **Give item**. A successful grant stays visible in the result bar. If Link is holding cooking materials, put them away before editing inventory.
 - **Player:** use the stat buttons to apply values. Maximum hearts and stamina wait for the live player values to load. The health lock holds your current health; the stamina lock refills stamina. Both locks start off.
 - **World:** select a map marker or destination row for its travel and shrine actions. The **World access** menu contains bulk unlocks. Read the confirmation before applying **Full access**, which also skips the opening tower activation sequence.
+- **Graphics:** open the sliders button in the top bar. Choose a look, adjust strength and sharpness, then apply it. **Off** restores the original presentation. For a restrained cinematic blend, start with Cinematic at **40% strength / 12% sharpness**. Custom source and fallback behavior are documented in [Shaders](docs/SHADERS.md).
 - **Tower travel:** activate the first tower in BOTW or use **Full Access** before traveling to a tower that the editor marks unavailable.
 - Read the action result before making another edit. The window disables edits when the game closes, a bridge update is required, or connection data becomes stale.
 
@@ -72,7 +76,7 @@ Use an Apple silicon Mac on macOS 26 or later, with Xcode command-line tools tha
 ./scripts/build.sh
 ```
 
-The build runs the Swift model, native runtime, and installer checks. It produces `build/BOTW Editor.app`, `build/BOTW Editor.zip`, and a SHA-256 checksum alongside the ZIP. The app includes the item-name catalog, original interface artwork, native icon, and license notices. Building the editor needs no game files.
+The build runs the Swift model/UI/graphics checks, native runtime guards, synthetic Metal pixel checks, and installer fixtures. It produces `build/BOTW Editor.app`, `build/BOTW Editor.zip`, and a SHA-256 checksum alongside the ZIP. The app includes the item-name catalog, original interface artwork, native icon, and license notices. Building the editor needs no game files.
 
 To run the checks without packaging the app:
 
@@ -80,7 +84,7 @@ To run the checks without packaging the app:
 ./scripts/test.sh
 ```
 
-The macOS 26 CI job runs the same editor build without installing the bridge or launching a game. Builds use ad-hoc code signing; they are not notarized or signed with a Developer ID certificate.
+The macOS 26 CI job runs the same editor build without installing the bridge or launching a game. A runner without a Metal device reports a GPU-test skip; that skip does not prove GPU results. Builds use ad-hoc code signing; they are not notarized or signed with a Developer ID certificate.
 
 Runtime bridge installation is a separate step. Rebuilding the editor alone does not update the game app.
 
@@ -90,6 +94,7 @@ Runtime bridge installation is a separate step. Rebuilding the editor alone does
 - [Testing and release evidence](docs/TESTING.md)
 - [Installation and recovery](docs/INSTALLATION.md)
 - [Private terrain map and item artwork](docs/MAP-EXTRACTION.md)
+- [Graphics filters and custom Metal shaders](docs/SHADERS.md)
 - [Third-party notices](THIRD_PARTY_NOTICES.md)
 
 MIT licensed. This independent project is not affiliated with Nintendo. The Legend of Zelda and Nintendo Switch are trademarks of Nintendo.

@@ -91,6 +91,8 @@ struct TrainerState: Decodable {
     let maxStaminaLive: Double?
     let towersRaised: Bool?
     let position: WorldPosition?
+    let inventoryReady: Bool?
+    let inventoryBlockReason: String?
 
     enum CodingKeys: String, CodingKey {
         case schema, pid, version, ready, message, health, stamina, rupees, features, inventory, destinations, position
@@ -104,6 +106,8 @@ struct TrainerState: Decodable {
         case maxHeartsLive = "max_hearts_live"
         case maxStaminaLive = "max_stamina_live"
         case towersRaised = "towers_raised"
+        case inventoryReady = "inventory_ready"
+        case inventoryBlockReason = "inventory_block_reason"
         case lastRequest = "last_request"
         case lastOK = "last_ok"
         case lastResult = "last_result"
@@ -246,6 +250,10 @@ struct TrainerConnection {
     static func canSetMaximum(_ feature: String, state: TrainerState?, alive: Bool, fresh: Bool, inputExists: Bool) -> Bool {
         canUse(feature,state:state,alive:alive,fresh:fresh,inputExists:inputExists) && state?.playerCacheReady != false
     }
+
+    static func canEditInventory(_ feature: String, state: TrainerState?, alive: Bool, fresh: Bool, inputExists: Bool) -> Bool {
+        canUse(feature,state:state,alive:alive,fresh:fresh,inputExists:inputExists) && state?.inventoryReady != false
+    }
 }
 
 #if !MODEL_CHECKS
@@ -272,7 +280,7 @@ final class PlaygroundModel: ObservableObject {
     private var inputURL: URL { folder.appendingPathComponent("input.txt") }
     private var timer: Timer?
     private var lastRequestID: UInt64 = 0
-    private var waiting: (id: UInt64, started: Date)?
+    private var waiting: (id: UInt64, started: Date, givenActor: String?)?
     private var requestedPID: Int32?
     private var processAlive = false
     private var stateFresh = false
@@ -294,6 +302,15 @@ final class PlaygroundModel: ObservableObject {
     }
 
     func supports(_ feature: String) -> Bool { state?.features[feature] == true }
+
+    var inventoryBlockedReason: String? {
+        guard available, state?.inventoryReady == false else { return nil }
+        return state?.inventoryBlockReason ?? "Inventory is updating. Wait a moment, then try again."
+    }
+
+    func canEditInventory(feature: String) -> Bool {
+        !pending && TrainerConnection.canEditInventory(feature, state:state, alive:processAlive, fresh:stateFresh, inputExists:inputExists)
+    }
 
     func name(for actor: String) -> String { catalog.first(where: { $0.id == actor })?.name ?? actor }
 
@@ -327,6 +344,10 @@ final class PlaygroundModel: ObservableObject {
             if let request = waiting {
                 if next.lastRequest == request.id {
                     feedback = next.lastResult.isEmpty ? (next.lastOK ? "The game confirmed the change." : "The game rejected the request.") : next.lastResult
+                    if next.lastOK, let actor = request.givenActor {
+                        feedback = feedback.replacingOccurrences(of:actor,with:name(for:actor))
+                        feedback += ". If BOTW’s pouch was open, close and reopen it to refresh its display."
+                    }
                     feedbackIsError = !next.lastOK
                     waiting = nil
                     pending = false
@@ -371,6 +392,9 @@ final class PlaygroundModel: ObservableObject {
             if let feature = command.feature, !canUse(feature) {
                 throw CommandError.invalid("This action is not available in the current gameplay session.")
             }
+            if let feature = command.feature, ["items", "inventory_edit"].contains(feature), !canEditInventory(feature:feature) {
+                throw CommandError.invalid(inventoryBlockedReason ?? "Inventory is updating. Wait a moment, then try again.")
+            }
             if command.requiresPlayerCache, let feature = command.feature, !canSetMaximum(feature) {
                 throw CommandError.invalid("Player stats are still loading. Wait for the gameplay session to be ready.")
             }
@@ -385,7 +409,9 @@ final class PlaygroundModel: ObservableObject {
             defer { try? handle.close() }
             try handle.seekToEnd()
             try handle.write(contentsOf: Data(line.utf8))
-            waiting = (requestID, Date())
+            let givenActor: String?
+            if case .give(let actor, _) = command { givenActor = actor } else { givenActor = nil }
+            waiting = (requestID, Date(), givenActor)
             pending = true
             feedback = "Waiting for confirmation from the game…"
             feedbackIsError = false

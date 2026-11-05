@@ -20,6 +20,8 @@ fi
 mkdir -p "$APP_PATH/Contents/MacOS" "$APP_PATH/Contents/Resources" "$ICONSET_PATH"
 xcrun swiftc -O -target arm64-apple-macosx26.0 \
     "$REPO_ROOT/Sources/PlaygroundModel.swift" \
+    "$REPO_ROOT/Sources/GraphicsModel.swift" \
+    "$REPO_ROOT/Sources/GraphicsSettingsView.swift" \
     "$REPO_ROOT/Sources/BOTWPlayground.swift" \
     -o "$APP_PATH/Contents/MacOS/BOTWEditor" -framework SwiftUI -framework AppKit
 
@@ -41,8 +43,8 @@ cat > "$APP_PATH/Contents/Info.plist" <<'PLIST'
 <key>CFBundleExecutable</key><string>BOTWEditor</string>
 <key>CFBundleIconFile</key><string>AppIcon</string>
 <key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleShortVersionString</key><string>0.1.0</string>
-<key>CFBundleVersion</key><string>1</string>
+<key>CFBundleShortVersionString</key><string>0.1.1</string>
+<key>CFBundleVersion</key><string>2</string>
 <key>LSMinimumSystemVersion</key><string>26.0</string>
 <key>NSHighResolutionCapable</key><true/>
 </dict></plist>

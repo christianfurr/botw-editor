@@ -185,9 +185,71 @@ static void check_inventory_values(void) {
     FILE *output = open_memstream(&json, &length);
     require(output != NULL, "open unavailable inventory snapshot stream");
     be_inventory_snapshot(output, 0, 0);
-    require(fclose(output) == 0 && !strcmp(json, ",\"inventory\":[]"),
-            "unavailable inventory snapshot contains no actionable rows");
+    require(fclose(output) == 0 && !strcmp(json, ",\"inventory\":[],\"inventory_ready\":false,\"inventory_block_reason\":\"Load a gameplay session to edit inventory.\""),
+            "unavailable inventory snapshot contains no actionable rows and explains its state");
     free(json);
+}
+
+static void fixture_inventory_item(uintptr_t base, uintptr_t manager, int slot,
+                                   int type, int value, const char *name) {
+    uintptr_t address = manager + BEI_BUFFER + (uintptr_t)slot * BEI_ITEM_SIZE;
+    uintptr_t vtable = base + 0x2b877a0, name_vtable = base + 0x2a6faf0, text = address + 0x3c;
+    int32_t capacity = 64;
+    memcpy((void *)address, &vtable, 8);
+    memcpy((void *)(address + 0x18), &type, 4);
+    memcpy((void *)(address + 0x20), &value, 4);
+    *(unsigned char *)(address + 0x25) = 1;
+    memcpy((void *)(address + 0x28), &name_vtable, 8);
+    memcpy((void *)(address + 0x30), &text, 8);
+    memcpy((void *)(address + 0x38), &capacity, 4);
+    snprintf((char *)text, 64, "%s", name);
+}
+
+static void check_inventory_armor_and_readiness(void) {
+    for (int type = 4; type <= 6; ++type) {
+        require(bei_native_value_valid(type, -1), "accept native non-dyeable armor sentinel");
+        require(bei_native_value_valid(type, 0) && bei_native_value_valid(type, 15), "accept original and dyed armor colors");
+        require(!bei_native_value_valid(type, -2) && !bei_native_value_valid(type, 16), "reject unknown armor metadata");
+    }
+    for (int type = 0; type <= 9; ++type) {
+        if (type >= 4 && type <= 6) continue;
+        require(!bei_native_value_valid(type, -1), "armor sentinel does not relax other item types");
+    }
+    require(!bei_native_value_valid(-1, 0) && !bei_native_value_valid(10, 0), "reject invalid item types");
+    require(!bei_native_value_valid(7, 1000) && bei_native_value_valid(0, 3000), "keep stack and durability ranges separate");
+
+    unsigned char *storage = calloc(1, 0x45000);
+    require(storage != NULL, "allocate synthetic mixed inventory");
+    uintptr_t manager = (uintptr_t)storage, base = 0x10000000, head = manager + BEI_LIST;
+    uintptr_t nodes[3] = {manager + BEI_BUFFER + 8, manager + BEI_BUFFER + BEI_ITEM_SIZE + 8,
+                          manager + BEI_BUFFER + 2 * BEI_ITEM_SIZE + 8};
+    fixture_inventory_item(base, manager, 0, 5, -1, "Armor_001_Upper");
+    fixture_inventory_item(base, manager, 1, 7, 9, "Item_Fruit_A");
+    fixture_inventory_item(base, manager, 2, 0, 2000, "Weapon_Sword_001");
+    memcpy((void *)head, &nodes[2], 8); memcpy((void *)(head + 8), &nodes[0], 8);
+    int32_t expected = 3; memcpy((void *)(head + 0x10), &expected, 4);
+    for (int index = 0; index < 3; ++index) {
+        uintptr_t previous = index ? nodes[index - 1] : head;
+        uintptr_t next = index == 2 ? head : nodes[index + 1];
+        memcpy((void *)nodes[index], &previous, 8); memcpy((void *)(nodes[index] + 8), &next, 8);
+    }
+    BeiItem items[BEI_SLOTS]; int count = 0;
+    require(bei_scan(base, manager, items, &count) && count == 3, "armor sentinel does not hide an otherwise valid full inventory");
+    require(items[0].value == -1 && items[1].value == 9 && items[2].value == 2000,
+            "mixed scan preserves armor metadata, material count, and weapon durability");
+    require(!bei_set_value(&items[0], 1), "armor remains read-only despite accepted metadata");
+    require(!bei_inventory_block_reason(manager, 1), "validated idle pouch permits edits without requiring a menu to close");
+    uintptr_t held = nodes[1]; memcpy((void *)(manager + 0x444a0), &held, 8);
+    const char *reason = bei_inventory_block_reason(manager, 1);
+    require(reason && strstr(reason, "Put away the materials"), "held materials produce a precise actionable blocker");
+    held = 0; memcpy((void *)(manager + 0x444a0), &held, 8);
+    require(!bei_inventory_block_reason(manager, 1), "putting away materials restores edit readiness");
+    reason = bei_inventory_block_reason(manager, 0);
+    require(reason && strstr(reason, "validated") && !strstr(reason, "menu"), "validation failure does not invent a menu condition");
+    require(bei_inventory_block_reason(0, 0) != NULL, "unavailable manager blocks mutation");
+    int invalid = -2; memcpy((void *)(manager + BEI_BUFFER + 0x20), &invalid, 4);
+    require(!bei_scan(base, manager, items, &count), "unsupported negative armor value still rejects the complete scan");
+    free(storage);
 }
 
 static void check_queue_and_unready_state(void) {
@@ -350,6 +412,7 @@ int main(void) {
     check_memory_guards();
     check_parser();
     check_inventory_values();
+    check_inventory_armor_and_readiness();
     check_queue_and_unready_state();
     check_synthetic_live_values();
     check_json_escaping();

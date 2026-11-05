@@ -10,6 +10,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest import mock
 
 sys.dont_write_bytecode = True
@@ -20,6 +21,62 @@ SPEC.loader.exec_module(installer)
 
 
 class PatchTests(unittest.TestCase):
+    def source_patch(self, folder):
+        subprocess.run(["git", "init", "-q", str(folder)], check=True)
+        for relative in installer.SOURCE_FILES:
+            path = folder / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("before\n")
+        patch = folder / "bridge.patch"
+        patch.write_text("".join(
+            f"diff --git a/{relative} b/{relative}\n--- a/{relative}\n+++ b/{relative}\n@@ -1 +1 @@\n-before\n+after\n"
+            for relative in installer.SOURCE_FILES))
+        return patch
+
+    def test_partial_upgrade_applies_only_missing_renderer_hook(self):
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            patch = self.source_patch(folder)
+            old_hooks = installer.SOURCE_FILES[:2]
+            installer.checked(["git", "apply", *("--include=" + relative for relative in old_hooks), str(patch)], cwd=folder)
+            states = {relative: installer.patch_state(folder, patch, relative=relative) for relative in installer.SOURCE_FILES}
+            self.assertEqual(states, {**dict.fromkeys(old_hooks, "integrated"), installer.SOURCE_FILES[2]: "needs-install"})
+            before = {relative: (folder / relative).read_bytes() for relative in old_hooks}
+            plan = SimpleNamespace(repo=folder, changes=[relative for relative, state in states.items() if state == "needs-install"])
+            with mock.patch.object(installer, "PATCH", patch), mock.patch.object(installer, "say"):
+                installer.apply_source_changes(plan)
+            self.assertEqual({relative: (folder / relative).read_bytes() for relative in old_hooks}, before)
+            self.assertTrue(all(installer.patch_state(folder, patch, relative=relative) == "integrated" for relative in installer.SOURCE_FILES))
+
+    def test_partial_upgrade_rejects_a_conflicting_renderer(self):
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            patch = self.source_patch(folder)
+            renderer = installer.SOURCE_FILES[2]
+            (folder / renderer).write_text("human-owned conflicting renderer\n")
+            before = (folder / renderer).read_bytes()
+            with self.assertRaises(installer.InstallError):
+                installer.patch_state(folder, patch, relative=renderer)
+            self.assertEqual((folder / renderer).read_bytes(), before)
+
+    def test_patch_allowlist_rejects_mismatched_paths_and_modes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            patch = self.source_patch(folder)
+            original = patch.read_text()
+            with mock.patch.object(installer, "PATCH", patch):
+                installer.validate_patch_contents()
+                variants = [
+                    original.replace("+++ b/" + installer.SOURCE_FILES[0], "+++ b/../../outside.c", 1),
+                    original + "new file mode 100644\n",
+                    original + "GIT binary patch\n",
+                    original + original[:original.index("diff --git ", 1)],
+                ]
+                for value in variants:
+                    patch.write_text(value)
+                    with self.assertRaises(installer.InstallError):
+                        installer.validate_patch_contents()
+
     def test_patch_is_detected_before_and_after_application(self):
         with tempfile.TemporaryDirectory() as directory:
             folder = Path(directory)
@@ -64,7 +121,9 @@ class PreflightTests(unittest.TestCase):
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text("upstream test fixture\n")
         for name in installer.HEADERS:
-            (self.repo / "games/totk/runtime" / name).write_bytes((installer.ROOT / "runtime" / name).read_bytes())
+            path = self.repo / installer.HEADER_TARGETS[name]
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes((installer.ROOT / "runtime" / name).read_bytes())
         (self.work / "totk").mkdir(parents=True)
         resources = self.app / "Contents/Resources/totk"
         (resources / "rewritten/botw160").mkdir(parents=True)
@@ -106,18 +165,49 @@ class PreflightTests(unittest.TestCase):
         self.assertFalse(installer.APP_DATA.exists())
 
     def test_unowned_changed_header_is_refused(self):
-        (self.repo / "games/totk/runtime" / installer.HEADERS[0]).write_text("someone else's bridge\n")
+        (self.repo / installer.HEADER_TARGETS[installer.HEADERS[0]]).write_text("someone else's bridge\n")
         with self.assertRaisesRegex(installer.InstallError, "unowned"):
             installer.preflight(self.args)
 
     def test_recorded_owned_header_can_be_updated(self):
         plan = installer.preflight(self.args)
-        relative = "games/totk/runtime/" + installer.HEADERS[0]
+        relative = installer.HEADER_TARGETS[installer.HEADERS[0]]
         path = self.repo / relative
         path.write_text("old installer-owned header\n")
         installer.write_json(plan.manifest_path, {"schema": 1, "repo": str(plan.repo), "app": str(plan.app),
             "owned_headers": {relative: installer.digest(path)}})
         self.assertIn(relative, installer.preflight(self.args).changes)
+
+    def test_shader_header_is_owned_at_its_vendor_target(self):
+        relative = "games/totk/third_party/d2r_gfx/gfx/nvn/botw_postfx.h"
+        self.assertEqual(installer.HEADER_TARGETS["botw_postfx.h"], relative)
+        plan = installer.preflight(self.args)
+        self.assertIn(relative, plan.source_hashes)
+        self.assertNotIn("games/totk/runtime/botw_postfx.h", plan.source_hashes)
+        target = self.repo / relative
+        target.write_text("human-owned shader header\n")
+        with self.assertRaisesRegex(installer.InstallError, "unowned"):
+            installer.preflight(self.args)
+
+    def test_upgrade_can_add_a_missing_shader_header(self):
+        relative = installer.HEADER_TARGETS["botw_postfx.h"]
+        (self.repo / relative).unlink()
+        before = self.snapshot()
+        plan = installer.preflight(self.args)
+        self.assertIn(relative, plan.changes)
+        self.assertIsNone(plan.source_hashes[relative])
+        self.assertEqual(self.snapshot(), before)
+
+    def test_partial_upgrade_preflight_plans_only_missing_renderer(self):
+        before = self.snapshot()
+        renderer = installer.SOURCE_FILES[2]
+        def state(repo, *, relative):
+            return "needs-install" if relative == renderer else "integrated"
+        with mock.patch.object(installer, "patch_state", side_effect=state):
+            plan = installer.preflight(self.args)
+        self.assertEqual(plan.integration, "partial (upgrade supported)")
+        self.assertEqual(plan.changes, [renderer])
+        self.assertEqual(self.snapshot(), before)
 
     def test_wrong_game_version_is_refused(self):
         self.info.write_bytes(plistlib.dumps({"CFBundleIdentifier": "org.macnativegames.botw", "CFBundleShortVersionString": "1.9.0"}))
@@ -132,6 +222,12 @@ class PreflightTests(unittest.TestCase):
     def test_changed_sources_after_backup_are_refused(self):
         plan = installer.preflight(self.args)
         (self.repo / installer.SOURCE_FILES[0]).write_text("edit after validation\n")
+        with self.assertRaisesRegex(installer.InstallError, "Source changed"):
+            installer.verify_unchanged(plan)
+
+    def test_shader_header_change_after_validation_is_refused(self):
+        plan = installer.preflight(self.args)
+        (self.repo / installer.HEADER_TARGETS["botw_postfx.h"]).write_text("concurrent shader edit\n")
         with self.assertRaisesRegex(installer.InstallError, "Source changed"):
             installer.verify_unchanged(plan)
 

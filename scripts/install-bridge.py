@@ -26,12 +26,17 @@ from pathlib import Path
 
 PINNED_COMMIT = "b1a49a26650eb31a986e7841f449bb44446c5208"
 ROOT = Path(__file__).resolve().parents[1]
-HEADERS = (
-    "botw_editor.h", "botw_editor_inventory.h", "botw_editor_world.h",
-    "botw_editor_teleport.h", "botw_editor_destinations.h",
-)
+HEADER_TARGETS = {
+    **{name: "games/totk/runtime/" + name for name in (
+        "botw_editor.h", "botw_editor_inventory.h", "botw_editor_world.h",
+        "botw_editor_teleport.h", "botw_editor_destinations.h",
+    )},
+    "botw_postfx.h": "games/totk/third_party/d2r_gfx/gfx/nvn/botw_postfx.h",
+}
+HEADERS = tuple(HEADER_TARGETS)
 SOURCE_FILES = (
     "games/totk/runtime/input.c", "games/totk/runtime/game_patches_botw.c",
+    "games/totk/third_party/d2r_gfx/gfx/nvn/nvn_mtl.m",
 )
 APP_DATA = Path.home() / "Library/Application Support/BOTWEditor"
 GAME_DATA = Path.home() / "Library/Application Support/MacNativeGames/BotW"
@@ -115,15 +120,18 @@ def active_game_processes(app: Path) -> list[int]:
     return processes
 
 
-def patch_state(repo: Path, patch: Path = PATCH) -> str:
-    forward = run(["git", "apply", "--check", str(patch)], cwd=repo)
+def patch_state(repo: Path, patch: Path = PATCH, *, relative: str | None = None) -> str:
+    # Upgrade checkouts can contain the 0.1.0 runtime hooks while the renderer
+    # remains pristine. Classify one allowlisted file at a time in preflight.
+    selection = ["--include=" + relative] if relative is not None else []
+    forward = run(["git", "apply", "--check", *selection, str(patch)], cwd=repo)
     if not forward.returncode:
         return "needs-install"
-    reverse = run(["git", "apply", "--reverse", "--check", str(patch)], cwd=repo)
+    reverse = run(["git", "apply", "--reverse", "--check", *selection, str(patch)], cwd=repo)
     if not reverse.returncode:
         return "integrated"
     raise InstallError(
-        "The runtime integration conflicts with local edits in input.c or game_patches_botw.c. "
+        f"The runtime integration conflicts with local edits in {relative or 'the patched source files'}. "
         "No files were changed. Preserve your edits and use a compatible checkout.\n"
         + (forward.stderr or reverse.stderr).strip()
     )
@@ -141,7 +149,8 @@ def validate_patch_contents() -> None:
         text = PATCH.read_text()
     except OSError as error:
         raise InstallError(f"Missing packaged integration patch: {PATCH}") from error
-    paths, sections = [], []
+    old_paths, new_paths, sections = [], [], []
+    section = None
     for line in text.splitlines():
         if line.startswith("diff --git "):
             candidates = [relative for relative in SOURCE_FILES
@@ -149,10 +158,22 @@ def validate_patch_contents() -> None:
             if len(candidates) != 1:
                 raise InstallError("The packaged patch contains an unexpected source path.")
             sections.extend(candidates)
-        if line.startswith("+++ b/"):
-            paths.append(line[6:])
-    if sorted(paths) != sorted(SOURCE_FILES) or sorted(sections) != sorted(SOURCE_FILES) or "GIT binary patch" in text:
-        raise InstallError("The packaged patch does not contain exactly the expected two runtime source files.")
+            section = candidates[0]
+        if line.startswith("--- "):
+            if section is None or line != "--- a/" + section:
+                raise InstallError("The packaged patch changes an unexpected original source path.")
+            old_paths.append(line[4:])
+        if line.startswith("+++ "):
+            if section is None or line != "+++ b/" + section:
+                raise InstallError("The packaged patch changes an unexpected destination source path.")
+            new_paths.append(line[4:])
+    unsupported = ("GIT binary patch", "rename from ", "rename to ", "copy from ",
+                   "copy to ", "new file mode ", "deleted file mode ", "old mode ", "new mode ")
+    if sorted(old_paths) != sorted("a/" + name for name in SOURCE_FILES) or \
+       sorted(new_paths) != sorted("b/" + name for name in SOURCE_FILES) or \
+       sorted(sections) != sorted(SOURCE_FILES) or \
+       any(line.startswith(unsupported) for line in text.splitlines()):
+        raise InstallError("The packaged patch does not contain exactly the expected three source-file modifications.")
 
 
 @dataclass
@@ -201,7 +222,13 @@ def preflight(args: argparse.Namespace) -> Plan:
         raise InstallError(f"BOTW is running (PID {', '.join(map(str, processes))}). Quit it yourself, then retry; the installer will not close it.")
     py = python314()
     validate_patch_contents()
-    integration = patch_state(repo)
+    patch_states = {relative: patch_state(repo, relative=relative) for relative in SOURCE_FILES}
+    if all(state == "integrated" for state in patch_states.values()):
+        integration = "integrated"
+    elif all(state == "needs-install" for state in patch_states.values()):
+        integration = "needs-install"
+    else:
+        integration = "partial (upgrade supported)"
     key = hashlib.sha256((str(repo) + "\0" + str(app)).encode()).hexdigest()[:24]
     manifest_path = APP_DATA / "Installations" / (key + ".json")
     manifest = read_json(manifest_path)
@@ -210,7 +237,7 @@ def preflight(args: argparse.Namespace) -> Plan:
     owned = manifest.get("owned_headers", {})
     source_hashes: dict[str, str | None] = {}
     package_hashes = {"patch": digest(PATCH)}
-    changes = list(SOURCE_FILES) if integration == "needs-install" else []
+    changes = [relative for relative, state in patch_states.items() if state == "needs-install"]
     for relative in SOURCE_FILES:
         target = target_file(repo, relative)
         if not target.is_file():
@@ -221,7 +248,7 @@ def preflight(args: argparse.Namespace) -> Plan:
         if not packaged.is_file():
             raise InstallError(f"Missing packaged bridge header: {name}")
         package_hashes[name] = digest(packaged)
-        relative = "games/totk/runtime/" + name
+        relative = HEADER_TARGETS[name]
         target = target_file(repo, relative)
         current = digest(target) if target.is_file() else None
         if target.exists() and not target.is_file():
@@ -376,6 +403,18 @@ def ensure_private_assets(plan: Plan, log_folder: Path) -> None:
             raise InstallError(f"Private {kind} extraction did not produce a complete, hash-verified cache. Read {log_folder / (kind + '-extraction.log')} and retry.")
 
 
+def apply_source_changes(plan: Plan) -> None:
+    pending = [relative for relative in SOURCE_FILES if relative in plan.changes]
+    if not pending:
+        return
+    # Git applies the selected files atomically. Already integrated files are
+    # excluded so an upgrade from 0.1.0 never reapplies its two runtime hooks.
+    checked(["git", "apply", *("--include=" + relative for relative in pending), str(PATCH)], cwd=plan.repo)
+    say("Integrated source hooks:")
+    for relative in pending:
+        say("  " + relative)
+
+
 def install(plan: Plan) -> None:
     destinations = GAME_DATA / "editor-destinations.tsv"
     stamp = dt.datetime.now().strftime("%Y%m%d-%H%M%S-%f")
@@ -419,13 +458,9 @@ def install(plan: Plan) -> None:
             "macnativegames_commit": PINNED_COMMIT,
         })
         verify_unchanged(plan)
-        if plan.integration == "needs-install":
-            checked(["git", "apply", str(PATCH)], cwd=plan.repo)
-            say("Integrated runtime hooks:")
-            for relative in SOURCE_FILES:
-                say("  " + relative)
+        apply_source_changes(plan)
         for name in HEADERS:
-            relative = "games/totk/runtime/" + name
+            relative = HEADER_TARGETS[name]
             target = plan.repo / relative
             if plan.source_hashes[relative] != plan.package_hashes[name]:
                 temporary = target.with_name(target.name + f".botw-editor-{os.getpid()}.tmp")
@@ -433,7 +468,7 @@ def install(plan: Plan) -> None:
                     stream.write((ROOT / "runtime" / name).read_bytes())
                 temporary.replace(target)
                 say("Installed bridge source: " + relative)
-        owned = {"games/totk/runtime/" + name: plan.package_hashes[name] for name in HEADERS}
+        owned = {HEADER_TARGETS[name]: plan.package_hashes[name] for name in HEADERS}
         manifest = {
             "schema": 1, "status": "pending", "repo": str(plan.repo), "app": str(plan.app),
             "macnativegames_commit": PINNED_COMMIT, "owned_headers": owned,
