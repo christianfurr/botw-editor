@@ -32,6 +32,19 @@ Item tiles load icons from the local cache by validated actor identifier. Game m
 
 The destination's optional `teleportable` field controls its travel action. A false value disables the button and explains how to raise the towers. `towers_raised` provides the current tower state. Older bridge snapshots that omit these optional fields retain the earlier feature gates.
 
+## Upscaling and color filters
+
+`UpscalingModel` controls a restart-required preset shared by the scene-resolution
+adapter and MetalFX temporal renderer. It writes the canonical token only after
+**Use on next launch**. The UI separates saved intent from a live process’s
+immutable boot token, actual dimensions, completed GPU work, and fallback state.
+See [Temporal reconstruction](TEMPORAL.md) for all five profiles and the status
+contract. Motion is currently camera-derived, with an explicit experimental limit.
+
+`GraphicsModel` remains independent: its hot-applied presets/custom Metal function
+filter the final SDR picture. Turning that color filter Off does not alter the
+saved upscaling profile. [Color shader contract](SHADERS.md)
+
 ## Installation and recovery
 
 `scripts/install-bridge.py` validates the supplied checkout and app, preserves restore copies, installs the bridge source/integration changes, runs MacNativeGames' runtime updater, and extracts the local editor resources. The existing game modules, keys, firmware, and game data are inputs owned by the player; they are not release contents.

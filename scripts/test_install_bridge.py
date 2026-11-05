@@ -26,10 +26,10 @@ class PatchTests(unittest.TestCase):
         for relative in installer.SOURCE_FILES:
             path = folder / relative
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text("before\n")
+            path.write_text("prefix\nbefore\nsuffix\nend\n")
         patch = folder / "bridge.patch"
         patch.write_text("".join(
-            f"diff --git a/{relative} b/{relative}\n--- a/{relative}\n+++ b/{relative}\n@@ -1 +1 @@\n-before\n+after\n"
+            f"diff --git a/{relative} b/{relative}\n--- a/{relative}\n+++ b/{relative}\n@@ -1,3 +1,3 @@\n prefix\n-before\n+after\n suffix\n"
             for relative in installer.SOURCE_FILES))
         return patch
 
@@ -40,9 +40,11 @@ class PatchTests(unittest.TestCase):
             old_hooks = installer.SOURCE_FILES[:2]
             installer.checked(["git", "apply", *("--include=" + relative for relative in old_hooks), str(patch)], cwd=folder)
             states = {relative: installer.patch_state(folder, patch, relative=relative) for relative in installer.SOURCE_FILES}
-            self.assertEqual(states, {**dict.fromkeys(old_hooks, "integrated"), installer.SOURCE_FILES[2]: "needs-install"})
+            self.assertEqual(states, {**dict.fromkeys(old_hooks, "integrated"), **dict.fromkeys(installer.SOURCE_FILES[2:], "needs-install")})
             before = {relative: (folder / relative).read_bytes() for relative in old_hooks}
-            plan = SimpleNamespace(repo=folder, changes=[relative for relative, state in states.items() if state == "needs-install"])
+            full = installer.validated_patch_sections(patch, installer.SOURCE_FILES)
+            states, text = installer.select_source_patches(folder, full, {})
+            plan = SimpleNamespace(repo=folder, changes=[relative for relative, state in states.items() if state != "integrated"], source_patch=text)
             with mock.patch.object(installer, "PATCH", patch), mock.patch.object(installer, "say"):
                 installer.apply_source_changes(plan)
             self.assertEqual({relative: (folder / relative).read_bytes() for relative in old_hooks}, before)
@@ -58,6 +60,66 @@ class PatchTests(unittest.TestCase):
             with self.assertRaises(installer.InstallError):
                 installer.patch_state(folder, patch, relative=renderer)
             self.assertEqual((folder / renderer).read_bytes(), before)
+
+    def compatibility_fixture(self, folder):
+        full_path = self.source_patch(folder)
+        compatibility_path = folder / "compatibility.patch"
+        compatibility_path.write_text("".join(
+            f"diff --git a/{relative} b/{relative}\n--- a/{relative}\n+++ b/{relative}\n@@ -1,3 +1,3 @@\n prefix\n-old release\n+after\n suffix\n"
+            for relative in installer.COMPAT_SOURCE_FILES))
+        return (installer.validated_patch_sections(full_path, installer.SOURCE_FILES),
+                installer.validated_patch_sections(compatibility_path, installer.COMPAT_SOURCE_FILES))
+
+    def test_old_releases_use_full_and_compatibility_sections_atomically(self):
+        for version in ("0.1.0", "0.1.1"):
+            with self.subTest(version=version), tempfile.TemporaryDirectory() as directory:
+                folder = Path(directory)
+                full, compatibility = self.compatibility_fixture(folder)
+                (folder / installer.SOURCE_FILES[0]).write_text("prefix\nafter\nsuffix\nend\n// independent input note\n")
+                game_patch, renderer = installer.COMPAT_SOURCE_FILES
+                (folder / game_patch).write_text("prefix\nold release\nsuffix\nend\n")
+                (folder / renderer).write_text("prefix\n" + ("old release" if version == "0.1.1" else "before") + "\nsuffix\nend\n// independent renderer note\n")
+                before_input = (folder / installer.SOURCE_FILES[0]).read_bytes()
+                states, text = installer.select_source_patches(folder, full, compatibility)
+                self.assertEqual(states[game_patch], "upgrade")
+                self.assertEqual(states[renderer], "upgrade" if version == "0.1.1" else "needs-install")
+                plan = SimpleNamespace(repo=folder, changes=[p for p, state in states.items() if state != "integrated"], source_patch=text)
+                with mock.patch.object(installer, "say"):
+                    installer.apply_source_changes(plan)
+                self.assertEqual((folder / installer.SOURCE_FILES[0]).read_bytes(), before_input)
+                self.assertEqual((folder / renderer).read_text(), "prefix\nafter\nsuffix\nend\n// independent renderer note\n")
+                final, remaining = installer.select_source_patches(folder, full, compatibility)
+                self.assertTrue(all(state == "integrated" for state in final.values()))
+                self.assertEqual(remaining, "")
+
+    def test_compatibility_upgrade_refuses_unknown_source_without_writes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            full, compatibility = self.compatibility_fixture(folder)
+            (folder / installer.COMPAT_SOURCE_FILES[1]).write_text("unknown human renderer\n")
+            before = {name: (folder / name).read_bytes() for name in installer.SOURCE_FILES}
+            with self.assertRaises(installer.InstallError):
+                installer.select_source_patches(folder, full, compatibility)
+            self.assertEqual({name: (folder / name).read_bytes() for name in installer.SOURCE_FILES}, before)
+
+    def test_selected_patch_failure_does_not_apply_earlier_files(self):
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            full, compatibility = self.compatibility_fixture(folder)
+            states, text = installer.select_source_patches(folder, full, compatibility)
+            plan = SimpleNamespace(repo=folder, changes=list(states), source_patch=text)
+            (folder / installer.SOURCE_FILES[-1]).write_text("changed after validation\n")
+            before = {name: (folder / name).read_bytes() for name in installer.SOURCE_FILES}
+            with self.assertRaises(installer.InstallError):
+                installer.apply_source_changes(plan)
+            self.assertEqual({name: (folder / name).read_bytes() for name in installer.SOURCE_FILES}, before)
+
+    def test_compatibility_patch_cannot_add_an_unapproved_source(self):
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            full_path = self.source_patch(folder)
+            with self.assertRaises(installer.InstallError):
+                installer.validated_patch_sections(full_path, installer.COMPAT_SOURCE_FILES)
 
     def test_patch_allowlist_rejects_mismatched_paths_and_modes(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -137,7 +199,7 @@ class PreflightTests(unittest.TestCase):
             mock.patch.object(installer.platform, "machine", return_value="arm64"),
             mock.patch.object(installer.platform, "mac_ver", return_value=("26.0", (), "")),
             mock.patch.object(installer, "checked", return_value=installer.PINNED_COMMIT),
-            mock.patch.object(installer, "patch_state", return_value="integrated"),
+            mock.patch.object(installer, "select_source_patches", return_value=(dict.fromkeys(installer.SOURCE_FILES, "integrated"), "")),
             mock.patch.object(installer, "python314", return_value=Path(sys.executable)),
             mock.patch.object(installer, "active_game_processes", return_value=[]),
             mock.patch.object(installer, "APP_DATA", self.folder / "installer-state"),
@@ -201,13 +263,21 @@ class PreflightTests(unittest.TestCase):
     def test_partial_upgrade_preflight_plans_only_missing_renderer(self):
         before = self.snapshot()
         renderer = installer.SOURCE_FILES[2]
-        def state(repo, *, relative):
-            return "needs-install" if relative == renderer else "integrated"
-        with mock.patch.object(installer, "patch_state", side_effect=state):
+        states = {relative: "needs-install" if relative == renderer else "integrated" for relative in installer.SOURCE_FILES}
+        text = installer.validate_patch_contents()[renderer]
+        with mock.patch.object(installer, "select_source_patches", return_value=(states, text)):
             plan = installer.preflight(self.args)
         self.assertEqual(plan.integration, "partial (upgrade supported)")
         self.assertEqual(plan.changes, [renderer])
         self.assertEqual(self.snapshot(), before)
+
+    def test_compatibility_patch_change_after_validation_is_refused(self):
+        plan = installer.preflight(self.args)
+        changed_patch = self.folder / "changed-compatibility.patch"
+        changed_patch.write_bytes(installer.COMPAT_PATCH.read_bytes() + b"\n")
+        with mock.patch.object(installer, "COMPAT_PATCH", changed_patch):
+            with self.assertRaisesRegex(installer.InstallError, "package changed"):
+                installer.verify_unchanged(plan)
 
     def test_wrong_game_version_is_refused(self):
         self.info.write_bytes(plistlib.dumps({"CFBundleIdentifier": "org.macnativegames.botw", "CFBundleShortVersionString": "1.9.0"}))

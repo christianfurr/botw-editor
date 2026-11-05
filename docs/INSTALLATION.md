@@ -26,7 +26,9 @@ Add `--check` to the installer command to validate compatibility and report whet
 
 The installer preserves unrelated checkout changes. It refuses differing bridge headers that it does not own, and it records ownership hashes under `~/Library/Application Support/BOTWEditor/Installations/`. Backups and runtime build logs remain local under `~/Library/Application Support/BOTWEditor/Backups/`.
 
-Upgrading from **0.1.0 to 0.1.1** keeps the existing bridge hooks and adds the renderer hook needed for post-processing. The installer checks each of the three allowed source files separately and applies only missing hooks, so a partly integrated checkout is supported. Conflicting local edits still stop installation before source changes. The post-processing header is installed alongside the renderer; the other bridge headers stay with the runtime.
+**0.1.2 supports fresh installations and upgrades from 0.1.0 or 0.1.1.** It checks six allowed source files: the build recipe, input handling, game patch integration, renderer, and temporal-scaler implementation/header. Existing hooks are retained. Pristine files use the full integration patch; the two files changed again since 0.1.1 use a separately validated compatibility patch. The installer checks and applies the selected sections together in one atomic Git operation. Conflicting local edits stop installation before source changes.
+
+Both packaged patches are included in installation ownership hashes and checked again after backups, so changing either patch during installation stops the update. The seven managed headers retain their recorded ownership checks. Post-processing and temporal-configuration headers are installed alongside the renderer; editor bridge headers stay with the runtime.
 
 When the bridge source and installed runtime already match, it reuses hash-verified artwork caches. Missing or invalid local artwork is regenerated without rebuilding the game runtime; extraction logs are kept under `~/Library/Application Support/BOTWEditor/logs/`. The installer verifies the extracted outputs before reporting success.
 

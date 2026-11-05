@@ -1,0 +1,335 @@
+diff --git a/games/totk/runtime/game_patches_botw.c b/games/totk/runtime/game_patches_botw.c
+--- a/games/totk/runtime/game_patches_botw.c
++++ b/games/totk/runtime/game_patches_botw.c
+@@ -16,6 +16,9 @@
+ #include "botw_shadow_res.h"   /* 1.9.0's sun shadow map at 2048 (TOTK_SHADOW_RES, shadows.txt) */
+ #include "botw_fov.h"   /* 1.9.0's field of view (TOTK_FOV_SCALE, graphics-fov.txt) */
+ #include <TargetConditionals.h>
++#if defined(GAME_BOTW160)
++#include "../third_party/d2r_gfx/gfx/nvn/botw_temporal_config.h"
++#endif
+ #include <mach/mach.h>   /* vm_read_overwrite: TOTK_CDPOINT_TRACE reads guest pointers it cannot vouch for */
+ #if defined(GAME_BOTW160) && !TARGET_OS_IPHONE
+ #include "runtime.h"
+@@ -1358,12 +1361,35 @@
+     return v;
+ }
+ #ifdef GAME_BOTW160
++static BotwTemporalConfig botw_upscaler_startup;
++static pthread_once_t botw_upscaler_once=PTHREAD_ONCE_INIT;
++static void botw_read_upscaler_once(void) {
++#if !TARGET_OS_IPHONE
++    botw_upscaler_startup=botw_temporal_load(runtime_setting_word);
++#else
++    botw_upscaler_startup=botw_temporal_parse(NULL);
++#endif
++}
++BotwTemporalConfig runtime_botw_temporal_startup_config(void) {
++    pthread_once(&botw_upscaler_once,botw_read_upscaler_once);
++    return botw_upscaler_startup;
++}
+ static void output_parse(void) {
+     if (g_out_mode >= 0) return;
+     if (ios_code()) { g_out_mode = OUT_OFF; return; }   /* the phone: the game's own size (handheld 720p) */
+     const char *e = getenv("TOTK_OUTPUT_RES"); unsigned a, b; char tail;
+     if (e && !strcmp(e, "0")) { g_out_mode = OUT_OFF; return; }
+-    if (!e || !*e || !strcmp(e, "auto")) { g_out_mode = OUT_AUTO; g_out_w = native_4k_app() ? 3840 : 2560; g_out_h = native_4k_app() ? 2160 : 1440; return; }
++    if (!e || !*e || !strcmp(e, "auto")) {
++        BotwTemporalConfig saved=runtime_botw_temporal_startup_config();
++        if(saved.enabled && (saved.output_width<3840 || native_4k_app())) {
++            g_out_mode=OUT_FIXED;g_out_w=saved.output_width;g_out_h=saved.output_height;
++            fprintf(stderr,"[botw-temporal] saved preset %s: canvas %ux%u, internal %ux%u (restart-required)\n",saved.token,g_out_w,g_out_h,saved.input_width,saved.input_height);
++            return;
++        }
++        if(saved.enabled)fprintf(stderr,"[botw-temporal] saved 4K preset requires an app built with native 4K; original output retained\n");
++        if(!saved.valid)fprintf(stderr,"[botw-temporal] invalid saved preset; original output retained\n");
++        g_out_mode = OUT_AUTO; g_out_w = native_4k_app() ? 3840 : 2560; g_out_h = native_4k_app() ? 2160 : 1440; return;
++    }
+     if (sscanf(e, "%ux%u%c", &a, &b, &tail) != 2 || a < 1280 || b < 720 || a > 7680 || b > 4320)
+         runtime_fail("TOTK_OUTPUT_RES must be auto, 0 or <width>x<height> (1280x720 .. 7680x4320)");
+     g_out_mode = OUT_FIXED; g_out_w = a; g_out_h = b;
+@@ -1428,6 +1454,23 @@
+ static void output_page(unsigned w, unsigned h) {   /* what the docked branch writes from its next run on */
+     const char *e = getenv("TOTK_RENDER_RES");
+     unsigned render = w == 1920 && h == 1080 && e && !strcmp(e, "900") ? 1600 : w;   /* the shipped 1600x900 scene at 1080p only */
++#ifdef GAME_BOTW160
++    if(!e || !*e) {
++        BotwTemporalConfig saved=runtime_botw_temporal_startup_config();
++        if(saved.enabled && saved.input_width<=w && saved.input_height<=h)render=saved.input_width;
++    }
++    /* Experimental temporal port: the existing guarded screen/render pair can
++       keep the scene smaller than the canvas, without changing the native HUD.
++       A real upscale requires this separation; a same-size pass is only AA. */
++    if (e && strchr(e, 'x')) {
++        unsigned rw, rh; char tail;
++        if (sscanf(e, "%ux%u%c", &rw, &rh, &tail) != 2 || rw < 640 || rh < 360 ||
++            rw > w || rh > h || (uint64_t)rw * 9 != (uint64_t)rh * 16 || rw % 8 || rh % 4)
++            runtime_fail("experimental BOTW internal resolution must be a 16:9 WxH from 640x360 through the canvas size");
++        render = rw;
++        fprintf(stderr, "[botw-temporal] internal %ux%u, native canvas %ux%u (separate screen/render ratio)\n",rw,rh,w,h);
++    }
++#endif
+     atomic_store(&g_out_page[0], output_floats(w, render));
+     atomic_store(&g_out_page[1], w | ((uint64_t)h << 32));
+     atomic_store(&g_out_cur, w | ((uint64_t)h << 32));
+diff --git a/games/totk/third_party/d2r_gfx/gfx/nvn/nvn_mtl.m b/games/totk/third_party/d2r_gfx/gfx/nvn/nvn_mtl.m
+--- a/games/totk/third_party/d2r_gfx/gfx/nvn/nvn_mtl.m
++++ b/games/totk/third_party/d2r_gfx/gfx/nvn/nvn_mtl.m
+@@ -235,6 +235,17 @@
+     if (!nogpu()) { id<MTL4CommandBuffer> buffers[] = {cb}; [g_q4 commit:buffers count:1 options:o]; return; }
+     for (MTL4CommitFeedbackHandler h in o->handlers) h(nil);
+ }
++#ifdef BOTW160_TEMPORAL_PORT
++/* Only the replay's scene submission/chunks call this, not presentation or
++   upload command buffers. Completion must belong to the work containing TUP. */
++static void botw_tup_feedback(TotkCommitOptions *options) {
++    static uint64_t submitted;
++    uint64_t encoded=tup_encoded_count();
++    if (encoded<=submitted) return;
++    submitted=encoded;
++    [options addFeedbackHandler:^(id<MTL4CommitFeedback> feedback) { tup_gpu_done(encoded,feedback!=nil&&!feedback.error); }];
++}
++#endif
+ static void cb_commit(id<MTLCommandBuffer> cb) { bg_gate(); if (!nogpu()) [cb commit]; }
+ static void cb_wait(id<MTLCommandBuffer> cb) { if (!nogpu()) [cb waitUntilCompleted]; }
+ static uint64_t g_fence;                        // 已提交的最大栅栏值（提交线程独占递增） | Highest committed fence value (incremented exclusively by the submit thread)
+@@ -2320,6 +2331,9 @@
+     id<MTL4CommandBuffer> next = [g_dev newCommandBuffer];
+     if (early) { w0 = clock_gettime_nsec_np(CLOCK_UPTIME_RAW); rs_sync(); fc1 = fc0 + (clock_gettime_nsec_np(CLOCK_UPTIME_RAW) - w0); }   // fc1 - fc0: the wait, as before
+     [g_cb endCommandBuffer];
++#ifdef BOTW160_TEMPORAL_PORT
++    botw_tup_feedback(o);
++#endif
+     q4_commit(g_cb, o);
+     g_cb = next;
+     [g_cb beginCommandBufferWithAllocator:g_alloc4[g_alloc_cur]];
+@@ -2435,6 +2449,9 @@
+         }
+     }
+     [g_cb endCommandBuffer];
++#ifdef BOTW160_TEMPORAL_PORT
++    botw_tup_feedback(o);
++#endif
+     q4_commit(g_cb, o);
+     if (nogpu()) g_ev.signaledValue = fence; else [g_q4 signalEvent:g_ev value:fence];
+     dead_put_flush();   // textures created for finalized serials: released once this submission completes
+@@ -13993,6 +14010,183 @@
+     return 1;
+ }
+ #endif
++#ifdef BOTW160_TEMPORAL_PORT
++#include "botw_temporal_config.h"
++/* NX160's d14b1c38 compose writes the post-tone-map RGB10A2 scene, consumed
++   directly by bd7ffdd4 (its combined FXAA/upscale). Keep the exact role/serial
++   relationship; this is not the TOTK EASU site with a game guard removed. */
++static id<MTLTexture> g_botw_tup_composed;
++static uint64_t g_botw_tup_composed_frame, g_botw_tup_composed_serial;
++static uint64_t g_botw_tup_applied, g_botw_tup_refused[10];
++static int g_botw_tup_read_reason;
++static const char *g_botw_tup_uniform_source;
++static const char *g_botw_tup_read_domain;
++static int botw160_tup_pool_bytes(uint64_t address,void *out,size_t size) {
++    void *buffer;uint64_t offset;g_botw_tup_read_reason=0;
++    if(!address || !size || address>UINT64_MAX-size || !mtl_addr(address,size,&buffer,&offset)){g_botw_tup_read_reason=1;return 0;}
++    if(pend_over()){g_botw_tup_read_reason=2;return 0;}
++    /* g_pend carries known inline/copy bytes; storage and texture-to-buffer
++       writes instead live in g_gw. Never prove geometry from an in-flight GPU
++       result, including when its uniform snapshot has been dropped. */
++    if(!usnap_on()){g_botw_tup_read_reason=7;return 0;}
++    uint64_t completed=__atomic_load_n(&g_done,__ATOMIC_ACQUIRE);
++    for(int i=0;i<g_ngw;i++)if(botw_temporal_gpu_write_overlaps(address,size,g_gw[i].lo,g_gw[i].hi,
++        g_gw[i].fence,completed,g_eye_skip_fence)) {
++        static unsigned logged;
++        if(logged++<9)MLOG("[botw-tup] unresolved GPU write: domain%s requested%#llx+%llu write[%#llx,%#llx) fence%llu completed%llu",g_botw_tup_read_domain?g_botw_tup_read_domain:"unknown",(unsigned long long)address,(unsigned long long)size,(unsigned long long)g_gw[i].lo,(unsigned long long)g_gw[i].hi,(unsigned long long)g_gw[i].fence,(unsigned long long)completed);
++        g_botw_tup_read_reason=6;return 0;
++    }
++    for(int i=g_npend-1;i>=0;i--) {
++        /* Retention pins the arena; completion still changes which bytes are
++           current. Match pend_overlay_x's fence and stereo-eye exclusions. */
++        if(!botw_temporal_pending_live(g_pend_fence[i],completed,g_eye_skip_fence))continue;
++        int known=botw_temporal_host_update(address,size,g_pend_lo[i],g_pend_hi[i],g_pend_kind[i],g_pend_src[i],out);
++        if(known){if(known<0)g_botw_tup_read_reason=g_pend_kind[i]?4:3;return known>0;}
++    }
++    const unsigned char *bytes=[(__bridge id<MTLBuffer>)buffer contents];
++    if(!bytes){g_botw_tup_read_reason=5;return 0;}
++    memcpy(out,bytes+offset,size);return 1;
++}
++static int botw160_tup_depth(float *depth) {
++    const p_bind_buf *uniform=&S.ubo[0][0];void *buffer;uint64_t offset,original_gpu;
++    g_botw_tup_read_reason=0;g_botw_tup_uniform_source="unresolved";
++    if(!uniform->addr || uniform->size<88 || uniform->size>65536 || uniform->addr>UINT64_MAX-uniform->size ||
++       !mtl_gpu_addr(uniform->addr,uniform->size,&buffer,&offset,&original_gpu)){g_botw_tup_read_reason=1;return 0;}
++    /* Select exactly the source encode_args would bind for VS/cbuf0: inline
++       update shadow, special UI patch, then the full submitted snapshot. Read
++       the immutable bound arena, not an older guest-pool GPU-write record. */
++    uint64_t gpu=original_gpu;int cached=0;
++    if(!passdump() && !g_res_check_on && g_use!=USE_REC && !ui_mat_on() && cbc_mode()==1) {
++        cbc_ctx context;cbc_ctx_now(&context);const cbc_ent *entry=&g_cbc[cbc_slot(uniform->addr,uniform->size)];
++        if(entry->addr==uniform->addr && entry->size==uniform->size && !memcmp(&entry->cx,&context,sizeof context)) {
++            gpu=entry->gpu;cached=1;g_botw_tup_uniform_source="cached bound arena";
++        }
++    }
++    if(!cached) {
++        uint64_t renamed=g_nupd?upd_shadow(uniform->addr,uniform->size):0;
++        if(renamed){gpu=renamed;g_botw_tup_uniform_source="renamed bound arena";}
++        else if(ui_mat_on()) {
++            uint64_t patched=ui_mat_patch(uniform,buffer,offset);
++            if(patched)gpu=patched;
++            g_botw_tup_uniform_source="UI patched binding";
++        } else {
++            const usnap_t *snapshot=usnap_find(uniform->addr,uniform->size);
++            if(snapshot){gpu=snapshot->gpu+(uniform->addr-snapshot->lo);g_botw_tup_uniform_source="submitted bound snapshot";}
++        }
++    }
++    if(gpu==original_gpu) {
++        g_botw_tup_uniform_source="guarded original pool";
++        g_botw_tup_read_domain="uniform0 byte84";
++        return botw160_tup_pool_bytes(uniform->addr+84,depth,sizeof *depth);
++    }
++    const uint8_t *bytes=bound_uniform_bytes(gpu,(size_t)uniform->size,(__bridge id<MTLBuffer>)buffer);
++    if(!botw_temporal_bound_uniform(gpu,original_gpu,bytes,(size_t)uniform->size,84,depth,sizeof *depth)){g_botw_tup_read_reason=8;return 0;}
++    return 1;
++}
++static int botw160_tup_geometry(NvShader *vs,const p_draw *draw,const p_draw_idx *indexed,float positions[6][4],float uv[6][4]) {
++    /* Private NX160 shader audit: this exact VS doubles position attribute0's
++       x/y, sets w=1 and takes z from VS uniform0 vector5.y. Do not generalize
++       this transform to other shaders or publish the game's shader source. */
++    if(!vs || strncmp(vs->key,"5e9f57168d89a543a537832326b844bcba3255df655c10dc9359cb195304e897-",65))return 1;
++    if((draw==NULL)==(indexed==NULL))return 2;
++    int n=draw?draw->count:indexed->count,primitive=draw?draw->prim:indexed->prim;
++    if(!botw_temporal_fullscreen_draw(indexed!=NULL,primitive,draw?draw->first:0,n,draw?draw->instances:indexed->instances,
++        draw?draw->base_instance:indexed->base_instance,(draw?draw->ind:indexed->ind)!=0) || S.poly.mode!=NVN_POLYGON_MODE_FILL)return 2;
++    int attributes[2]={-1,-1};
++    for(int i=0;i<vs->rf.nv;i++)if(vs->rf.v[i].loc<2)attributes[vs->rf.v[i].loc]=vs->rf.v[i].nvn;
++    for(int i=0;i<2;i++)if(attributes[i]<0 || attributes[i]>=S.nattr || S.attr[attributes[i]].stream>=16)return 3;
++    float depth;if(!botw160_tup_depth(&depth))return 4;
++    depth=fmaf(depth,.5f,.5f);
++    unsigned char index_storage[24];const unsigned char *indices=NULL;size_t index_bytes=0;
++    if(indexed) {
++        unsigned size=indexed->itype==0?1:indexed->itype==1?2:indexed->itype==2?4:0;
++        if(!size || !indexed->ibuf)return 5;
++        index_bytes=(size_t)n*size;
++        g_botw_tup_read_domain="index";
++        if(!botw160_tup_pool_bytes(indexed->ibuf,index_storage,index_bytes))return 5;
++        indices=index_storage;
++    }
++    for(int k=0;k<n;k++) {
++        uint32_t index=0;if(indexed && !botw_temporal_index(indices,index_bytes,indexed->itype,(unsigned)k,&index))return 5;
++        int64_t vertex=indexed?(int64_t)index+indexed->base_vertex:(int64_t)draw->first+k;
++        if(vertex<0 || vertex>INT32_MAX)return 6;
++        for(int a=0;a<2;a++) {
++            va_st attribute=S.attr[attributes[a]];vs_st stream=S.stream[attribute.stream];NVNbufferRange range=S.vbuf[attribute.stream];
++            MTLVertexFormat format=vfmt(attribute.fmt);unsigned bytes=format==MTLVertexFormatFloat2?8:format==MTLVertexFormatFloat3?12:format==MTLVertexFormatFloat4?16:0;
++            uint64_t offset=(uint64_t)vertex*stream.stride+attribute.offset;
++            float value[4]={0,0,0,1};
++            g_botw_tup_read_domain=a?"UV vertex":"position vertex";
++            if(!bytes || !stream.stride || stream.divisor || !range.address || offset>range.size || range.size-offset<bytes ||
++               range.address>UINT64_MAX-offset || !botw160_tup_pool_bytes(range.address+offset,value,bytes))return 6;
++            memcpy(a?uv[k]:positions[k],value,sizeof value);
++        }
++        positions[k][0]*=2;positions[k][1]*=2;positions[k][2]=depth;positions[k][3]=1;
++        if(!botw_temporal_uv_matches(positions[k],uv[k]))return 7;
++    }
++    return botw_temporal_mesh_covers((const float (*)[4])positions,n,primitive,(int)S.poly.cull,S.poly.front==NVN_FRONT_FACE_CCW)?0:8;
++}
++static void botw160_tup_compose(NvShader *fs) {
++    if (!TAA_COMPOSE(fs) || !R.rt.n || !R.rt.color[0]) return;
++    const view_t *view=&R.rt.cview[0]; int has_view=R.rt.has_cview[0];
++    id<MTLTexture> color=attachment_texture(R.rt.color[0],view,has_view);
++    if (!color || color.textureType!=MTLTextureType2D || color.pixelFormat!=MTLPixelFormatRGB10A2Unorm) return;
++    g_botw_tup_composed=color;g_botw_tup_composed_serial=R.rt.color[0]->serial;
++    g_botw_tup_composed_frame=atomic_load(&g_cur_frame);
++}
++static int botw160_tup_draw(NvShader *vs,NvShader *fs,const p_draw *draw,const p_draw_idx *indexed) {
++    if (strncmp(fs->key,BOTW_MFXUP_KEY,65)) return 0;
++    uint64_t frame=atomic_load(&g_cur_frame);
++    const view_t *view=&R.rt.cview[0]; int has_view=R.rt.has_cview[0],why=0;
++    id<MTLTexture> dst=R.rt.n==1&&R.rt.color[0]?attachment_texture(R.rt.color[0],view,has_view):nil;
++    int tid=(int)(S.tex[1][0]&0xfffff);
++    id<MTLTexture> source=tid>0?(__bridge id<MTLTexture>)tex_fast(tid):nil;
++    if(!source||!dst||source==dst||source.textureType!=MTLTextureType2D||dst.textureType!=MTLTextureType2D||
++       source.pixelFormat!=MTLPixelFormatRGB10A2Unorm||dst.pixelFormat!=MTLPixelFormatRGB10A2Unorm)why=1;
++    if(!why&&((S.color.blend_en&1)||(S.chmask.mask&0xf)!=0x7||S.ms.a2c))why=2;
++    /* An attached depth target is safe only when it cannot reject or mutate
++       a fragment. The old generic upscale guard rejects even ALWAYS/read-only. */
++    if(!why&&R.rt.depth&&(S.ds.st||S.ds.dw||(S.ds.dt&&S.ds.df!=NVN_DEPTH_FUNC_ALWAYS)))why=3;
++    if(!why&&has_view&&((view->set_levels&&view->base_level)||(view->set_layers&&view->min_layer)))why=4;
++    if(!why&&((S.has_vp&&!(S.vp[0][0]==0&&S.vp[0][1]==0&&S.vp[0][2]==(float)dst.width&&S.vp[0][3]==(float)dst.height))||!scissor_full(R.rt.color[0],view,has_view)))why=5;
++    if(!why&&(!g_botw_tup_composed||g_botw_tup_composed_frame!=frame||g_botw_tup_composed_serial!=h_ser(S.tex[1][0])||
++       source.width!=g_botw_tup_composed.width||source.height!=g_botw_tup_composed.height))why=6;
++    if(!why&&(source.width>=dst.width||source.height>=dst.height||dst.width>source.width*2||dst.height>source.height*2||
++       source.width*dst.height!=source.height*dst.width))why=7;
++    float positions[6][4]={{0}},uv[6][4]={{0}};int geometry=0;
++    if(!why && (geometry=botw160_tup_geometry(vs,draw,indexed,positions,uv)))why=8;
++    if(why){
++        tup_fallback(why==3?"unsafe depth/stencil state":why==6?"missing exact NX160 pre-FXAA compose source":why==7?"scene/canvas ratio is not a supported real upscale":why==8?"indexed/direct geometry could not prove full NX160 canvas coverage":"NX160 upscale draw did not match the guarded layout");
++        if(g_botw_tup_refused[why]++<3)MLOG("[botw-tup] kept original draw: reason%d src%lux%lu fmt%lu dst%lux%lu fmt%lu depth(test%u write%u func%u stencil%u) mask%#x blend%#x composeSerial%llu sourceSerial%llu",
++            why,(unsigned long)source.width,(unsigned long)source.height,(unsigned long)source.pixelFormat,(unsigned long)dst.width,(unsigned long)dst.height,(unsigned long)dst.pixelFormat,
++            (unsigned)S.ds.dt,(unsigned)S.ds.dw,(unsigned)S.ds.df,(unsigned)S.ds.st,S.chmask.mask,(unsigned)S.color.blend_en,(unsigned long long)g_botw_tup_composed_serial,(unsigned long long)h_ser(S.tex[1][0]));
++        if(why==8&&g_botw_tup_refused[why]<=3) {
++            MLOG("[botw-tup] draw shape: proofReason%d readReason%d uniformSize%llu indexed%d primitive%d first%d count%d instances%d baseInstance%d baseVertex%d indexType%d indirect%d vertexShader%s",geometry,g_botw_tup_read_reason,(unsigned long long)S.ubo[0][0].size,indexed!=NULL,draw?draw->prim:indexed?indexed->prim:-1,draw?draw->first:0,draw?draw->count:indexed?indexed->count:-1,draw?draw->instances:indexed?indexed->instances:-1,draw?draw->base_instance:indexed?indexed->base_instance:-1,indexed?indexed->base_vertex:0,indexed?indexed->itype:-1,(draw?draw->ind:indexed?indexed->ind:0)!=0,vs?vs->key:"missing");
++            int n=draw?draw->count:indexed?indexed->count:0;
++            for(int k=0;k<n&&k<6;k++)MLOG("[botw-tup] vertex%d clip(%g,%g,%g,%g) uv(%g,%g)",k,positions[k][0],positions[k][1],positions[k][2],positions[k][3],uv[k][0],uv[k][1]);
++        }
++        return 0;
++    }
++    tup_note_site();
++    if(!tup_ready(g_botw_tup_composed,source.width,source.height,dst)){
++        g_botw_tup_refused[0]++;tup_fallback("waiting for matching depth/camera inputs or an initialized MetalFX temporal scaler");return 0;
++    }
++    rp_end();blit_close();rs_sync();
++    tup_canvas_prepare(R.clear_c[0],R.cc[0]);
++    if(!tup_encode(g_cb,g_botw_tup_composed,source.width,source.height,dst,^(char kind){pt_mark(g_cb,kind,nil);})){tup_fallback("MetalFX temporal encode declined");return 0;}
++    taa_queue_residency();R.clear_c[0]=0;
++    botw_mfx_scene_ready();g_mfx.last_c0=R.rt.color[0]->serial;
++    atomic_store(&g_mfxup_last,frame);if(totk_sr_on())atomic_store(&g_taa_last,frame);
++    if(!g_botw_tup_applied) {
++        MLOG("[botw-tup] depth proof reads %s (VS uniform0 byte84, full binding size%llu)",g_botw_tup_uniform_source?g_botw_tup_uniform_source:"unknown",(unsigned long long)S.ubo[0][0].size);
++        MLOG("[botw-tup] accepted draw shape: indexed%d primitive%d first%d count%d instances%d baseInstance%d baseVertex%d indexType%d indirect0 vertexShader%s",indexed!=NULL,draw?draw->prim:indexed->prim,draw?draw->first:0,draw?draw->count:indexed->count,draw?draw->instances:indexed->instances,draw?draw->base_instance:indexed->base_instance,indexed?indexed->base_vertex:0,indexed?indexed->itype:-1,vs?vs->key:"missing");
++        int n=draw?draw->count:indexed->count;
++        for(int k=0;k<n;k++)MLOG("[botw-tup] accepted vertex%d clip(%g,%g,%g,%g) uv(%g,%g)",k,positions[k][0],positions[k][1],positions[k][2],positions[k][3],uv[k][0],uv[k][1]);
++    }
++    if(++g_botw_tup_applied%300==1)MLOG("[botw-tup] encoded%llu frame%llu input%lux%lu -> nativeCanvas%lux%lu; exact d14b1c38→bd7ffdd4 route, HUD follows at native canvas resolution",
++        (unsigned long long)g_botw_tup_applied,(unsigned long long)frame,(unsigned long)source.width,(unsigned long)source.height,(unsigned long)dst.width,(unsigned long)dst.height);
++    return 1;
++}
++#endif
+ /* TOTK_MFX_UPSCALE: the game's compose shader 0ac9a549 (tone mapping and bloom into the canvas) samples the scene at
+    texture slot 0; when that scene is smaller than the canvas (TOTK_RENDER_RES below the canvas size), upscale it with
+    MetalFX first and let encode_args bind the result. Runs before the draw opens its render encoder. Docked: mfxup_dock.
+@@ -14014,12 +14208,15 @@
+ #include "botw_finish.h"   // the same rows on Breath of the Wild 1.9.0, around its FXAA / upscale draw
+ #endif
+ #include "totk_hdr_render.h"
+-static int mfxup_draw(NvProg *pr) {
++static int mfxup_draw(NvProg *pr,const p_draw *draw,const p_draw_idx *indexed) {
+     if (g_mfxup_src || g_mfxup_out) { g_mfxup_src = nil; g_mfxup_out = nil; } g_mfxup_sh = nil;   // TOTK: nil stores were two objc_release calls on every draw
+     if (!pr) return 0;
+     __unsafe_unretained NvShader *fs = pr->sh[1];
+     if (!fs) return 0;
+     scene_size_note(fs);
++#ifdef BOTW160_TEMPORAL_PORT
++    if(tup_enabled()||tup_active())botw160_tup_compose(fs);
++#endif
+     if (fin_draw(fs)) return 1;   // FXAA off: our pass writes its image before the reader (totk_finish.h)
+ #ifdef BOTW_FINISH
+     botw_fin_before(fs);   // the canvas sharpened before the first draw after the scene that writes or reads it (botw_finish.h)
+@@ -14047,6 +14244,9 @@
+         if (TAA_COMPOSE(fs) && R.rt.n && R.rt.color[0]) { g_tup_composed = tex_mtl(R.rt.color[0]); g_tup_composed_frame = atomic_load(&g_cur_frame); }   // tup_dock's input
+         if (tup_dock(fs)) return 1;   // the temporal upscale wrote the canvas instead of this draw
+     } else if (g_tup_composed) g_tup_composed = nil;
++#endif
++#ifdef BOTW160_TEMPORAL_PORT
++    if((tup_enabled()||tup_active())&&botw160_tup_draw(pr->sh[0],fs,draw,indexed))return 1;
+ #endif
+ #ifdef BOTW_FINISH
+     if (!mfxup_enabled()) return botw_fin_upscale(fs, 0);   // FXAA off: our pass instead of the game's FXAA / upscale draw
+@@ -14180,7 +14380,7 @@
+     geometry_dump(pr, dw, di);
+     if (di && di->itype == 0 && di->count && pend_hits(di->ibuf, (uint64_t)di->count)) widen_indices_gpu(di);
+     /* Merge/skip checks can resolve sampling views too; prepare before any of those checks. */
+-    if (!S.render_disabled && !S.raster_discard) { prepare_draw_textures(pr); hdr_prepare_draw(pr); if (mfxup_draw(pr)) return; hdr_capture(pr); }   // docked: MetalFX wrote the canvas instead of this draw
++    if (!S.render_disabled && !S.raster_discard) { prepare_draw_textures(pr); hdr_prepare_draw(pr); if (mfxup_draw(pr,dw,di)) return; hdr_capture(pr); }   // docked: MetalFX wrote the canvas instead of this draw
+     if (g_ruler_truth == 0) {   // 尺子负对照（DM_NVN_RULER_NEG=<片元键>）：被测模式下丢掉该着色器的绘制，尺子必须报不等价 | Ruler negative control (DM_NVN_RULER_NEG=<fragment key>): in the mode under test drop this shader's draws, and the ruler must report non-equivalence
+         static const char *neg; static int ng = -1; if (ng < 0) { neg = getenv("DM_NVN_RULER_NEG"); ng = neg && *neg; }
+         if (ng && pr) for (int st = 0; st < 5; st++) { __unsafe_unretained NvShader *sh = pr->sh[st]; if (sh && sh->stage == 1 && !strncmp(sh->key, neg, strlen(neg))) { static int once; if (!once++) MLOG("DM_NVN_RULER_NEG：被测模式丢弃着色器 %s 的绘制", sh->key); return; } }

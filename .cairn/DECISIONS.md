@@ -18,3 +18,7 @@
 - 2026-11-04: Keep catalog browsing available offline and give quantity/result controls a persistent place in the icon-grid sheet; only mutations require a ready inventory.
 - 2026-11-04: Apply optional native Metal color/sharpness filters to final SDR output. Default Off preserves the original image; custom shader failure falls back to it, and applied status requires the matching presenter revision.
 - 2026-11-04: Support a 0.1.0 installation upgrade by applying only missing allowed source hooks and adding the owned presenter header; refuse conflicting edits rather than replacing them.
+
+- 2026-11-04: Keep MetalFX Temporal upscaling separate from final-picture color filters; expose the camera-derived-motion limitation and report actual dimensions/completed GPU work without a DLSS-quality or FPS promise.
+- 2026-11-04: Store one canonical restart-required preset for both scene-resolution and temporal paths. Confirm a saved selection only against a fresh new PID with its immutable matching boot token and real output evidence.
+- 2026-11-04: Treat synthetic guard passes, probe completion, candidate live execution and final stable replay as separate evidence; repeated fallback/history resets block a final stability claim.

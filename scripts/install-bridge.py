@@ -32,15 +32,24 @@ HEADER_TARGETS = {
         "botw_editor_teleport.h", "botw_editor_destinations.h",
     )},
     "botw_postfx.h": "games/totk/third_party/d2r_gfx/gfx/nvn/botw_postfx.h",
+    "botw_temporal_config.h": "games/totk/third_party/d2r_gfx/gfx/nvn/botw_temporal_config.h",
 }
 HEADERS = tuple(HEADER_TARGETS)
 SOURCE_FILES = (
     "games/totk/runtime/input.c", "games/totk/runtime/game_patches_botw.c",
     "games/totk/third_party/d2r_gfx/gfx/nvn/nvn_mtl.m",
+    "games/totk/Makefile",
+    "games/totk/third_party/d2r_gfx/gfx/nvn/totk_taa.h",
+    "games/totk/third_party/d2r_gfx/gfx/nvn/totk_taa.m",
+)
+COMPAT_SOURCE_FILES = (
+    "games/totk/runtime/game_patches_botw.c",
+    "games/totk/third_party/d2r_gfx/gfx/nvn/nvn_mtl.m",
 )
 APP_DATA = Path.home() / "Library/Application Support/BOTWEditor"
 GAME_DATA = Path.home() / "Library/Application Support/MacNativeGames/BotW"
 PATCH = ROOT / "runtime/macnativegames-botw160.patch"
+COMPAT_PATCH = ROOT / "runtime/macnativegames-v0.1.1-to-v0.1.2.patch"
 
 
 class InstallError(Exception):
@@ -59,12 +68,12 @@ def digest(path: Path) -> str:
     return checksum.hexdigest()
 
 
-def run(command: list[str], *, cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(command, cwd=cwd, capture_output=True, text=True)
+def run(command: list[str], *, cwd: Path | None = None, input_text: str | None = None) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(command, cwd=cwd, input=input_text, capture_output=True, text=True)
 
 
-def checked(command: list[str], *, cwd: Path | None = None) -> str:
-    result = run(command, cwd=cwd)
+def checked(command: list[str], *, cwd: Path | None = None, input_text: str | None = None) -> str:
+    result = run(command, cwd=cwd, input_text=input_text)
     if result.returncode:
         detail = (result.stderr or result.stdout).strip()
         raise InstallError(f"{Path(command[0]).name} failed: {detail}")
@@ -144,21 +153,30 @@ def target_file(repo: Path, relative: str) -> Path:
     return target
 
 
-def validate_patch_contents() -> None:
+def validated_patch_sections(path: Path, expected_paths: tuple[str, ...]) -> dict[str, str]:
     try:
-        text = PATCH.read_text()
+        text = path.read_text()
     except OSError as error:
-        raise InstallError(f"Missing packaged integration patch: {PATCH}") from error
+        raise InstallError(f"Missing packaged integration patch: {path}") from error
     old_paths, new_paths, sections = [], [], []
+    contents: dict[str, list[str]] = {}
     section = None
-    for line in text.splitlines():
+    for original_line in text.splitlines(keepends=True):
+        line = original_line.rstrip("\r\n")
         if line.startswith("diff --git "):
-            candidates = [relative for relative in SOURCE_FILES
+            candidates = [relative for relative in expected_paths
                           if line == f"diff --git a/{relative} b/{relative}"]
             if len(candidates) != 1:
                 raise InstallError("The packaged patch contains an unexpected source path.")
             sections.extend(candidates)
             section = candidates[0]
+            if section in contents:
+                raise InstallError("The packaged patch repeats a source-file section.")
+            contents[section] = []
+        if section is None and line.strip():
+            raise InstallError("The packaged patch contains unexpected content before its source sections.")
+        if section is not None:
+            contents[section].append(original_line)
         if line.startswith("--- "):
             if section is None or line != "--- a/" + section:
                 raise InstallError("The packaged patch changes an unexpected original source path.")
@@ -169,11 +187,44 @@ def validate_patch_contents() -> None:
             new_paths.append(line[4:])
     unsupported = ("GIT binary patch", "rename from ", "rename to ", "copy from ",
                    "copy to ", "new file mode ", "deleted file mode ", "old mode ", "new mode ")
-    if sorted(old_paths) != sorted("a/" + name for name in SOURCE_FILES) or \
-       sorted(new_paths) != sorted("b/" + name for name in SOURCE_FILES) or \
-       sorted(sections) != sorted(SOURCE_FILES) or \
+    if sorted(old_paths) != sorted("a/" + name for name in expected_paths) or \
+       sorted(new_paths) != sorted("b/" + name for name in expected_paths) or \
+       sorted(sections) != sorted(expected_paths) or \
        any(line.startswith(unsupported) for line in text.splitlines()):
-        raise InstallError("The packaged patch does not contain exactly the expected three source-file modifications.")
+        raise InstallError(f"The packaged patch does not contain exactly the expected {len(expected_paths)} source-file modifications.")
+    return {relative: "".join(lines) for relative, lines in contents.items()}
+
+
+def validate_patch_contents() -> dict[str, str]:
+    return validated_patch_sections(PATCH, SOURCE_FILES)
+
+
+def select_source_patches(repo: Path, full: dict[str, str], compatibility: dict[str, str]) -> tuple[dict[str, str], str]:
+    states: dict[str, str] = {}
+    selected = []
+    for relative in SOURCE_FILES:
+        section = full[relative]
+        reverse = run(["git", "apply", "--reverse", "--check", "-"], cwd=repo, input_text=section)
+        if not reverse.returncode:
+            states[relative] = "integrated"
+            continue
+        forward = run(["git", "apply", "--check", "-"], cwd=repo, input_text=section)
+        if not forward.returncode:
+            states[relative] = "needs-install"
+            selected.append(section)
+            continue
+        upgrade = compatibility.get(relative)
+        if upgrade and not run(["git", "apply", "--check", "-"], cwd=repo, input_text=upgrade).returncode:
+            states[relative] = "upgrade"
+            selected.append(upgrade)
+            continue
+        raise InstallError(
+            f"The runtime integration conflicts with local edits in {relative}. "
+            "The file matches neither pristine source, the supported 0.1.0/0.1.1 integration, nor this release. "
+            "No source files changed; preserve your edits and use a compatible checkout.\n"
+            + (forward.stderr or reverse.stderr).strip()
+        )
+    return states, "".join(selected)
 
 
 @dataclass
@@ -188,6 +239,7 @@ class Plan:
     changes: list[str]
     source_hashes: dict[str, str | None]
     package_hashes: dict[str, str]
+    source_patch: str
     runtime_confirmed: bool
 
 
@@ -221,12 +273,15 @@ def preflight(args: argparse.Namespace) -> Plan:
     if processes:
         raise InstallError(f"BOTW is running (PID {', '.join(map(str, processes))}). Quit it yourself, then retry; the installer will not close it.")
     py = python314()
-    validate_patch_contents()
-    patch_states = {relative: patch_state(repo, relative=relative) for relative in SOURCE_FILES}
+    full = validate_patch_contents()
+    compatibility = validated_patch_sections(COMPAT_PATCH, COMPAT_SOURCE_FILES)
+    patch_states, selected_patch = select_source_patches(repo, full, compatibility)
     if all(state == "integrated" for state in patch_states.values()):
         integration = "integrated"
     elif all(state == "needs-install" for state in patch_states.values()):
         integration = "needs-install"
+    elif "upgrade" in patch_states.values():
+        integration = "upgrade from 0.1.0/0.1.1"
     else:
         integration = "partial (upgrade supported)"
     key = hashlib.sha256((str(repo) + "\0" + str(app)).encode()).hexdigest()[:24]
@@ -236,8 +291,8 @@ def preflight(args: argparse.Namespace) -> Plan:
         raise InstallError("The installer ownership record belongs to a different checkout or app.")
     owned = manifest.get("owned_headers", {})
     source_hashes: dict[str, str | None] = {}
-    package_hashes = {"patch": digest(PATCH)}
-    changes = [relative for relative, state in patch_states.items() if state == "needs-install"]
+    package_hashes = {"patch": digest(PATCH), "compat_patch": digest(COMPAT_PATCH)}
+    changes = [relative for relative, state in patch_states.items() if state != "integrated"]
     for relative in SOURCE_FILES:
         target = target_file(repo, relative)
         if not target.is_file():
@@ -263,7 +318,7 @@ def preflight(args: argparse.Namespace) -> Plan:
         manifest.get("runtime_sha256") == digest(runtime) and
         not changes)
     return Plan(repo, app, work, py, manifest_path, manifest, integration,
-                changes, source_hashes, package_hashes, confirmed)
+                changes, source_hashes, package_hashes, selected_patch, confirmed)
 
 
 _libc = None
@@ -306,7 +361,7 @@ def verify_unchanged(plan: Plan) -> None:
         actual = digest(path) if path.is_file() else None
         if actual != expected:
             raise InstallError(f"Source changed after validation: {relative}. Backups are retained; retry after edits stop.")
-    actual_package = {"patch": digest(PATCH)}
+    actual_package = {"patch": digest(PATCH), "compat_patch": digest(COMPAT_PATCH)}
     actual_package.update({name: digest(ROOT / "runtime" / name) for name in HEADERS})
     if actual_package != plan.package_hashes:
         raise InstallError("The editor package changed during installation. Backups are retained; rerun using one complete release.")
@@ -405,11 +460,14 @@ def ensure_private_assets(plan: Plan, log_folder: Path) -> None:
 
 def apply_source_changes(plan: Plan) -> None:
     pending = [relative for relative in SOURCE_FILES if relative in plan.changes]
-    if not pending:
+    if not pending and not plan.source_patch:
         return
-    # Git applies the selected files atomically. Already integrated files are
-    # excluded so an upgrade from 0.1.0 never reapplies its two runtime hooks.
-    checked(["git", "apply", *("--include=" + relative for relative in pending), str(PATCH)], cwd=plan.repo)
+    if not pending or not plan.source_patch:
+        raise InstallError("The selected source changes do not match the prepared integration patch.")
+    # Each section was selected from a hash-verified full/compatibility patch.
+    # Git validates and applies the combined selection atomically over stdin.
+    checked(["git", "apply", "--check", "-"], cwd=plan.repo, input_text=plan.source_patch)
+    checked(["git", "apply", "-"], cwd=plan.repo, input_text=plan.source_patch)
     say("Integrated source hooks:")
     for relative in pending:
         say("  " + relative)

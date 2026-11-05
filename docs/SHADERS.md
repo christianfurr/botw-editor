@@ -1,4 +1,8 @@
-# Optional picture filters
+# Color filters and custom Metal shaders
+
+The **Color & custom shaders** section is independent of the restart-required
+[MetalFX Temporal upscaler](TEMPORAL.md). Turning these filters Off restores the
+unfiltered picture without changing the saved upscaling preset.
 
 BOTW Editor can apply lightweight native Metal filters to the supported BOTW
 1.6.0 Mac runtime. They operate on the final SDR picture after output scaling.
