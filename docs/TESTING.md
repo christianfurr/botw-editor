@@ -57,7 +57,7 @@ The final durability revision completed its native 2,000 → 3,000 → 2,000 liv
 
 The initial tests do not establish every item in the catalog, every travel destination, sustained health locking under damage, or sustained stamina locking during depletion. The game continues to enforce its item capacity, duplicate-item, and DLC rules. Outdoor `MainField` travel is the supported route; interior refusal has a compiled guard and is not a claim of interior travel support.
 
-An initial dedicated test profile was removed after verification: eight test `.sav` files were deleted. The final durability follow-up used another separate test profile. The normal profile contained no gameplay saves and was not used for test progression. Application/profile backups were created, but a complete backup-restore gameplay cycle has not been claimed by this record.
+An initial dedicated test profile was removed after verification: eight test `.sav` files were deleted. The final durability follow-up used another separate test profile; its six `.sav` files and the profile were also removed. The normal profile contained no gameplay saves and was not used for test progression. Application/profile backups were created, but a complete backup-restore gameplay cycle has not been claimed by this record.
 
 Keep saves, extracted artwork, memory, raw logs, private paths, and gameplay screenshots out of the public repository. Public screenshots show only the editor's Player tab, which uses original interface graphics and system symbols.
 
@@ -71,3 +71,5 @@ Keep saves, extracted artwork, memory, raw logs, private paths, and gameplay scr
 - Test the bridge installer against a supported checkout; verify that unsupported versions and dirty/conflicting integration states stop safely.
 - Inspect the release archive and tracked tree for game files, keys, firmware, saves, logs, dumps, private paths, and unintended assets.
 - Update this document with actual live results and the final release revision before describing provisional features as verified.
+
+Release source and build checks passed on GitHub Actions: [editor build](https://github.com/christianfurr/botw-editor/actions/runs/41937056576).

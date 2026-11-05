@@ -6,6 +6,8 @@ Browse your pouch, give items, change player stats, and travel around Hyrule fro
 
 **0.1.0 is an early prerelease for one specific game/runtime version.** See the [live testing record](docs/TESTING.md) for verified operations and remaining checks.
 
+[Download 0.1.0](https://github.com/christianfurr/botw-editor/releases/tag/v0.1.0) · [Source and setup](docs/INSTALLATION.md)
+
 ![BOTW Editor player controls](Assets/screenshots/main.png)
 
 ## What you can edit
