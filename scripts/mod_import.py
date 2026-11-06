@@ -7,7 +7,7 @@ import stat
 import tempfile
 import unicodedata
 
-from mod_environment import ModError, TITLE_ID, VERSION, present, regular
+from mod_environment import ModError, present, regular
 from mod_demos import make_demos
 
 
@@ -120,8 +120,8 @@ def import_folder(backend, source, name=None):
     if source.name == "romfs":
         return import_romfs(backend, source, name)
     code = inspect_tree(source, packages=True)
-    tops = backend.tools.top_folders(backend.install.repo, backend.install.app, VERSION)
-    found = backend.find.find(source, tops, TITLE_ID)
+    tops = backend.tools.top_folders(backend.install.repo, backend.install.app, backend.install.version)
+    found = backend.find.find(source, tops, backend.install.game.title_id)
     candidates = [backend.find.Found(candidate.romfs, None,
                   (*candidate.notes, "exefs_ignored") if candidate.exefs else candidate.notes,
                   candidate.name) for candidate in found if candidate.romfs]
@@ -138,7 +138,7 @@ def import_romfs(backend, source, name):
         raise ModError("Choose the base-game Switch RomFS folder separately from DLC.")
     if wrapper.name.lower() in {"content", "mlc01"}:
         raise ModError("This pack contains Wii U files. Export a Nintendo Switch RomFS pack from BCML.")
-    if backend.find.TITLE.fullmatch(wrapper.name) and wrapper.name.upper() != TITLE_ID:
+    if backend.find.TITLE.fullmatch(wrapper.name) and wrapper.name.upper() != backend.install.game.title_id:
         raise ModError(REFUSALS["other_game"])
     if (wrapper / "info.json").is_file() and any(present(wrapper / key) for key in ("logs", "options")):
         raise ModError(REFUSALS["bcml_package"])
@@ -154,7 +154,7 @@ def import_candidates(backend, source, candidates, name):
     try:
         # Retain the pinned importer's atomic copy, with only the validated data trees.
         backend.find.find = lambda picked, tops, title: candidates
-        return backend.add.add(backend.runner, backend.install.repo, backend.install.app, VERSION,
+        return backend.add.add(backend.runner, backend.install.repo, backend.install.app, backend.install.version,
                                backend.library, source, name=name)
     finally:
         backend.find.find = original

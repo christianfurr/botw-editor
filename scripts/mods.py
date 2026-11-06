@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""JSON command line for the BOTW Editor's private Switch RomFS mod library."""
+"""JSON command line for the MacNative Mods library."""
 
 from __future__ import annotations
 
 import argparse
 from contextlib import redirect_stderr, redirect_stdout
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -17,7 +18,7 @@ import tempfile
 sys.dont_write_bytecode = True
 
 from mod_environment import (
-    ModError, RESOURCES, TITLE_ID, VERSION, editor_data, ensure_dir, game_data,
+    ModError, manager_data, legacy_data, ensure_dir,
     game_running, installation, lock_file, native_game_running, overlay_signature,
     present, regular,
 )
@@ -53,27 +54,69 @@ class Backend:
         self.lib, self.tools = mod_library, mod_tools
         self.runner = CommandRunner(RealClock())
         manifest, self.folder = mod_tools.tools(install.repo)
-        mod_library.TITLE_IDS[VERSION] = TITLE_ID
-        self.load = self.folder.mods_folder(VERSION)
-        self.slot = game_data() / "game-slot/lock"
-        self.root = editor_data() / "mod-library" / VERSION
+        self.version = install.version
+        self.game = install.game
+        mod_library.TITLE_IDS[self.version] = self.game.title_id
+        self.load = install.game_data / "mods" / self.version
+        self.slot = install.game_data / "game-slot/lock"
+        self.root = manager_data() / "mod-library" / self.version
         self.library = None
-        romfs = install.app / RESOURCES / "extracted" / VERSION / "romfs"
-        manifest.IMAGE_DIR = None
-        if not (romfs / "romfs.bin").is_file():
-            manifest.IMAGE_DIR = manifest.app_image_dir(install.app, VERSION)
-            if not manifest.image_file(romfs).is_file():
-                raise ModError("Open BOTW once to locate the game data folder, then reopen the mod library.")
+        self.ot_manifest = None
+        if self.game.data_folder == "OT0":
+            self.configure_octopath()
+        else:
+            manifest.IMAGE_DIR = None
+            if not (install.romfs / "romfs.bin").is_file():
+                manifest.IMAGE_DIR = manifest.app_image_dir(install.app, self.version)
+                if not manifest.image_file(install.romfs).is_file():
+                    raise ModError("Open the game once to locate its data folder.")
+
+    def configure_octopath(self):
+        if not (self.install.romfs / "romfs.bin").is_file():
+            raise ModError("The Octopath Traveler 0 app is missing its RomFS image.")
+        script = self.install.repo / "games/ot0/scripts/make_mod_manifest.py"
+        spec = importlib.util.spec_from_file_location("octopath_manifest", script)
+        self.ot_manifest = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.ot_manifest)
+
+        def validate(repo, app, version, mod):
+            lines, _, added, misspelt = self.ot_manifest.manifest(mod / "romfs", self.install.romfs)
+            replaced = len(lines) - len(added)
+            reason = "misspelt" if misspelt else "" if replaced else "only_adds"
+            return self.tools.Validation(not reason, reason, replaced, len(added),
+                                         misspelt=tuple(name for name, _ in misspelt))
+
+        self.tools.validate = validate
+        self.tools.top_folders = lambda *_: {
+            name.split("/", 1)[0]
+            for name in self.ot_manifest.read_index(self.install.romfs / "runtime-index.bin")
+        }
+
+    def migrate_legacy_library(self):
+        old = legacy_data() / "mod-library" / self.version
+        marker = old / LIBRARY_MARKER
+        if self.version != "botw160" or present(self.root) or not present(marker):
+            return
+        if old.is_symlink() or not regular(marker) or marker.read_text() != "BOTW Editor Mod Library 1\n":
+            raise ModError("The old BOTW mod library could not be verified.")
+        with lock_file(old.parent / ".lock", create=True):
+            inspect_tree(old)
+            with tempfile.TemporaryDirectory(prefix=".legacy-", dir=self.root.parent) as directory:
+                staged = Path(directory) / self.version
+                shutil.copytree(old, staged, copy_function=self.lib.clone_file)
+                (staged / LIBRARY_MARKER).write_text("MacNative Mods Library 1\n")
+                staged.rename(self.root)
 
     def open_library(self):
+        self.migrate_legacy_library()
         ensure_dir(self.root)
         marker = self.root / LIBRARY_MARKER
         if not present(marker):
             if any(self.root.iterdir()):
                 raise ModError("The editor mod library already contains unrecognized files.")
             with marker.open("x", encoding="utf-8") as stream:
-                stream.write("BOTW Editor Mod Library 1\n")
-        if not regular(marker) or marker.read_text() != "BOTW Editor Mod Library 1\n":
+                stream.write("MacNative Mods Library 1\n")
+        if not regular(marker) or marker.read_text() != "MacNative Mods Library 1\n":
             raise ModError("The editor mod library ownership marker is invalid.")
         for leftover in (self.add.UNZIP, self.lib.STATE + ".partial"):
             if present(self.root / leftover):
@@ -95,15 +138,15 @@ class Backend:
                 if not folder.is_dir() or folder.is_symlink():
                     raise ModError("An imported mod folder is missing or invalid.")
                 inspect_tree(folder)
-        self.library = self.lib.open_library(editor_data(), VERSION, self.load)
+        self.library = self.lib.open_library(manager_data(), self.version, self.load)
 
     def blocked(self):
-        keyboard = self.load.with_name(VERSION + "-keyboard") / "manifest.tsv"
-        if present(keyboard):
-            return "The keyboard-specific BOTW overlay can take priority. Set aside mods/botw160-keyboard before changing the editor's mod library."
+        keyboard = self.load.with_name(self.version + "-keyboard") / "manifest.tsv"
+        if self.ot_manifest is None and present(keyboard):
+            return f"The keyboard overlay can take priority. Move {self.version}-keyboard out of the game’s mods folder before applying."
         manifest = self.load / "manifest.tsv"
         if self.load.is_symlink() or (present(self.load) and not self.load.is_dir()) or (present(manifest) and not regular(manifest)):
-            return "Set aside the existing overlay. BOTW needs a real mod folder with a regular manifest."
+            return "Set aside the existing overlay. The game needs a real mod folder with a regular manifest."
         return None
 
     def state(self, ok, message, **extra):
@@ -115,8 +158,10 @@ class Backend:
             and library.state["applied"] != key
         )
         return {
-            "ok": ok, "message": message, "version": VERSION,
-            "game_running": game_running(self.slot), "pending": bool(pending),
+            "ok": ok, "message": message, "version": self.install.display_version,
+            "game_name": self.game.name,
+            "can_make_demos": self.version == "botw160",
+            "game_running": game_running(self.slot, self.game), "pending": bool(pending),
             "applied_files": count, "blocked_reason": self.blocked(),
             "mods": [
                 {"id": mod.id, "name": mod.name, "enabled": mod.enabled,
@@ -149,13 +194,13 @@ class Backend:
         ensure_dir(self.slot.parent)
         try:
             with lock_file(self.slot, create=True):
-                if native_game_running():
-                    raise ModError("Quit BOTW before applying mods.")
+                if native_game_running(self.game):
+                    raise ModError(f"Quit {self.game.name} before applying mods.")
                 if blocked := self.blocked():
                     raise ModError(blocked)
                 return self.apply_locked()
         except BlockingIOError as error:
-            raise ModError("Quit BOTW before applying mods.") from error
+            raise ModError(f"Quit {self.game.name} before applying mods.") from error
 
     def apply_locked(self):
         library = self.library
@@ -169,30 +214,21 @@ class Backend:
             scratch = Path(directory)
             source = scratch / "source"
             for mod_id in library.state["enabled"]:
-                check = self.tools.validate(self.install.repo, self.install.app, VERSION, library.path(mod_id))
+                check = self.tools.validate(self.install.repo, self.install.app, self.version, library.path(mod_id))
                 if not check.valid:
                     raise ModError("An enabled mod no longer matches this app. Disable it or import it again before applying.")
                 shutil.copytree(library.path(mod_id) / "romfs", source / "romfs",
                                 dirs_exist_ok=True, copy_function=self.lib.clone_file)
-            staged = scratch / VERSION
+            staged = scratch / self.version
             if library.state["enabled"]:
-                # Scope the upstream installer's fixed .new path to private staging.
-                original = self.folder.mods_folder
-                self.folder.mods_folder = lambda version: staged
-                try:
-                    installed = self.folder.install(source, VERSION, self.install.app, sys.executable,
-                                                    self.install.repo / "games/totk", say=lambda _: None)
-                finally:
-                    self.folder.mods_folder = original
-                if installed is None:
-                    raise ModError("The enabled mods produced no loadable files. Review the selected mods.")
+                self.stage_overlay(source, staged)
             if ((self.load.lstat() if present(self.load) else None) != before
                     or overlay_signature(self.load) != previous_overlay):
                 raise ModError("The active overlay changed while staging mods. Try again.")
             if blocked := self.blocked():
                 raise ModError(blocked)
-            if native_game_running():
-                raise ModError("Quit BOTW before applying mods.")
+            if native_game_running(self.game):
+                raise ModError(f"Quit {self.game.name} before applying mods.")
             previous_key, previous_failed = library.state["applied"], library.state["applied_failed"]
             if before is not None:
                 backup = self.folder.backup_name(self.load)
@@ -213,8 +249,31 @@ class Backend:
                 if backup is not None and not present(self.load):
                     backup.rename(self.load)
                 raise
-        message = f"Applied {count} RomFS files. Open BOTW to load them." if count else "Mods are disabled for the next BOTW launch."
+        message = f"Applied {count} RomFS files. Open the game to load them." if count else "Mods are disabled for the next game launch."
         return message, {"backup": backup.name} if backup is not None else {}
+
+    def stage_overlay(self, source, staged):
+        if self.ot_manifest:
+            romfs = source / "romfs"
+            lines, _, _, misspelt = self.ot_manifest.manifest(romfs, self.install.romfs)
+            if misspelt or not lines:
+                raise ModError("The selected mods did not produce a valid Octopath Traveler 0 overlay.")
+            (romfs / "manifest.tsv").write_text(
+                "# path\tsize\tsha256\toriginal_sha256\n" + "\n".join(lines) + "\n"
+            )
+            romfs.rename(staged)
+            return
+        # The Zelda installer normally stages inside the live mods folder.
+        # Point it inside our private transaction until the overlay is ready.
+        original = self.folder.mods_folder
+        self.folder.mods_folder = lambda version: staged
+        try:
+            installed = self.folder.install(source, self.version, self.install.app, sys.executable,
+                                            self.install.repo / "games/totk", say=lambda _: None)
+        finally:
+            self.folder.mods_folder = original
+        if installed is None:
+            raise ModError("The enabled mods produced no loadable files. Review the selected mods.")
 
     def run(self, args):
         action = args.action
@@ -225,6 +284,8 @@ class Backend:
         if action == "import":
             return import_mod(self, args.path), {}
         if action == "demos":
+            if self.version != "botw160":
+                raise ModError("The demos are for Breath of the Wild 1.6.0.")
             return demos(self), {}
         if action == "apply":
             return self.apply()
@@ -243,7 +304,8 @@ class Backend:
 
 def arguments(argv):
     parser = JSONParser()
-    parser.add_argument("--installation", type=Path)
+    parser.add_argument("--app", required=True, type=Path)
+    parser.add_argument("--repo", type=Path)
     commands = parser.add_subparsers(dest="action", required=True, parser_class=JSONParser)
     for action in ("status", "apply", "demos"):
         commands.add_parser(action)
@@ -259,7 +321,7 @@ def arguments(argv):
 
 
 def execute(args):
-    backend = Backend(installation(args.installation))
+    backend = Backend(installation(args.app, args.repo))
     ensure_dir(backend.root.parent)
     try:
         with lock_file(backend.root.parent / ".lock", create=True):
@@ -287,7 +349,7 @@ def main(argv=None):
     except ModError as error:
         result = {"ok": False, "message": str(error)}
     except Exception:
-        result = {"ok": False, "message": "The mod library could not be opened. Verify the editor bridge and retry."}
+        result = {"ok": False, "message": "The mod library could not be opened. Check the selected game and checkout, then retry."}
     print(json.dumps(result, ensure_ascii=True))
     return 0 if result["ok"] else 1
 

@@ -3,7 +3,7 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD_DIR="$REPO_ROOT/build"
-APP_PATH="$BUILD_DIR/BOTW Editor.app"
+APP_PATH="$BUILD_DIR/editor/BOTW Editor.app"
 ICONSET_PATH="$BUILD_DIR/BOTWEditor.iconset"
 
 if [[ "$(uname -s)" != "Darwin" || "$(uname -m)" != "arm64" ]]; then
@@ -23,8 +23,6 @@ xcrun swiftc -O -target arm64-apple-macosx26.0 \
     "$REPO_ROOT/Sources/GraphicsModel.swift" \
     "$REPO_ROOT/Sources/UpscalingModel.swift" \
     "$REPO_ROOT/Sources/GraphicsSettingsView.swift" \
-    "$REPO_ROOT/Sources/ModsModel.swift" \
-    "$REPO_ROOT/Sources/ModsView.swift" \
     "$REPO_ROOT/Sources/BOTWPlayground.swift" \
     -o "$APP_PATH/Contents/MacOS/BOTWEditor" -framework SwiftUI -framework AppKit
 
@@ -35,9 +33,7 @@ cp "$REPO_ROOT/Sources/catalog.json" "$REPO_ROOT/Sources/ATTRIBUTION.md" \
     "$REPO_ROOT/Sources/CATALOG-LICENSE.txt" "$REPO_ROOT/LICENSE" \
     "$REPO_ROOT/THIRD_PARTY_NOTICES.md" "$APP_PATH/Contents/Resources/"
 cp "$REPO_ROOT/Assets/slate-frame.png" "$APP_PATH/Contents/Resources/"
-mkdir -p "$APP_PATH/Contents/Resources/Mods"
-cp "$REPO_ROOT/scripts/"{mods,mod_environment,mod_import,mod_demos,extract_destinations,extract_items,extract_map}.py \
-    "$APP_PATH/Contents/Resources/Mods/"
+
 
 cat > "$APP_PATH/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
@@ -49,8 +45,8 @@ cat > "$APP_PATH/Contents/Info.plist" <<'PLIST'
 <key>CFBundleExecutable</key><string>BOTWEditor</string>
 <key>CFBundleIconFile</key><string>AppIcon</string>
 <key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleShortVersionString</key><string>0.1.3</string>
-<key>CFBundleVersion</key><string>4</string>
+<key>CFBundleShortVersionString</key><string>0.1.4</string>
+<key>CFBundleVersion</key><string>5</string>
 <key>LSMinimumSystemVersion</key><string>26.0</string>
 <key>NSHighResolutionCapable</key><true/>
 </dict></plist>

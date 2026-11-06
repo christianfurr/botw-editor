@@ -19,3 +19,5 @@ jobs:
           persist-credentials: false
       - name: Build and check the arm64 editor
         run: ./scripts/build.sh
+      - name: Build the standalone mod manager
+        run: ./scripts/build-mod-manager.sh

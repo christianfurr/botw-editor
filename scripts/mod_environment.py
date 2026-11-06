@@ -12,9 +12,31 @@ import stat
 import subprocess
 
 PINNED_COMMIT = "b1a49a26650eb31a986e7841f449bb44446c5208"
-VERSION = "botw160"
-TITLE_ID = "01007EF00011E000"
-RESOURCES = Path("Contents/Resources/totk")
+
+@dataclass(frozen=True)
+class Game:
+    name: str
+    data_folder: str
+    title_id: str
+    resources: str
+    runtime: str
+    versions: dict[str, str]
+
+
+GAMES = {
+    "org.macnativegames.botw": Game(
+        "Breath of the Wild", "BotW", "01007EF00011E000", "totk", "totk-native",
+        {"1.6.0": "botw160", "1.9.0": "botw190"},
+    ),
+    "org.macnativegames.totk": Game(
+        "Tears of the Kingdom", "TOTK", "0100F2C0115B6000", "totk", "totk-native",
+        {"1.0.0": "v0", "1.2.1": "v121", "1.4.3": "v143"},
+    ),
+    "org.macnativegames.ot0": Game(
+        "Octopath Traveler 0", "OT0", "01005270232F2000", "game", "ot0-native",
+        {"1.0.3": "v103", "1.0.4": "v104", "1.0.5": "v105"},
+    ),
+}
 
 
 class ModError(Exception):
@@ -25,15 +47,23 @@ class ModError(Exception):
 class Installation:
     repo: Path
     app: Path
+    game: Game
+    version: str
+    display_version: str
+    romfs: Path
     runtime_hash: str
 
+    @property
+    def game_data(self):
+        return Path.home() / "Library/Application Support/MacNativeGames" / self.game.data_folder
 
-def editor_data():
+
+def manager_data():
+    return Path.home() / "Library/Application Support/MacNativeMods"
+
+
+def legacy_data():
     return Path.home() / "Library/Application Support/BOTWEditor"
-
-
-def game_data():
-    return Path.home() / "Library/Application Support/MacNativeGames/BotW"
 
 
 def present(path):
@@ -49,58 +79,62 @@ def digest(path):
         return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
-def verified_record(path):
-    if not regular(path) or path.stat().st_size > 1 << 20:
-        raise ModError("The bridge installation record is invalid.")
-    record = json.loads(path.read_text())
-    if (not isinstance(record, dict) or type(record.get("schema")) is not int or record["schema"] != 1
-            or record.get("status") != "installed" or record.get("macnativegames_commit") != PINNED_COMMIT):
-        raise ModError("The mod library requires an installed BOTW 1.6.0 bridge.")
-    repo, app = (Path(record[key]).expanduser() for key in ("repo", "app"))
-    if not all(path.is_absolute() and path.is_dir() for path in (repo, app)):
-        raise ModError("The bridge record points to a missing checkout or game app.")
-    repo, app = repo.resolve(), app.resolve()
+def legacy_repo():
+    records = legacy_data() / "Installations"
+    for path in sorted(records.glob("*.json"), reverse=True):
+        try:
+            if not regular(path) or path.stat().st_size > 1 << 20:
+                continue
+            record = json.loads(path.read_text())
+            if (record["schema"] == 1 and record["status"] == "installed"
+                    and record["macnativegames_commit"] == PINNED_COMMIT):
+                repo = Path(record["repo"])
+                if repo.is_absolute() and repo.is_dir():
+                    return repo
+        except (OSError, TypeError, ValueError, KeyError):
+            continue
+    return None
+
+
+def verify_checkout(repo):
     git = subprocess.run(["/usr/bin/git", "-C", str(repo), "rev-parse", "HEAD"],
                          capture_output=True, text=True, timeout=10)
     if git.returncode or git.stdout.strip() != PINNED_COMMIT:
-        raise ModError("The MacNativeGames checkout must match the bridge's supported revision.")
-    tools = ("tools/builder", "tools/__init__.py", "games/totk/scripts/make_mod_manifest.py",
-             "games/totk/scripts/mod_folder.py", "games/totk/scripts/make_romfs_patches.py",
-             "games/totk/scripts/make_botw_button_icons.py")
+        raise ModError("Choose the MacNativeGames checkout at supported revision b1a49a2.")
+    tools = ("tools/builder", "tools/__init__.py", "games/totk/scripts",
+             "games/ot0/scripts/make_mod_manifest.py")
     status = subprocess.run(["/usr/bin/git", "--no-optional-locks", "-C", str(repo), "status", "--porcelain",
                              "--untracked-files=all", "--", *tools], capture_output=True, timeout=10)
     if status.returncode or status.stdout:
-        raise ModError("Restore the original MacNativeGames mod tools before using the editor's mod library.")
-    info = plistlib.loads((app / "Contents/Info.plist").read_bytes())
-    if not isinstance(info, dict) or info.get("CFBundleIdentifier") != "org.macnativegames.botw" or info.get("CFBundleShortVersionString") != "1.6.0":
-        raise ModError("Choose the MacNativeGames Breath of the Wild 1.6.0 app.")
-    extracted = app / RESOURCES / "extracted"
-    versions = {item.name for item in extracted.iterdir() if item.is_dir()} - {"firmware"}
-    if versions != {VERSION} or not regular(extracted / VERSION / "romfs/runtime-index.bin"):
-        raise ModError("The installed app does not contain a BOTW 1.6.0 RomFS index.")
-    runtime = app / RESOURCES / "build/totk-native"
-    runtime_hash = record.get("runtime_sha256")
-    if not regular(runtime) or digest(runtime) != runtime_hash:
-        raise ModError("The game runtime changed since the bridge was installed. Re-run the bridge installer.")
-    return Installation(repo, app, runtime_hash)
+        raise ModError("Restore the original MacNativeGames mod tools in the selected checkout.")
 
 
-def installation(record):
-    invalid = (OSError, TypeError, ValueError, KeyError, plistlib.InvalidFileException, subprocess.TimeoutExpired)
-    if record is not None:
-        try:
-            return verified_record(record)
-        except invalid as error:
-            raise ModError("The specified bridge installation record could not be verified.") from error
-    records = editor_data() / "Installations"
-    if records.is_dir() and not records.is_symlink():
-        candidates = [path for path in records.glob("*.json") if path.is_file() and not path.is_symlink()]
-        for path in sorted(candidates, key=lambda path: path.stat().st_mtime_ns, reverse=True):
-            try:
-                return verified_record(path)
-            except (ModError, *invalid):
-                continue
-    raise ModError("Install the BOTW 1.6.0 editor bridge before opening the mod library.")
+def installation(app, repo=None):
+    try:
+        app = app.expanduser().resolve(strict=True)
+        info = plistlib.loads((app / "Contents/Info.plist").read_bytes())
+        game = GAMES.get(info.get("CFBundleIdentifier"))
+        display = info.get("CFBundleShortVersionString")
+        version = game.versions.get(display) if game else None
+        if not version:
+            raise ModError("Choose a supported MacNativeGames app and version.")
+        resources = app / "Contents/Resources" / game.resources
+        extracted = resources / "extracted"
+        versions = {item.name for item in extracted.iterdir() if item.is_dir()} - {"firmware"}
+        romfs = extracted / version / "romfs"
+        runtime_name = f"{game.runtime}-{version}" if game.resources == "game" else game.runtime
+        runtime = resources / "build" / runtime_name
+        if (versions != {version} or not regular(romfs / "runtime-index.bin") or not regular(runtime)
+                or (game.resources == "game" and info.get("OT0Version") != version)):
+            raise ModError("The app's game files do not match its advertised version.")
+        repo = repo or legacy_repo()
+        if repo is None:
+            raise ModError("Choose your MacNativeGames checkout to use its RomFS tools.")
+        repo = repo.expanduser().resolve(strict=True)
+        verify_checkout(repo)
+        return Installation(repo, app, game, version, display, romfs, digest(runtime))
+    except (OSError, TypeError, ValueError, AttributeError, plistlib.InvalidFileException, subprocess.TimeoutExpired) as error:
+        raise ModError("The selected game app or MacNativeGames checkout could not be verified.") from error
 
 
 def ensure_dir(path):
@@ -126,22 +160,22 @@ def lock_file(path, *, create):
         os.close(descriptor)
 
 
-def native_game_running():
+def native_game_running(game):
     # Direct development launches may use a different game-slot directory.
     result = subprocess.run(["/bin/ps", "-axo", "comm="], capture_output=True, text=True, timeout=10)
     if result.returncode:
         raise ModError("Could not check whether the game is running.")
-    return any(Path(line.strip()).name.startswith("totk-native") for line in result.stdout.splitlines())
+    return any(Path(line.strip()).name.startswith(game.runtime) for line in result.stdout.splitlines())
 
 
-def game_running(slot):
+def game_running(slot, game):
     try:
         with lock_file(slot, create=False):
-            return native_game_running()
+            return native_game_running(game)
     except BlockingIOError:
         return True
     except FileNotFoundError:
-        return native_game_running()
+        return native_game_running(game)
 
 
 def overlay_signature(folder):

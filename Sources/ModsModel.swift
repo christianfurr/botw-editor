@@ -16,6 +16,7 @@ struct ModsReport: Decodable, Sendable {
     let ok: Bool
     let message: String
     let version: String?
+    let canMakeDemos: Bool?
     let gameRunning: Bool?
     let pending: Bool?
     let appliedFiles: Int?
@@ -25,6 +26,7 @@ struct ModsReport: Decodable, Sendable {
 
     enum CodingKeys: String, CodingKey {
         case ok, message, version, pending, backup, mods
+        case canMakeDemos = "can_make_demos"
         case gameRunning = "game_running"
         case appliedFiles = "applied_files"
         case blockedReason = "blocked_reason"
@@ -66,7 +68,7 @@ private enum ModsToolError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .missingHelper: return "The mod manager is missing. Open a complete BOTW Editor app bundle."
+        case .missingHelper: return "The mod manager is missing. Open a complete MacNative Mods app bundle."
         case .missingPython: return "Install Python 3.14 from the MacNativeGames setup before using Mods."
         case .invalidResponse: return "The mod manager returned an unreadable result. Refresh the library before trying again."
         }
@@ -82,15 +84,15 @@ private enum ModsTool {
     static let pythonPaths = ["/opt/homebrew/bin/python3.14", "/usr/local/bin/python3.14"]
     static let responseLimit = 8 * 1024 * 1024
 
-    static func execute(_ action: ModsAction, helper: URL?) throws -> ModsExecution {
-        let reply = try invoke(action, helper: helper)
+    static func execute(_ action: ModsAction, helper: URL?, target: ModTarget, checkout: String) throws -> ModsExecution {
+        let reply = try invoke(action, helper: helper, target: target, checkout: checkout)
         if reply.mods != nil { return ModsExecution(reply: reply, snapshot: reply) }
         if action.isStatus { return ModsExecution(reply: reply, snapshot: nil) }
-        let status = try? invoke(.status, helper: helper)
+        let status = try? invoke(.status, helper: helper, target: target, checkout: checkout)
         return ModsExecution(reply: reply, snapshot: status?.mods == nil ? nil : status)
     }
 
-    private static func invoke(_ action: ModsAction, helper: URL?) throws -> ModsReport {
+    private static func invoke(_ action: ModsAction, helper: URL?, target: ModTarget, checkout: String) throws -> ModsReport {
         let files = FileManager.default
         guard let helper, files.isReadableFile(atPath: helper.path) else { throw ModsToolError.missingHelper }
         guard let interpreter = pythonPaths.first(where: files.isExecutableFile(atPath:)) else { throw ModsToolError.missingPython }
@@ -115,7 +117,8 @@ private enum ModsTool {
 
         let process = Process()
         process.executableURL = URL(fileURLWithPath: interpreter)
-        process.arguments = ["-E", "-s", helper.path] + action.arguments
+        process.arguments = ["-E", "-s", helper.path, "--app", target.url.path]
+            + (checkout.isEmpty ? [] : ["--repo", checkout]) + action.arguments
         process.currentDirectoryURL = helper.deletingLastPathComponent()
         process.standardOutput = output
         process.standardError = errors
@@ -141,11 +144,15 @@ final class ModsModel: ObservableObject {
     @Published private(set) var current = false
     @Published private(set) var backupURL: URL?
 
+    let target: ModTarget
+    private let checkout: String
     private let helper: URL?
     private var queuedRefresh = false
     private var queuedImport: URL?
 
-    init(helper: URL? = Bundle.main.url(forResource: "mods", withExtension: "py", subdirectory: "Mods")) {
+    init(target: ModTarget, checkout: String, helper: URL? = Bundle.main.url(forResource: "mods", withExtension: "py", subdirectory: "Mods")) {
+        self.target = target
+        self.checkout = checkout
         self.helper = helper
     }
 
@@ -155,7 +162,7 @@ final class ModsModel: ObservableObject {
     var blocker: String? {
         guard current else { return nil }
         if let reason = status?.blockedReason, !reason.isEmpty { return reason }
-        if status?.gameRunning == true, status?.pending == true { return "Quit BOTW before applying changes." }
+        if status?.gameRunning == true, status?.pending == true { return "Quit the game before applying changes." }
         return nil
     }
     var canApply: Bool {
@@ -192,9 +199,11 @@ final class ModsModel: ObservableObject {
         }
         activity = action.activity
         let helper = helper
+        let target = target
+        let checkout = checkout
         Task {
             let result = await Task.detached(priority: .userInitiated) {
-                Result { try ModsTool.execute(action, helper: helper) }
+                Result { try ModsTool.execute(action, helper: helper, target: target, checkout: checkout) }
             }.value
             switch result {
             case .success(let execution):
@@ -236,7 +245,7 @@ final class ModsModel: ObservableObject {
     private func backupLocation(_ name: String) -> URL? {
         guard !name.isEmpty, name != ".", name != "..", !name.contains("/"), !name.contains("\\") else { return nil }
         let folder = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Library/Application Support/MacNativeGames/BotW/mods", isDirectory: true)
+            .appendingPathComponent("Library/Application Support/MacNativeGames/\(target.dataFolder)/mods", isDirectory: true)
         let url = folder.appendingPathComponent(name, isDirectory: true)
         var directory: ObjCBool = false
         guard FileManager.default.fileExists(atPath: url.path, isDirectory: &directory), directory.boolValue else { return nil }
