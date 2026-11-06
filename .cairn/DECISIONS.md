@@ -34,3 +34,6 @@
 - 2026-11-05: Handle rune ownership and selection as separate steps. Request Bomb 0 only when both requested/current selection are absent, using the native nonblocking mutex path; let the normal game update apply and persist it. Preserve valid selections and report a post-ownership busy/failure as unconfirmed selection rather than no changes.
 - 2026-11-05: Apply horse speed to four land gears in the shared table for 26 standard horse types, bounded to 1.00–2.00×. Keep it session-only, restore owned originals with Off and refuse unknown resource or competing changes; leave special mounts, other animals and saves alone.
 - 2026-11-05: Extract place labels from the player's original map positions and localized text into the private cache. Declutter them by zoom and keep labels separate from known travel destinations and public assets.
+
+- 2026-11-06: Reuse the pinned MacNativeGames RomFS tools for BOTW 1.6.0. Separate the editor library, prepare overlays under the native game-slot lock, retain prior overlays, and report preparation separately from a successful game launch.
+- 2026-11-06: Import complete Switch RomFS and merged BCML exports. Leave raw BNP and within-file merging to BCML or UKMM. Keep local demo assets outside the repository and match stock resource sizes.

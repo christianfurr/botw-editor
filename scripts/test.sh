@@ -22,6 +22,8 @@ xcrun swiftc -O -target arm64-apple-macosx26.0 -D UI_SNAPSHOT \
     "$REPO_ROOT/Sources/GraphicsModel.swift" \
     "$REPO_ROOT/Sources/UpscalingModel.swift" \
     "$REPO_ROOT/Sources/GraphicsSettingsView.swift" \
+    "$REPO_ROOT/Sources/ModsModel.swift" \
+    "$REPO_ROOT/Sources/ModsView.swift" \
     "$REPO_ROOT/tests/ui_value_checks.swift" \
     -o "$BUILD_DIR/ui-value-checks" -framework SwiftUI -framework AppKit
 "$BUILD_DIR/ui-value-checks"

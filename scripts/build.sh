@@ -23,6 +23,8 @@ xcrun swiftc -O -target arm64-apple-macosx26.0 \
     "$REPO_ROOT/Sources/GraphicsModel.swift" \
     "$REPO_ROOT/Sources/UpscalingModel.swift" \
     "$REPO_ROOT/Sources/GraphicsSettingsView.swift" \
+    "$REPO_ROOT/Sources/ModsModel.swift" \
+    "$REPO_ROOT/Sources/ModsView.swift" \
     "$REPO_ROOT/Sources/BOTWPlayground.swift" \
     -o "$APP_PATH/Contents/MacOS/BOTWEditor" -framework SwiftUI -framework AppKit
 
@@ -33,6 +35,9 @@ cp "$REPO_ROOT/Sources/catalog.json" "$REPO_ROOT/Sources/ATTRIBUTION.md" \
     "$REPO_ROOT/Sources/CATALOG-LICENSE.txt" "$REPO_ROOT/LICENSE" \
     "$REPO_ROOT/THIRD_PARTY_NOTICES.md" "$APP_PATH/Contents/Resources/"
 cp "$REPO_ROOT/Assets/slate-frame.png" "$APP_PATH/Contents/Resources/"
+mkdir -p "$APP_PATH/Contents/Resources/Mods"
+cp "$REPO_ROOT/scripts/"{mods,mod_environment,mod_import,mod_demos,extract_destinations,extract_items,extract_map}.py \
+    "$APP_PATH/Contents/Resources/Mods/"
 
 cat > "$APP_PATH/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>

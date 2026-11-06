@@ -8,6 +8,8 @@ Browse your pouch, give items, change player stats, and travel around Hyrule fro
 
 [Download 0.1.3 — BOTW.Editor.zip](https://github.com/christianfurr/botw-editor/releases/download/v0.1.3/BOTW.Editor.zip) · [Release and source](https://github.com/christianfurr/botw-editor/releases/tag/v0.1.3) · [Setup](docs/INSTALLATION.md)
 
+Open the **Mods** tab to import Switch RomFS mods and merged BCML Switch exports for BOTW 1.6.0. [Mods guide](docs/MODS.md)
+
 ![BOTW Editor player controls](Assets/screenshots/main.png)
 
 ## What you can edit
@@ -30,9 +32,9 @@ The installer builds the terrain map, place labels and item icons **locally from
 
 The catalog distinguishes the usable Master Sword from its internal world/appearance forms. Choosing an internal form offers a way to select the usable sword; trying to give a duplicate explains the game's one-sword limit. The pouch and catalog share an icon-grid layout, keep quantity and **Give item** visible, and display the actual inventory blocker when one exists. Browsing remains available while the game is closed.
 
-Controls wait for a supported gameplay session and fresh runtime state. The editor displays the game's acknowledgement and readback for each request. During travel, it disables edits while the game loads; an accepted request does not confirm arrival.
+Live trainer controls wait for a supported gameplay session and fresh runtime state. The editor displays the game's acknowledgement and readback for each request. During travel, it disables those edits while the game loads. Check arrival in the game.
 
-Earlier live checks covered core inventory/player/world edits, menu-open grants, custom-shader fallback, and real MetalFX temporal frames at 1440p and 4K. The 0.1.3 checks opened the actual in-game map, read back all four sword levels, visibly confirmed attack 60, and granted equipment beyond the original pouch limits. The [testing record](docs/TESTING.md) separates those results from pending rune-selection, shrine, horse movement, persistence and final-release checks.
+Earlier live checks covered core inventory/player/world edits, menu-open grants, custom-shader fallback, and real MetalFX temporal frames at 1440p and 4K. The 0.1.3 checks opened the map and rune selector, read back all four sword levels, granted equipment beyond the original pouch limits, and confirmed 120 saved shrine clears. The [testing record](docs/TESTING.md) tracks these results and the remaining mounted movement and mod checks.
 
 ## MetalFX Temporal
 
@@ -85,7 +87,8 @@ The current app is **ad hoc signed and not Apple-notarized**. If macOS blocks th
 - **Upscaling:** open the sliders button and choose **Upscaling**. Save a preset with **Use on next launch**, then fully quit and reopen BOTW. The saved preset and the current session's active status are displayed separately.
 - **Color & custom shaders:** choose this section of the same panel to adjust the final picture. Its **Off** restores unfiltered color without changing the upscaling preset. Custom source and fallback behavior are documented in [Shaders](docs/SHADERS.md).
 - **Tower travel:** activate the first tower in BOTW or use **Full Access** before traveling to a tower that the editor marks unavailable.
-- Read the action result before making another edit. The window disables edits when the game closes, a bridge update is required, or connection data becomes stale.
+- **Mods:** import a Switch pack or choose **Add demo mods**. Enable and order the packs, quit BOTW, then choose **Apply for next launch** and reopen the game. [Supported layouts and BCML export](docs/MODS.md)
+- Read each action result before making another edit. Live trainer edits require a supported game session and fresh connection data.
 
 The new 0.1.3 controls require the updated runtime bridge. Older runtime snapshots remain readable; unsupported controls show **Runtime update required** until the bridge is installed and BOTW is relaunched.
 
@@ -116,6 +119,7 @@ Runtime bridge installation is a separate step. Rebuilding the editor alone does
 - [Architecture](docs/ARCHITECTURE.md)
 - [Testing and release evidence](docs/TESTING.md)
 - [Installation and recovery](docs/INSTALLATION.md)
+- [Switch RomFS mods and BCML exports](docs/MODS.md)
 - [Private terrain map and item artwork](docs/MAP-EXTRACTION.md)
 - [MetalFX Temporal reconstruction](docs/TEMPORAL.md)
 - [Color filters and custom Metal shaders](docs/SHADERS.md)

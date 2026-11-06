@@ -18,7 +18,7 @@ The editor, bridge, and game are separate verification surfaces. A successful co
 | Pouch capacity | Category/token/range checks, increase-only validation against both stores, native flag readback, synthetic rollback and preservation of unrelated flags. |
 | In-game map access | Argument-free command, independent capability, and a two-flag transaction for the verified PortableUnit booleans. Synthetic preflight/readback/rollback does not prove the actual map screen opens. |
 | Shrine discovery and runes | Mixed Bool/S32 activation, preservation of each store's positive discovery value, nine rune/Slate flags, exact `Location_Dungeon001` metadata/opcode exception, whole-batch readback and rollback. |
-| Rune selection request | Fifteen native guard instructions match the local NX160 ELF; TryLockMutex/UnlockMutex import ABI and the download UI's requested-selection write were verified. Fault-injected sanitizer checks cover absent/valid selections, busy/invalid refusal, write/readback failures, owned rollback and preservation of competing changes. This does not prove the selector opens in the live game. |
+| Rune selection request | Fifteen native guard instructions match the local NX160 ELF. The TryLockMutex/UnlockMutex imports and the download UI's requested-selection write were verified. The 91 sanitizer checks cover absent and existing selections, busy or invalid state, failed writes and readbacks, and rollback of owned requests. |
 | Separate shrine completion | Selected/all-base-shrine Clear transitions plus counter delta only for newly cleared shrines; refuse store disagreement and overflow; restore failed batches. Fixtures exclude Spirit Orbs, Enter, quests, chests and rewards. |
 | Horse movement | 16,113 independent ASan/UBSan checks cover the 104-cell scope, original-based scaling, exact Off restoration, resource replacement, competing changes, failed writes/readbacks and rollback. Synthetic fixtures contain no extracted game data. |
 | Map labels | Eight standard-library fixtures cover original placements, deduplication, settlement selection, kinds, numeric/visibility bounds and digest behavior. A separate private local extraction produced 557 labels: 8 regions, 24 areas, 34 settlements and 491 landmarks. |
@@ -28,7 +28,7 @@ The editor, bridge, and game are separate verification surfaces. A successful co
 | Graphics model | Validate preset/strength/sharpness/source bounds and require a matching revision, live presenter process, fresh status, and an encoded applied/off result before confirming a look. |
 | Metal pixels | 325 GPU assertions use synthetic textures for exact Off identity, crop/alpha, preset formulas, bounded sharpening, custom strength blending, nonfinite channels, invalid settings, compilation failure, and original-image fallback. |
 | World metadata | Known game-name CRCs; direct and proxy flag traversal; separate S32/F32 arrays; reject invalid types/proxy signatures/permissions; base-shrine bounds. |
-| Installer | 32 fixtures cover patch allowlists, atomic fresh/legacy/0.1.2 upgrade selection, header ownership/conflict checks, backups, version/process refusal, source-change detection and private-cache/label verification and reuse. The rune-selection revision adds a ninth managed header; its final integration rerun is pending. |
+| Installer | 33 fixtures passed for the pre-Mods 0.1.3 build. They cover patch allowlists, fresh and upgrade paths, ownership of nine headers, backups, version and process checks, source-change detection, and private cache validation. |
 
 These checks use controlled test data. They establish validation and protocol behavior, not live-game outcomes.
 
@@ -38,7 +38,7 @@ Run the reproducible checks on an Apple silicon Mac with Xcode's command-line to
 ./scripts/test.sh
 ```
 
-This runs the Swift model/UI/graphics/upscaling checks, the native C fixtures in `tests/runtime_checks.c`, horse and temporal sanitizer fixtures, real MetalFX and color-filter GPU probes, map-label fixtures and installer fixtures. The core C fixture compiles with `-Wall -Wextra -Werror` and currently passes **29,636 assertions**. It allocates synthetic pointer chains, clears game-control environment variables, and never opens BOTW or reads a gameplay profile. The separate horse suite passes **16,113 assertions** with ASan/UBSan. Build artifacts stay under the ignored `build/` folder.
+This runs the Swift model/UI/graphics/upscaling checks, the native C fixtures in `tests/runtime_checks.c`, horse, rune, and temporal sanitizer fixtures, real MetalFX and color-filter GPU probes, map-label fixtures and installer fixtures. The core C fixture compiles with `-Wall -Wextra -Werror` and currently passes **29,636 assertions**. It allocates synthetic pointer chains, clears game-control environment variables, and never opens BOTW or reads a gameplay profile. The separate horse suite passes **16,113 assertions** with ASan/UBSan. Build artifacts stay under the ignored `build/` folder.
 
 To run only the native guard checks:
 
@@ -46,11 +46,11 @@ To run only the native guard checks:
 bash scripts/test-runtime.sh
 ```
 
-Run the separate synthetic horse suite with `bash scripts/test-horse.sh`.
+Run the separate synthetic horse and rune suites with `bash scripts/test-horse.sh` and `bash scripts/test-runes.sh`.
 
 The Metal probe requires an actual GPU for pixel evidence. Local checks fail if no device is available; CI may report an explicit GPU skip when its host has no Metal device. An offline shader compile on such a host is a separate check. See [Shaders](SHADERS.md) for the contract and test scope.
 
-## 0.1.3 live verification — 2026-11-05
+## 0.1.3 live verification — 2026-11-05 to 2026-11-06
 
 The rebuilt BOTW 1.6.0 runtime was exercised using an isolated profile copy on
 the local M4 Mac. Initial readbacks were Master Sword level 0 / normal attack 30 /
@@ -72,17 +72,35 @@ progress was retained unchanged.
 | Visible sword attack | A reopened in-game pouch visibly showed 60. Captures for 40/50 showed gameplay rather than the attack panel, so they do not verify those displayed values. Visible 30/40/50 checks remain **pending**; all four native readbacks were verified above. Situational awakening remains separate. |
 | Pouch capacity | Weapon/bow/shield capacity increased 9→20, 5→14 and 4→20 with successful native readbacks. Granting 10 swords, 6 bows and 5 shields produced 13 weapons / 8 bows / 5 shields, exceeding every original category limit. A decrease 20→9 refused and weapon capacity remained 20. |
 | In-game map | Before the change, Tab left gameplay visible. `map_access` was acknowledged and read back true; pressing Tab afterward opened the actual BOTW map screen, which was visually inspected. |
-| Rune selection and use | The nine ownership/Slate flags acknowledged successfully, but the selector still failed to open during a proper on-foot test. Source tracing found the separate native selection request. **Pending:** verify its requested/current/saved readbacks, visible selector and actual use after the new helper is installed. The default sequence is hold 3, choose, release, then F. |
-| Revised shrine discovery | **Pending.** Confirm Open and Location readbacks, reopen the actual in-game map and inspect the marker/travel state, including the exact Dungeon001 exception. Earlier Open-only checks do not establish discovery. |
-| Separate shrine clearing | **Pending.** Verify selected/all clear states, counter increments only for newly cleared targets, repeated-command idempotence, and unchanged reward/quest fields. |
-| Horse speed | **Pending.** Live resource availability, 1.00/1.50/2.00× application and readback, visible ordinary-horse movement, exact Off restoration and restart reset. Synthetic table checks do not prove movement. |
+| Rune selection and use | The flags-only build acknowledged ownership but left the on-foot selector closed. With the new helper, the requested selection changed −1→0, current and saved values read back as 0, and the selector visibly opened. Link produced a remote bomb on foot. A manual save and a fresh process retained the selected Bomb rune (current/saved 0). |
+| Revised shrine discovery | Reopened the actual game map, selected an activated shrine, confirmed Warp, and observed arrival at Ze Kasho Shrine. The exact Dungeon001 permission exception is covered by synthetic checks. |
+| Separate shrine clearing | The newer profile the player chose to keep contains all 120 clear flags. Repeating the clear command for Dungeon002 left the counter at 120. |
+| Horse speed | The running game acknowledged 1.50×, 2.00×, and Off with matching table readbacks. The next process reported 1.00× with the override off. The mounted timing run hit uneven ground and did not establish a speed ratio. |
 | New editor controls and labels | **Pending.** Inspect the sword panel, capacity sheet, separate activation/clear actions, horse control and zoom-dependent map labels with fresh live state and unsupported-runtime states. Private previews containing extracted artwork remain outside public assets. |
-| Save/reload persistence | **Pending.** An applied live edit does not establish persistence across a game save and reload. |
-| Final artifact and profile preservation | An earlier local source build completed its checks and produced an app and archive. **Pending:** final build/artifact/signature readback, comparison against the new kept-profile baseline and follow-up-copy cleanup. The deliberately kept profile/items must remain. |
+| Save persistence | The newer, intentionally kept autosave contains all 120 shrine clears and the retained items. |
+| Build and profile preservation | The pre-Mods 0.1.3 source build passed its checks, including 33 installer fixtures and 91 rune checks. Final Mods archive and signature verification, kept-profile comparison, and disposable-copy cleanup are tracked separately. |
 
 The expected release asset is `BOTW.Editor.zip` under `v0.1.3`. A local editor
 build does not install the runtime bridge, establish the live outcomes above,
 or prove that the matching GitHub release/workflow has completed.
+
+## Mods verification — 2026-11-06
+
+The Mods tab builds on the pre-Mods 0.1.3 trainer and uses MacNativeGames' existing
+RomFS loader. Record import, apply, launch, and visible behavior separately.
+
+| Check | Evidence |
+| --- | --- |
+| Demo generation and preflight | Generated Explore Menu and Moonlit Apples privately from the installed NX160 RomFS. Explore Menu stays at 1,907,587 bytes and Moonlit Apples at 24,681 bytes, their original resource sizes. Yaz0 round trips preserved the decoded structure. The title text read back as `Explore!`. The Apple recolor changed 5,683 pixels and preserved green, alpha, and the 144×144 dimensions. Upstream `--check` accepted each as one replacement with zero additions. |
+| Import and ordering | Pending final combined checks for the three Switch layouts, BCML merged Switch export layout, unsafe or unsupported packages, and priority at shared paths. |
+| Apply and restore | Pending final checks for the prior-overlay backup, disabled set, and launch readiness. |
+| Visible demo behavior | Pending startup and in-game checks for Explore Menu and the blue Apple, followed by a launch with the demos disabled. Keep captures containing game artwork private. |
+
+## 0.1.3 Mods verification
+
+The native app accepted a BCML-layout Switch 7z, Atmosphère ZIP, and an emulator-layout ZIP. The local fixtures contained generated 1.6.0 demo resources. Raw BNP, Wii U and separate DLC files require conversion or another loader. The importer refused aliasing archive paths before extraction. Exact file overlaps use the selected order; incompatible names and file/folder clashes refuse before staging.
+
+The isolated BOTW process verified both replacement hashes on startup. The US English title screen showed **Explore!**, and the Materials pouch showed the blue Apple icon. A fresh launch after disabling the overlay restored **Continue**. The previous overlay was kept as a backup. This verifies the two demos and the tested package layouts, not arbitrary third-party game content.
 
 ## 0.1.2 live temporal verification — 2026-11-05
 
