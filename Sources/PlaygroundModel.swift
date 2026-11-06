@@ -7,6 +7,43 @@ struct CatalogItem: Decodable, Identifiable {
     let category: String
 }
 
+enum ItemGrantRules {
+    static let masterSword = "Weapon_Sword_070"
+
+    static func isInternalMasterSwordForm(_ actor: String) -> Bool {
+        ["Weapon_Sword_056", "Weapon_Sword_071", "Weapon_Sword_072"].contains(actor)
+    }
+
+    static func unsupportedReason(for actor: String) -> String? {
+        guard isInternalMasterSwordForm(actor) else { return nil }
+        return "This is an internal Master Sword form, not a separate pouch item. Select Master Sword; its appearance and power follow the game's state."
+    }
+
+    static func blockedReason(for actor: String, inventory: [InventoryEntry]?) -> String? {
+        if let reason = unsupportedReason(for: actor) { return reason }
+        if actor == masterSword, inventory?.contains(where: { $0.name == masterSword }) == true {
+            return "The Master Sword is already in your pouch. BOTW allows one. Equip it in the game, or select its inventory tile to edit durability."
+        }
+        return nil
+    }
+}
+
+enum MasterSwordLevel: Int, CaseIterable, Identifiable {
+    case base = 0, beginning = 1, middle = 2, final = 3
+    var id: Int { rawValue }
+    var attack: Int { 30 + rawValue * 10 }
+    var title: String { self == .base ? "Base · 30" : "Level \(rawValue) · \(attack)" }
+}
+
+enum PouchSlotKind: String, CaseIterable, Identifiable {
+    case weapons, bows, shields
+    var id: String { rawValue }
+    var title: String { rawValue.capitalized }
+    var minimum: Int { switch self { case .weapons: return 8; case .bows: return 5; case .shields: return 4 } }
+    var maximum: Int { self == .bows ? 14 : 20 }
+    var range: ClosedRange<Int> { minimum...maximum }
+}
+
 struct InventoryEntry: Decodable, Identifiable {
     static let maximumRawDurability = 100_000_000
     let slot: Int
@@ -33,6 +70,11 @@ struct WorldDestination: Decodable, Identifiable {
     let z: Double
     let unlocked: Bool?
     let teleportable: Bool?
+    let completed: Bool?
+    init(id:String,name:String,kind:String,x:Double,y:Double,z:Double,unlocked:Bool? = nil,teleportable:Bool? = nil,completed:Bool? = nil) {
+        self.id=id;self.name=name;self.kind=kind;self.x=x;self.y=y;self.z=z
+        self.unlocked=unlocked;self.teleportable=teleportable;self.completed=completed
+    }
     var permitsTeleport: Bool { teleportable != false }
 }
 
@@ -93,6 +135,25 @@ struct TrainerState: Decodable {
     let position: WorldPosition?
     let inventoryReady: Bool?
     let inventoryBlockReason: String?
+    let masterSwordLevel: Int?
+    let masterSwordAttack: Int?
+    let masterSwordFullPower: Bool?
+    let weaponSlots: Int?
+    let bowSlots: Int?
+    let shieldSlots: Int?
+    let mapAccessUnlocked: Bool?
+    let shrineClearCount: Int?
+    let horseSpeedMultiplier: Double?
+    let horseSpeedActive: Bool?
+    let horseSpeedAvailable: Bool?
+    let horseSpeedReason: String?
+
+    func slots(for kind: PouchSlotKind) -> Int? {
+        let value: Int?
+        switch kind { case .weapons: value = weaponSlots; case .bows: value = bowSlots; case .shields: value = shieldSlots }
+        guard let value, kind.range.contains(value) else { return nil }
+        return value
+    }
 
     enum CodingKeys: String, CodingKey {
         case schema, pid, version, ready, message, health, stamina, rupees, features, inventory, destinations, position
@@ -108,6 +169,18 @@ struct TrainerState: Decodable {
         case towersRaised = "towers_raised"
         case inventoryReady = "inventory_ready"
         case inventoryBlockReason = "inventory_block_reason"
+        case masterSwordLevel = "master_sword_level"
+        case masterSwordAttack = "master_sword_attack"
+        case masterSwordFullPower = "master_sword_full_power"
+        case weaponSlots = "weapon_slots"
+        case bowSlots = "bow_slots"
+        case shieldSlots = "shield_slots"
+        case mapAccessUnlocked = "map_access_unlocked"
+        case shrineClearCount = "shrine_clear_count"
+        case horseSpeedMultiplier = "horse_speed_multiplier"
+        case horseSpeedActive = "horse_speed_active"
+        case horseSpeedAvailable = "horse_speed_available"
+        case horseSpeedReason = "horse_speed_reason"
         case lastRequest = "last_request"
         case lastOK = "last_ok"
         case lastResult = "last_result"
@@ -132,6 +205,12 @@ enum TrainerCommand {
     case maxStamina(String)
     case paraglider
     case fullAccess
+    case masterSwordLevel(MasterSwordLevel)
+    case pouchSlots(PouchSlotKind, String)
+    case enableMapAccess
+    case markShrineCleared(String)
+    case markAllShrinesCleared
+    case horseSpeed(Int?)
 
     var requiresPlayerCache: Bool {
         switch self {
@@ -156,6 +235,11 @@ enum TrainerCommand {
         case .maxHearts: return "health"
         case .maxStamina: return "stamina"
         case .paraglider, .fullAccess: return "runes"
+        case .masterSwordLevel: return "master_sword"
+        case .pouchSlots: return "pouch_slots"
+        case .enableMapAccess: return "map_access"
+        case .markShrineCleared, .markAllShrinesCleared: return "shrine_completion"
+        case .horseSpeed: return "horse_speed"
         }
     }
 
@@ -175,6 +259,12 @@ enum TrainerCommand {
             }
             guard let quantity = Int(text.trimmingCharacters(in: .whitespaces)), (1...999).contains(quantity) else {
                 throw CommandError.invalid("Enter an item quantity from 1 to 999.")
+            }
+            if let reason = ItemGrantRules.unsupportedReason(for: actor) {
+                throw CommandError.invalid(reason)
+            }
+            if actor == ItemGrantRules.masterSword, quantity != 1 {
+                throw CommandError.invalid("BOTW allows one Master Sword. Choose a quantity of 1.")
             }
             return "give \(actor) \(quantity)"
         case .lift(let text):
@@ -213,6 +303,26 @@ enum TrainerCommand {
             return "max_stamina \(value)"
         case .paraglider: return "paraglider"
         case .fullAccess: return "full_access"
+        case .masterSwordLevel(let level): return "master_sword \(level.rawValue)"
+        case .pouchSlots(let kind, let text):
+            guard let count = Int(text.trimmingCharacters(in: .whitespaces)), kind.range.contains(count) else {
+                throw CommandError.invalid("Choose \(kind.title.lowercased()) capacity from \(kind.minimum) to \(kind.maximum).")
+            }
+            return "pouch_slots \(kind.rawValue) \(count)"
+        case .enableMapAccess: return "map_access"
+        case .markShrineCleared(let id):
+            guard id.range(of:"^Dungeon[0-9]{3}$",options:.regularExpression) != nil,
+                  let number=Int(id.suffix(3)), (0..<120).contains(number) else {
+                throw CommandError.invalid("Select a base-game shrine to mark cleared.")
+            }
+            return "complete_shrine \(id)"
+        case .markAllShrinesCleared: return "complete_all_shrines"
+        case .horseSpeed(let hundredths):
+            guard let hundredths else { return "horse_speed off" }
+            guard (100...200).contains(hundredths) else {
+                throw CommandError.invalid("Choose horse speed from 1.00× to 2.00×.")
+            }
+            return "horse_speed \(hundredths)"
         }
     }
 
@@ -314,6 +424,10 @@ final class PlaygroundModel: ObservableObject {
 
     func name(for actor: String) -> String { catalog.first(where: { $0.id == actor })?.name ?? actor }
 
+    func giveBlockedReason(for actor: String) -> String? {
+        ItemGrantRules.blockedReason(for: actor, inventory: state?.inventory)
+    }
+
     func refresh() {
         do {
             let data = try Data(contentsOf: stateURL)
@@ -392,8 +506,22 @@ final class PlaygroundModel: ObservableObject {
             if let feature = command.feature, !canUse(feature) {
                 throw CommandError.invalid("This action is not available in the current gameplay session.")
             }
-            if let feature = command.feature, ["items", "inventory_edit"].contains(feature), !canEditInventory(feature:feature) {
+            if let feature = command.feature, ["items", "inventory_edit", "master_sword", "pouch_slots"].contains(feature), !canEditInventory(feature:feature) {
                 throw CommandError.invalid(inventoryBlockedReason ?? "Inventory is updating. Wait a moment, then try again.")
+            }
+            if case .give(let actor, _) = command, let reason = giveBlockedReason(for: actor) {
+                throw CommandError.invalid(reason)
+            }
+            if case .masterSwordLevel = command {
+                guard let sword = current.inventory?.first(where: { $0.name == ItemGrantRules.masterSword }) else {
+                    throw CommandError.invalid("Add the usable Master Sword before changing its level.")
+                }
+                if sword.equipped { throw CommandError.invalid("Unequip the Master Sword in BOTW before changing its level.") }
+            }
+            if case .pouchSlots(let kind, let text) = command {
+                guard let currentCount = current.slots(for: kind), let count = Int(text.trimmingCharacters(in: .whitespaces)), count >= currentCount else {
+                    throw CommandError.invalid("Pouch slots can only increase. Wait for the current capacity to load.")
+                }
             }
             if command.requiresPlayerCache, let feature = command.feature, !canSetMaximum(feature) {
                 throw CommandError.invalid("Player stats are still loading. Wait for the gameplay session to be ready.")

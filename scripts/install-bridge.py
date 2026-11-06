@@ -29,7 +29,8 @@ ROOT = Path(__file__).resolve().parents[1]
 HEADER_TARGETS = {
     **{name: "games/totk/runtime/" + name for name in (
         "botw_editor.h", "botw_editor_inventory.h", "botw_editor_world.h",
-        "botw_editor_teleport.h", "botw_editor_destinations.h",
+        "botw_editor_teleport.h", "botw_editor_destinations.h", "botw_editor_horse.h",
+        "botw_editor_runes.h",
     )},
     "botw_postfx.h": "games/totk/third_party/d2r_gfx/gfx/nvn/botw_postfx.h",
     "botw_temporal_config.h": "games/totk/third_party/d2r_gfx/gfx/nvn/botw_temporal_config.h",
@@ -46,10 +47,12 @@ COMPAT_SOURCE_FILES = (
     "games/totk/runtime/game_patches_botw.c",
     "games/totk/third_party/d2r_gfx/gfx/nvn/nvn_mtl.m",
 )
+UPDATE_SOURCE_FILES = ("games/totk/runtime/game_patches_botw.c",)
 APP_DATA = Path.home() / "Library/Application Support/BOTWEditor"
 GAME_DATA = Path.home() / "Library/Application Support/MacNativeGames/BotW"
 PATCH = ROOT / "runtime/macnativegames-botw160.patch"
-COMPAT_PATCH = ROOT / "runtime/macnativegames-v0.1.1-to-v0.1.2.patch"
+COMPAT_PATCH = ROOT / "runtime/macnativegames-legacy-to-v0.1.3.patch"
+UPDATE_PATCH = ROOT / "runtime/macnativegames-v0.1.2-to-v0.1.3.patch"
 
 
 class InstallError(Exception):
@@ -199,7 +202,8 @@ def validate_patch_contents() -> dict[str, str]:
     return validated_patch_sections(PATCH, SOURCE_FILES)
 
 
-def select_source_patches(repo: Path, full: dict[str, str], compatibility: dict[str, str]) -> tuple[dict[str, str], str]:
+def select_source_patches(repo: Path, full: dict[str, str], compatibility: dict[str, str],
+                          update: dict[str, str] | None = None) -> tuple[dict[str, str], str]:
     states: dict[str, str] = {}
     selected = []
     for relative in SOURCE_FILES:
@@ -213,14 +217,18 @@ def select_source_patches(repo: Path, full: dict[str, str], compatibility: dict[
             states[relative] = "needs-install"
             selected.append(section)
             continue
-        upgrade = compatibility.get(relative)
-        if upgrade and not run(["git", "apply", "--check", "-"], cwd=repo, input_text=upgrade).returncode:
+        upgrade = None
+        for candidate in (compatibility.get(relative), (update or {}).get(relative)):
+            if candidate and not run(["git", "apply", "--check", "-"], cwd=repo, input_text=candidate).returncode:
+                upgrade = candidate
+                break
+        if upgrade:
             states[relative] = "upgrade"
             selected.append(upgrade)
             continue
         raise InstallError(
             f"The runtime integration conflicts with local edits in {relative}. "
-            "The file matches neither pristine source, the supported 0.1.0/0.1.1 integration, nor this release. "
+            "The file matches neither pristine source, a supported 0.1.0/0.1.1/0.1.2 integration, nor this release. "
             "No source files changed; preserve your edits and use a compatible checkout.\n"
             + (forward.stderr or reverse.stderr).strip()
         )
@@ -275,13 +283,14 @@ def preflight(args: argparse.Namespace) -> Plan:
     py = python314()
     full = validate_patch_contents()
     compatibility = validated_patch_sections(COMPAT_PATCH, COMPAT_SOURCE_FILES)
-    patch_states, selected_patch = select_source_patches(repo, full, compatibility)
+    update = validated_patch_sections(UPDATE_PATCH, UPDATE_SOURCE_FILES)
+    patch_states, selected_patch = select_source_patches(repo, full, compatibility, update)
     if all(state == "integrated" for state in patch_states.values()):
         integration = "integrated"
     elif all(state == "needs-install" for state in patch_states.values()):
         integration = "needs-install"
     elif "upgrade" in patch_states.values():
-        integration = "upgrade from 0.1.0/0.1.1"
+        integration = "upgrade from 0.1.0/0.1.1/0.1.2"
     else:
         integration = "partial (upgrade supported)"
     key = hashlib.sha256((str(repo) + "\0" + str(app)).encode()).hexdigest()[:24]
@@ -291,7 +300,7 @@ def preflight(args: argparse.Namespace) -> Plan:
         raise InstallError("The installer ownership record belongs to a different checkout or app.")
     owned = manifest.get("owned_headers", {})
     source_hashes: dict[str, str | None] = {}
-    package_hashes = {"patch": digest(PATCH), "compat_patch": digest(COMPAT_PATCH)}
+    package_hashes = {"patch": digest(PATCH), "compat_patch": digest(COMPAT_PATCH), "update_patch": digest(UPDATE_PATCH)}
     changes = [relative for relative, state in patch_states.items() if state != "integrated"]
     for relative in SOURCE_FILES:
         target = target_file(repo, relative)
@@ -361,7 +370,7 @@ def verify_unchanged(plan: Plan) -> None:
         actual = digest(path) if path.is_file() else None
         if actual != expected:
             raise InstallError(f"Source changed after validation: {relative}. Backups are retained; retry after edits stop.")
-    actual_package = {"patch": digest(PATCH), "compat_patch": digest(COMPAT_PATCH)}
+    actual_package = {"patch": digest(PATCH), "compat_patch": digest(COMPAT_PATCH), "update_patch": digest(UPDATE_PATCH)}
     actual_package.update({name: digest(ROOT / "runtime" / name) for name in HEADERS})
     if actual_package != plan.package_hashes:
         raise InstallError("The editor package changed during installation. Backups are retained; rerun using one complete release.")
@@ -442,15 +451,46 @@ def items_cache_valid() -> bool:
     return True
 
 
+def map_labels_cache_valid() -> bool:
+    path = APP_DATA / "cache/map/labels.json"
+    try:
+        if path.is_symlink() or path.stat().st_size > 512 * 1024:
+            return False
+    except OSError:
+        return False
+    metadata = cache_manifest(path)
+    labels, source = metadata.get("labels"), metadata.get("source")
+    if not isinstance(labels, list) or not 1 <= len(labels) <= 1000 or \
+       not isinstance(source, dict) or source.get("local_game_assets_only") is not True:
+        return False
+    identifiers = set()
+    for label in labels:
+        if not isinstance(label, dict):
+            return False
+        identifier, name = label.get("id"), label.get("name")
+        if not isinstance(identifier, str) or not re.fullmatch(r"[A-Za-z0-9_]{1,96}", identifier) or \
+           identifier in identifiers or not isinstance(name, str) or not 1 <= len(name) <= 96 or \
+           not name.isprintable() or label.get("kind") not in ("region", "area", "settlement", "landmark") or \
+           type(label.get("level")) is not int or label["level"] not in (1, 2, 4, 8):
+            return False
+        identifiers.add(identifier)
+        for axis, maximum in (("x", 6000), ("z", 5000)):
+            value = label.get(axis)
+            if type(value) not in (int, float) or not math.isfinite(value) or abs(value) > maximum:
+                return False
+    encoded = json.dumps(labels, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    return metadata.get("labels_sha256") == hashlib.sha256(encoded).hexdigest()
+
+
 def ensure_private_assets(plan: Plan, log_folder: Path) -> None:
-    for kind, validate in (("map", map_cache_valid), ("items", items_cache_valid)):
+    for kind, validate in (("map", map_cache_valid), ("items", items_cache_valid), ("map_labels", map_labels_cache_valid)):
         if validate():
             say(f"Reusing verified private {kind} cache.")
             continue
         log_folder.mkdir(parents=True, exist_ok=True, mode=0o700)
         say(f"Extracting private {kind} artwork from your local game files…")
         command = [str(plan.python), str(ROOT / f"scripts/extract_{kind}.py"),
-                   "--app", str(plan.app), "--output-dir", str(APP_DATA / "cache" / kind)]
+                   "--app", str(plan.app), "--output-dir", str(APP_DATA / "cache" / ("map" if kind == "map_labels" else kind))]
         if kind == "items":
             command.extend(["--catalog", str(ROOT / "Sources/catalog.json")])
         stream_command(command, log_folder / f"{kind}-extraction.log")
@@ -570,6 +610,7 @@ def main(argv: list[str] | None = None) -> int:
         say("Runtime installation: " + ("confirmed" if plan.runtime_confirmed else "not recorded for this release"))
         say("Private map cache: " + ("verified" if map_cache_valid() else "missing or needs extraction"))
         say("Private item cache: " + ("verified" if items_cache_valid() else "missing or needs extraction"))
+        say("Private map labels: " + ("verified" if map_labels_cache_valid() else "missing or needs extraction"))
         if plan.changes:
             say("Planned source changes:")
             for relative in plan.changes:

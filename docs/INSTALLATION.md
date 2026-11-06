@@ -15,7 +15,7 @@ BOTW Editor requires a working MacNativeGames BOTW **1.6.0** app and the matchin
      --work "/path/to/BotW_build"
    ```
 
-4. Read the result and preserve the backup locations printed by the installer. It also extracts the 135 destinations, terrain map, and item icons from the local game into the editor's private cache.
+4. Read the result and preserve the backup locations printed by the installer. It extracts 135 travel destinations, terrain, localized place labels, and item icons from the local game into the editor's private cache.
 5. Launch BOTW and load your gameplay session, then open BOTW Editor.
 
 The release app alone cannot edit an unmodified game runtime. Installing the bridge does not require uploading the game, saves, firmware, or keys.
@@ -26,11 +26,11 @@ Add `--check` to the installer command to validate compatibility and report whet
 
 The installer preserves unrelated checkout changes. It refuses differing bridge headers that it does not own, and it records ownership hashes under `~/Library/Application Support/BOTWEditor/Installations/`. Backups and runtime build logs remain local under `~/Library/Application Support/BOTWEditor/Backups/`.
 
-**0.1.2 supports fresh installations and upgrades from 0.1.0 or 0.1.1.** It checks six allowed source files: the build recipe, input handling, game patch integration, renderer, and temporal-scaler implementation/header. Existing hooks are retained. Pristine files use the full integration patch; the two files changed again since 0.1.1 use a separately validated compatibility patch. The installer checks and applies the selected sections together in one atomic Git operation. Conflicting local edits stop installation before source changes.
+**0.1.3 supports fresh installations and upgrades from 0.1.0, 0.1.1, or 0.1.2.** It checks six allowed source files covering the build recipe, input handling, game integration, renderer, and temporal scaler. Pristine files use the full integration patch. Earlier integrations use the matching legacy or 0.1.2 upgrade patch for the hooks they still need. The installer checks the selected sections together before applying them in one atomic Git operation. Conflicting local edits stop installation before source changes.
 
-Both packaged patches are included in installation ownership hashes and checked again after backups, so changing either patch during installation stops the update. The seven managed headers retain their recorded ownership checks. Post-processing and temporal-configuration headers are installed alongside the renderer; editor bridge headers stay with the runtime.
+The installer hashes all three packaged patches and checks them again after creating backups. A changed patch stops the update. Ownership checks cover all nine managed headers. The renderer receives the post-processing and temporal configuration headers, and the runtime receives the editor bridge headers.
 
-When the bridge source and installed runtime already match, it reuses hash-verified artwork caches. Missing or invalid local artwork is regenerated without rebuilding the game runtime; extraction logs are kept under `~/Library/Application Support/BOTWEditor/logs/`. The installer verifies the extracted outputs before reporting success.
+When the bridge source and installed runtime already match, the installer reuses verified terrain, label, and item caches. It regenerates missing or invalid caches independently of the runtime build and verifies the outputs before reporting success. Extraction logs stay under `~/Library/Application Support/BOTWEditor/logs/`.
 
 ### Opening the downloaded app
 
@@ -51,7 +51,8 @@ No step requires disabling Gatekeeper or removing quarantine attributes.
 | Feature unavailable | That operation failed its compatibility/readiness checks. Do not substitute offsets from another game version. |
 | Request rejected | Read the editor's result; a queued command or button click is not proof of an applied edit. |
 | Inventory edits unavailable while holding materials | Put away the materials Link is holding, then retry. Browsing the catalog remains available. |
-| Inventory data could not be validated | Wait for a fresh snapshot and verify the 0.1.1 bridge is installed. An open game menu alone does not require closing it. |
+| Inventory data could not be validated | Wait for a fresh snapshot and check that BOTW is running with the matching 0.1.3 bridge. |
+| Rune selection busy or unavailable | Resume normal gameplay and retry **Unlock runes**. Read the result to see whether the access flags were applied and the selection request is pending. |
 
 ## Inventory values
 
@@ -61,18 +62,23 @@ The 0.1.1 bridge recognizes the game's armor dye metadata, including its non-dye
 
 ## World changes
 
-Shrine activation enables its travel point; it does not clear the shrine. **Reveal Map** enables the 15 tower map regions. **Full Access** adds the base shrine travel points, map regions, runes, and paraglider, then raises the world towers. It skips the opening tower activation sequence without directly marking shrine clears or story quests complete.
+**Enable in-game map** enables the Slate's map screen. Press **Tab** or **M** in BOTW to open it. **Reveal map** enables the 15 tower regions. The editor's map uses a separate local terrain cache.
 
-The map combines the game's terrain artwork with 135 destinations: 120 base shrines and 15 towers. Choose a marker or list entry to travel; selecting arbitrary terrain does not request a coordinate warp. Travel targets outdoor `MainField` locations, and the bridge rejects unsupported interiors.
+Activating a shrine discovers it on the in-game map and enables its travel point. Reopen the map to see the updated state. The separate **Mark cleared** and **Mark all cleared** actions update the clear state and increase the counter for newly cleared shrines. These actions cover the shrine's discovery, travel, and clear fields and the counter. **Full Access** discovers and activates base shrine travel points, reveals tower regions, grants base runes and the paraglider, and raises the world towers. It skips the opening tower activation sequence.
 
-## Local map and item artwork
+**Unlock runes** grants the base kit and enables Slate access. When the game has no selection, the bridge requests an initial Bomb and lets the game apply it. During ordinary unmounted gameplay with default keyboard bindings, hold **3** to choose a rune, release it, then press **F** to use it.
 
-The editor reads locally extracted artwork from `~/Library/Application Support/BOTWEditor/cache/`. The `map/` folder holds the terrain image and projection metadata; `items/` holds item icons and their resolution manifest. These are private copies made from your installed game. They are not stored in the editor bundle or uploaded.
+The editor shows game terrain and zoom-dependent place labels alongside 120 base shrine and 15 tower destinations. From an outdoor `MainField` session, choose a destination marker or list entry to travel.
 
-If artwork is missing, regenerate it from the same source checkout without rebuilding the editor:
+## Local terrain, place labels, and item artwork
+
+The editor reads local game data from `~/Library/Application Support/BOTWEditor/cache/`. The `map/` folder holds the terrain image, projection metadata, and `labels.json`. The `items/` folder holds item icons and their resolution manifest. Keep these generated files in your private cache and out of the release bundle.
+
+To regenerate missing artwork or labels, run the corresponding command from the matching source checkout.
 
 ```sh
 python3 scripts/extract_map.py --app "/Applications/Breath of the Wild.app"
+python3 scripts/extract_map_labels.py --app "/Applications/Breath of the Wild.app"
 python3 scripts/extract_items.py --app "/Applications/Breath of the Wild.app"
 ```
 

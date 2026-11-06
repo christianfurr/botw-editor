@@ -201,7 +201,7 @@
   },
   {
     "id": "Weapon_Sword_056",
-    "name": "Master Sword (Broken/Unequippable)",
+    "name": "Master Sword (recovering form, internal)",
     "category": "weapons"
   },
   {
@@ -241,12 +241,12 @@
   },
   {
     "id": "Weapon_Sword_071",
-    "name": "Master Sword (no near malice, no charge)",
+    "name": "Master Sword (world model, internal)",
     "category": "weapons"
   },
   {
     "id": "Weapon_Sword_072",
-    "name": "Master Sword (near malice, no charge)",
+    "name": "Master Sword (awakened form, internal)",
     "category": "weapons"
   },
   {

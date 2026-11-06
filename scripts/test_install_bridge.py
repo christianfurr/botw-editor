@@ -70,6 +70,70 @@ class PatchTests(unittest.TestCase):
         return (installer.validated_patch_sections(full_path, installer.SOURCE_FILES),
                 installer.validated_patch_sections(compatibility_path, installer.COMPAT_SOURCE_FILES))
 
+    def update_fixture(self, folder):
+        full, legacy = self.compatibility_fixture(folder)
+        path = folder / "update.patch"
+        path.write_text("".join(
+            f"diff --git a/{relative} b/{relative}\n--- a/{relative}\n+++ b/{relative}\n@@ -1,3 +1,3 @@\n prefix\n-version012\n+after\n suffix\n"
+            for relative in installer.UPDATE_SOURCE_FILES))
+        return full, legacy, installer.validated_patch_sections(path, installer.UPDATE_SOURCE_FILES)
+
+    def test_012_and_headers_only_013_use_one_update_patch(self):
+        for version in ("0.1.2", "0.1.3 headers-only"):
+            with self.subTest(version=version), tempfile.TemporaryDirectory() as directory:
+                folder = Path(directory)
+                full, legacy, update = self.update_fixture(folder)
+                for relative in installer.SOURCE_FILES:
+                    value = "version012" if relative in installer.UPDATE_SOURCE_FILES else "after"
+                    (folder / relative).write_text(f"prefix\n{value}\nsuffix\nend\n// independent {version} note\n")
+                before = {p: (folder / p).read_bytes() for p in installer.SOURCE_FILES}
+                states, text = installer.select_source_patches(folder, full, legacy, update)
+                game_patch = installer.UPDATE_SOURCE_FILES[0]
+                self.assertEqual(states, {p: "upgrade" if p == game_patch else "integrated" for p in installer.SOURCE_FILES})
+                self.assertEqual(text, update[game_patch])
+                plan = SimpleNamespace(repo=folder, changes=[game_patch], source_patch=text)
+                with mock.patch.object(installer, "say"):
+                    installer.apply_source_changes(plan)
+                self.assertEqual({p: (folder / p).read_bytes() for p in installer.SOURCE_FILES if p != game_patch},
+                                 {p: value for p, value in before.items() if p != game_patch})
+                self.assertIn(f"// independent {version} note", (folder / game_patch).read_text())
+                final, text = installer.select_source_patches(folder, full, legacy, update)
+                self.assertTrue(all(state == "integrated" for state in final.values()))
+                self.assertEqual(text, "")
+
+    def test_update_patch_rejects_unknown_game_patch_without_writes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            full, legacy, update = self.update_fixture(folder)
+            (folder / installer.UPDATE_SOURCE_FILES[0]).write_text("unrecognized human-owned runtime integration\n")
+            before = {p: (folder / p).read_bytes() for p in installer.SOURCE_FILES}
+            with self.assertRaises(installer.InstallError):
+                installer.select_source_patches(folder, full, legacy, update)
+            self.assertEqual({p: (folder / p).read_bytes() for p in installer.SOURCE_FILES}, before)
+
+    def test_update_and_pristine_sections_apply_atomically(self):
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            full, legacy, update = self.update_fixture(folder)
+            game_patch = installer.UPDATE_SOURCE_FILES[0]
+            (folder / game_patch).write_text("prefix\nversion012\nsuffix\nend\n")
+            states, text = installer.select_source_patches(folder, full, legacy, update)
+            self.assertEqual(states[game_patch], "upgrade")
+            self.assertTrue(all(state == "needs-install" for p, state in states.items() if p != game_patch))
+            plan = SimpleNamespace(repo=folder, changes=list(states), source_patch=text)
+            (folder / installer.SOURCE_FILES[-1]).write_text("changed after validation\n")
+            before = {p: (folder / p).read_bytes() for p in installer.SOURCE_FILES}
+            with self.assertRaises(installer.InstallError):
+                installer.apply_source_changes(plan)
+            self.assertEqual({p: (folder / p).read_bytes() for p in installer.SOURCE_FILES}, before)
+
+    def test_update_patch_cannot_modify_a_second_source(self):
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            full_path = self.source_patch(folder)
+            with self.assertRaises(installer.InstallError):
+                installer.validated_patch_sections(full_path, installer.UPDATE_SOURCE_FILES)
+
     def test_old_releases_use_full_and_compatibility_sections_atomically(self):
         for version in ("0.1.0", "0.1.1"):
             with self.subTest(version=version), tempfile.TemporaryDirectory() as directory:
@@ -279,6 +343,49 @@ class PreflightTests(unittest.TestCase):
             with self.assertRaisesRegex(installer.InstallError, "package changed"):
                 installer.verify_unchanged(plan)
 
+    def test_update_patch_change_after_validation_is_refused(self):
+        plan = installer.preflight(self.args)
+        changed = self.folder / "changed-update.patch"
+        changed.write_bytes(installer.UPDATE_PATCH.read_bytes() + b"\n")
+        with mock.patch.object(installer, "UPDATE_PATCH", changed):
+            with self.assertRaisesRegex(installer.InstallError, "package changed"):
+                installer.verify_unchanged(plan)
+
+    def test_horse_header_uses_runtime_target_and_preserves_ownership(self):
+        relative = "games/totk/runtime/botw_editor_horse.h"
+        self.assertEqual(installer.HEADER_TARGETS["botw_editor_horse.h"], relative)
+        target = self.repo / relative
+        target.write_text("unowned horse implementation\n")
+        before = self.snapshot()
+        with self.assertRaisesRegex(installer.InstallError, "unowned"):
+            installer.preflight(self.args)
+        self.assertEqual(self.snapshot(), before)
+
+    def test_upgrade_can_add_a_missing_horse_header(self):
+        relative = installer.HEADER_TARGETS["botw_editor_horse.h"]
+        (self.repo / relative).unlink()
+        before = self.snapshot()
+        plan = installer.preflight(self.args)
+        self.assertIn(relative, plan.changes)
+        self.assertIsNone(plan.source_hashes[relative])
+        self.assertEqual(self.snapshot(), before)
+
+    def test_upgrade_plans_missing_rune_runtime_header(self):
+        relative = "games/totk/runtime/botw_editor_runes.h"
+        self.assertEqual(installer.HEADER_TARGETS["botw_editor_runes.h"], relative)
+        (self.repo / relative).unlink()
+        before = self.snapshot()
+        plan = installer.preflight(self.args)
+        self.assertEqual(plan.changes, [relative])
+        self.assertIsNone(plan.source_hashes[relative])
+        self.assertEqual(self.snapshot(), before)
+
+    def test_horse_header_change_after_validation_is_refused(self):
+        plan = installer.preflight(self.args)
+        (self.repo / installer.HEADER_TARGETS["botw_editor_horse.h"]).write_text("concurrent horse edit\n")
+        with self.assertRaisesRegex(installer.InstallError, "Source changed"):
+            installer.verify_unchanged(plan)
+
     def test_wrong_game_version_is_refused(self):
         self.info.write_bytes(plistlib.dumps({"CFBundleIdentifier": "org.macnativegames.botw", "CFBundleShortVersionString": "1.9.0"}))
         with self.assertRaisesRegex(installer.InstallError, "1.6.0"):
@@ -311,6 +418,10 @@ class PreflightTests(unittest.TestCase):
         (map_folder / "map.json").write_text(json.dumps({"schema": 1, "image": "map.png",
             "image_sha256": checksum, "width": 1, "height": 1, "orientation": "north-up",
             "world_bounds": {"min_x": -1, "max_x": 1, "min_z": -1, "max_z": 1}}))
+        labels = [{"id": "FixtureRegion", "name": "Fixture region", "x": 0, "z": 0, "level": 1, "kind": "region"}]
+        encoded = json.dumps(labels, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+        (map_folder / "labels.json").write_text(json.dumps({"schema": 1, "labels": labels,
+            "labels_sha256": hashlib.sha256(encoded).hexdigest(), "source": {"local_game_assets_only": True}}))
         catalog = {item["id"] for item in json.loads((installer.ROOT / "Sources/catalog.json").read_text())}
         actor = sorted(catalog)[0]
         item_folder = installer.APP_DATA / "cache/items"
@@ -321,10 +432,13 @@ class PreflightTests(unittest.TestCase):
             "catalog": {"total": len(catalog), "resolved": 1, "missing": sorted(catalog - {actor})}}))
         self.assertTrue(installer.map_cache_valid())
         self.assertTrue(installer.items_cache_valid())
+        self.assertTrue(installer.map_labels_cache_valid())
         (map_folder / "map.png").write_bytes(pixel + b"corrupt")
         (item_folder / (actor + ".png")).unlink()
+        (map_folder / "labels.json").write_text("{}")
         self.assertFalse(installer.map_cache_valid())
         self.assertFalse(installer.items_cache_valid())
+        self.assertFalse(installer.map_labels_cache_valid())
 
     def confirmed_plan(self):
         plan = installer.preflight(self.args)
@@ -338,6 +452,7 @@ class PreflightTests(unittest.TestCase):
         before = self.snapshot()
         with mock.patch.object(installer, "map_cache_valid", return_value=True), \
              mock.patch.object(installer, "items_cache_valid", return_value=True), \
+             mock.patch.object(installer, "map_labels_cache_valid", return_value=True), \
              mock.patch.object(installer, "stream_command") as stream, \
              mock.patch.object(installer, "clone_copy") as clone, \
              mock.patch.object(installer, "say"):
@@ -351,16 +466,17 @@ class PreflightTests(unittest.TestCase):
         plan = self.confirmed_plan()
         with mock.patch.object(installer, "map_cache_valid", side_effect=[False, True]), \
              mock.patch.object(installer, "items_cache_valid", side_effect=[False, True]), \
+             mock.patch.object(installer, "map_labels_cache_valid", side_effect=[False, True]), \
              mock.patch.object(installer, "stream_command") as stream, \
              mock.patch.object(installer, "clone_copy") as clone, \
              mock.patch.object(installer, "say"):
             installer.install(plan)
         clone.assert_not_called()
-        self.assertEqual(stream.call_count, 2)
-        for call, kind in zip(stream.call_args_list, ("map", "items")):
+        self.assertEqual(stream.call_count, 3)
+        for call, kind in zip(stream.call_args_list, ("map", "items", "map_labels")):
             command, log = call.args
             self.assertEqual(command[:4], [str(plan.python), str(installer.ROOT / f"scripts/extract_{kind}.py"), "--app", str(plan.app)])
-            self.assertIn(str(installer.APP_DATA / "cache" / kind), command)
+            self.assertIn(str(installer.APP_DATA / "cache" / ("map" if kind == "map_labels" else kind)), command)
             self.assertTrue(log.is_relative_to(installer.APP_DATA / "logs"))
         self.assertFalse((installer.APP_DATA / "Backups").exists())
 

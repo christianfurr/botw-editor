@@ -111,7 +111,23 @@ static void bed_snapshot(FILE *output, uintptr_t base, int ready) {
             else if (!strcmp(entry->kind, "tower") && !strncmp(entry->id, "Tower", 5))
                 snprintf(flag, sizeof flag, "MapTower_%02d", atoi(entry->id + 5));
             else snprintf(flag, sizeof flag, "%s", entry->id);
-            if (be_world_get_bool(base, flag, &unlocked)) fprintf(output, ",\"unlocked\":%s", unlocked ? "true" : "false");
+            if (be_world_get_bool(base, flag, &unlocked)) {
+                int known = 1;
+                if (!strcmp(entry->kind, "shrine")) {
+                    int32_t discovered = 0;
+                    snprintf(flag, sizeof flag, "Location_%s", entry->id);
+                    known = be_world_get_s32(base, flag, &discovered);
+                    unlocked = unlocked && discovered > 0;
+                }
+                if (known) fprintf(output, ",\"unlocked\":%s", unlocked ? "true" : "false");
+            }
+        }
+        if (!strcmp(entry->kind, "shrine")) {
+            char flag[96]; int completed = 0;
+            snprintf(flag, sizeof flag, "Clear_%s", entry->id);
+            fputs(",\"completed\":", output);
+            if (ready && be_world_get_bool(base, flag, &completed)) fputs(completed ? "true" : "false", output);
+            else fputs("null", output);
         }
         fputc('}', output);
     }

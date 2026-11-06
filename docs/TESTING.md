@@ -2,7 +2,7 @@
 
 The editor, bridge, and game are separate verification surfaces. A successful compile, valid app signature, or matching request acknowledgement alone does not prove that a requested gameplay change behaves correctly.
 
-## Current 0.1.2 source and synthetic checks
+## Current 0.1.3 source and synthetic checks
 
 | Surface | Evidence |
 | --- | --- |
@@ -13,13 +13,22 @@ The editor, bridge, and game are separate verification surfaces. A successful co
 | Health/stamina bridge | Synthetic pointer chains; current-health target; stamina refill and lock; clear locks when context disappears. |
 | Inventory value bridge | Synthetic writes round-trip raw weapon durability 2,000 and 3,000; accept durability bounds 1–100,000,000 and stack bounds 1–999; reject out-of-range values, equipped weapons, unsupported types, and unavailable native APIs without writing. |
 | Armor metadata | Accept the game's `-1` no-dye sentinel and the verified dye range for armor types only; retain strict positive weapon durability and stack bounds. Validation failure no longer invents a menu condition. |
+| Master Sword grants | Refuse internal `Weapon_Sword_056`/`071`/`072` forms before native acquisition; require quantity one for canonical `070`; report duplicate ownership explicitly. |
+| Master Sword levels | Four exact additive-power/full-power pairs; owned, unique and unequipped sword gates; typed flag permissions; both-store readback; synthetic failure rollback. Beam, durability, recharge and quest fields are outside the transaction. |
+| Pouch capacity | Category/token/range checks, increase-only validation against both stores, native flag readback, synthetic rollback and preservation of unrelated flags. |
+| In-game map access | Argument-free command, independent capability, and a two-flag transaction for the verified PortableUnit booleans. Synthetic preflight/readback/rollback does not prove the actual map screen opens. |
+| Shrine discovery and runes | Mixed Bool/S32 activation, preservation of each store's positive discovery value, nine rune/Slate flags, exact `Location_Dungeon001` metadata/opcode exception, whole-batch readback and rollback. |
+| Rune selection request | Fifteen native guard instructions match the local NX160 ELF; TryLockMutex/UnlockMutex import ABI and the download UI's requested-selection write were verified. Fault-injected sanitizer checks cover absent/valid selections, busy/invalid refusal, write/readback failures, owned rollback and preservation of competing changes. This does not prove the selector opens in the live game. |
+| Separate shrine completion | Selected/all-base-shrine Clear transitions plus counter delta only for newly cleared shrines; refuse store disagreement and overflow; restore failed batches. Fixtures exclude Spirit Orbs, Enter, quests, chests and rewards. |
+| Horse movement | 16,113 independent ASan/UBSan checks cover the 104-cell scope, original-based scaling, exact Off restoration, resource replacement, competing changes, failed writes/readbacks and rollback. Synthetic fixtures contain no extracted game data. |
+| Map labels | Eight standard-library fixtures cover original placements, deduplication, settlement selection, kinds, numeric/visibility bounds and digest behavior. A separate private local extraction produced 557 labels: 8 regions, 24 areas, 34 settlements and 491 landmarks. |
 | Upscaling model | 90 assertions cover strict boot presets, bounded/atomic preference I/O, fresh live-process evidence, real larger dimensions, GPU completion/error guards, and matching boot token/new-PID confirmation after restart. |
 | Temporal input guards | The release source passes 249 ASan/UBSan-backed configuration, cache, geometry, UV/cull, host-snapshot and GPU-write-order assertions. Passing these fixtures is separate from final live stability. |
 | MetalFX GPU probe | RGB10A2 and FP16 inputs at 4/3×, 1.5× and 2× completed four GPU frames per combination, 24 total, with finite/color/alpha sampling checks. |
 | Graphics model | Validate preset/strength/sharpness/source bounds and require a matching revision, live presenter process, fresh status, and an encoded applied/off result before confirming a look. |
 | Metal pixels | 325 GPU assertions use synthetic textures for exact Off identity, crop/alpha, preset formulas, bounded sharpening, custom strength blending, nonfinite channels, invalid settings, compilation failure, and original-image fallback. |
 | World metadata | Known game-name CRCs; direct and proxy flag traversal; separate S32/F32 arrays; reject invalid types/proxy signatures/permissions; base-shrine bounds. |
-| Installer | 24 fixtures cover patch allowlists, atomic selection of fresh/compatibility sections, upgrades from 0.1.0/0.1.1, ownership/conflict checks, backups, version/process refusal, source-change detection and private-cache verification/reuse. |
+| Installer | 32 fixtures cover patch allowlists, atomic fresh/legacy/0.1.2 upgrade selection, header ownership/conflict checks, backups, version/process refusal, source-change detection and private-cache/label verification and reuse. The rune-selection revision adds a ninth managed header; its final integration rerun is pending. |
 
 These checks use controlled test data. They establish validation and protocol behavior, not live-game outcomes.
 
@@ -29,7 +38,7 @@ Run the reproducible checks on an Apple silicon Mac with Xcode's command-line to
 ./scripts/test.sh
 ```
 
-This runs the Swift model/UI/graphics/upscaling checks, the native C fixtures in `tests/runtime_checks.c`, sanitizer-backed temporal-input fixtures, real MetalFX and color-filter GPU probes, and the installer fixtures. The C fixture compiles with `-Wall -Wextra -Werror` and currently passes 224 assertions. It allocates synthetic pointer chains, clears game-control environment variables, and never opens BOTW or reads a gameplay profile. Build artifacts stay under the ignored `build/` folder.
+This runs the Swift model/UI/graphics/upscaling checks, the native C fixtures in `tests/runtime_checks.c`, horse and temporal sanitizer fixtures, real MetalFX and color-filter GPU probes, map-label fixtures and installer fixtures. The core C fixture compiles with `-Wall -Wextra -Werror` and currently passes **29,636 assertions**. It allocates synthetic pointer chains, clears game-control environment variables, and never opens BOTW or reads a gameplay profile. The separate horse suite passes **16,113 assertions** with ASan/UBSan. Build artifacts stay under the ignored `build/` folder.
 
 To run only the native guard checks:
 
@@ -37,7 +46,43 @@ To run only the native guard checks:
 bash scripts/test-runtime.sh
 ```
 
+Run the separate synthetic horse suite with `bash scripts/test-horse.sh`.
+
 The Metal probe requires an actual GPU for pixel evidence. Local checks fail if no device is available; CI may report an explicit GPU skip when its host has no Metal device. An offline shader compile on such a host is a separate check. See [Shaders](SHADERS.md) for the contract and test scope.
+
+## 0.1.3 live verification — 2026-11-05
+
+The rebuilt BOTW 1.6.0 runtime was exercised using an isolated profile copy on
+the local M4 Mac. Initial readbacks were Master Sword level 0 / normal attack 30 /
+full power false, weapon/bow/shield capacity 9/5/4, and map access false. Native
+readback and visible game behavior are distinguished below.
+
+The original normal profile's 23 files matched their baseline after the first
+installation and test startup. The player then explicitly chose to keep the
+copy and its items. That copy was promoted byte-for-byte to the normal profile,
+with the original 23-file profile retained as a backup. Follow-up tests use a
+fresh copy of the kept profile and a new normal-profile baseline. Preservation
+checks now protect that chosen baseline; they do not claim the original
+progress was retained unchanged.
+
+| Operation | Observed outcome |
+| --- | --- |
+| Canonical/internal sword grants | The profile already owned usable `Weapon_Sword_070`. Duplicate `070` was refused with the explicit owned-sword reason. Internal forms `056`, `071` and `072` were refused with the non-pouch explanation. This run does not claim a fresh canonical-sword grant. |
+| Awakening level transactions | A level 1 request while the sword was equipped refused. After equipping another weapon in BOTW, levels 1/2/3 were acknowledged with readbacks 40/50/60 and full-power false/false/true. Returning 3→0 read back 30 / full-power false. |
+| Visible sword attack | A reopened in-game pouch visibly showed 60. Captures for 40/50 showed gameplay rather than the attack panel, so they do not verify those displayed values. Visible 30/40/50 checks remain **pending**; all four native readbacks were verified above. Situational awakening remains separate. |
+| Pouch capacity | Weapon/bow/shield capacity increased 9→20, 5→14 and 4→20 with successful native readbacks. Granting 10 swords, 6 bows and 5 shields produced 13 weapons / 8 bows / 5 shields, exceeding every original category limit. A decrease 20→9 refused and weapon capacity remained 20. |
+| In-game map | Before the change, Tab left gameplay visible. `map_access` was acknowledged and read back true; pressing Tab afterward opened the actual BOTW map screen, which was visually inspected. |
+| Rune selection and use | The nine ownership/Slate flags acknowledged successfully, but the selector still failed to open during a proper on-foot test. Source tracing found the separate native selection request. **Pending:** verify its requested/current/saved readbacks, visible selector and actual use after the new helper is installed. The default sequence is hold 3, choose, release, then F. |
+| Revised shrine discovery | **Pending.** Confirm Open and Location readbacks, reopen the actual in-game map and inspect the marker/travel state, including the exact Dungeon001 exception. Earlier Open-only checks do not establish discovery. |
+| Separate shrine clearing | **Pending.** Verify selected/all clear states, counter increments only for newly cleared targets, repeated-command idempotence, and unchanged reward/quest fields. |
+| Horse speed | **Pending.** Live resource availability, 1.00/1.50/2.00× application and readback, visible ordinary-horse movement, exact Off restoration and restart reset. Synthetic table checks do not prove movement. |
+| New editor controls and labels | **Pending.** Inspect the sword panel, capacity sheet, separate activation/clear actions, horse control and zoom-dependent map labels with fresh live state and unsupported-runtime states. Private previews containing extracted artwork remain outside public assets. |
+| Save/reload persistence | **Pending.** An applied live edit does not establish persistence across a game save and reload. |
+| Final artifact and profile preservation | An earlier local source build completed its checks and produced an app and archive. **Pending:** final build/artifact/signature readback, comparison against the new kept-profile baseline and follow-up-copy cleanup. The deliberately kept profile/items must remain. |
+
+The expected release asset is `BOTW.Editor.zip` under `v0.1.3`. A local editor
+build does not install the runtime bridge, establish the live outcomes above,
+or prove that the matching GitHub release/workflow has completed.
 
 ## 0.1.2 live temporal verification — 2026-11-05
 
@@ -119,4 +164,4 @@ Keep saves, extracted artwork, memory, raw logs, private paths, and gameplay scr
 - Inspect the release archive and tracked tree for game files, keys, firmware, saves, logs, dumps, private paths, and unintended assets.
 - Update this document with actual live results and the final release revision before describing provisional features as verified.
 
-The 0.1.0 source and build checks passed on GitHub Actions: [editor build](https://github.com/christianfurr/botw-editor/actions/runs/41937056576). The 0.1.2 final live replay and local artifact checks passed. Its matching GitHub Actions result is recorded with the release.
+The 0.1.0 source and build checks passed on GitHub Actions: [editor build](https://github.com/christianfurr/botw-editor/actions/runs/41937056576). The 0.1.2 final live replay and local artifact checks passed. The 0.1.3 live/artifact rows above must be completed separately; its matching GitHub Actions result belongs with the final release evidence.

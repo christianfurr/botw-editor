@@ -1,5 +1,5 @@
 ---
-verified_at_sha: 18c1478b694b6caab161b2754b48ad6bfeb9f8c0
+verified_at_sha: 0b1da9de45f60b3a5d484b18c0d1f92459a53850
 verified_at: 2026-11-05
 ---
 
@@ -17,20 +17,24 @@ This repository contains the editor and bridge source, never the game or a playe
 
 ## Source layout
 
-- `Sources/BOTWPlayground.swift`: compact Inventory/Player/World views and themed icon-grid Give sheet.
-- `Sources/PlaygroundModel.swift`: request acknowledgement, live/readiness gates, and item-name catalog.
+- `Sources/BOTWPlayground.swift`: Inventory/Player/World views, Give grid, sword levels, capacity sheet, separate map/activation/clear actions, horse control and zoom-dependent map labels.
+- `Sources/PlaygroundModel.swift`: request acknowledgement, optional old-runtime-compatible readbacks, live/readiness gates, canonical/internal item rules and item-name catalog.
 - `Sources/GraphicsModel.swift`: color/custom-shader settings and presenter acknowledgement.
 - `Sources/UpscalingModel.swift` and `GraphicsSettingsView.swift`: separate restart-required upscaling controls, immutable boot-preset confirmation, and actual GPU/dimension status.
-- `runtime/`: seven managed bridge/presenter/config headers, the six-source-file `macnativegames-botw160.patch`, and the atomic upgrade compatibility patch `macnativegames-v0.1.1-to-v0.1.2.patch`.
+- `runtime/`: nine managed bridge/presenter/config headers, the six-source-file fresh patch, and separate legacy-to-0.1.3 / 0.1.2-to-0.1.3 upgrade patches.
+- `runtime/botw_editor_horse.h`: guarded shared-table land-gear changes, baseline/ownership checks, rollback and session-only Off restoration.
+- `runtime/botw_editor_runes.h`: guarded nonblocking request of an absent rune selection; native updates apply/persist it, with separate requested/current/saved diagnostics.
 - `scripts/install-bridge.py`: pinned compatibility preflight, source ownership checks, app/profile backups, runtime update, and private resource extraction.
 - `scripts/extract_destinations.py`: builds a private 135-location catalog from the player's installed game.
 - `scripts/extract_map.py` and `scripts/extract_items.py`: decode the player's terrain tiles and item icons into Application Support; never into the repository or release app.
-- `scripts/test_install_bridge.py`: 24 fixture checks for guards, backups, ownership, fresh/0.1.0/0.1.1 atomic patch selection, and private-cache setup/reuse; does not open the game.
-- `tests/runtime_checks.c` and `scripts/test-runtime.sh`: strict native guard, parser, queue, and synthetic live-pointer checks; no game data or gameplay.
+- `scripts/extract_map_labels.py` / `test_map_labels.py`: private original-position label extraction and eight synthetic validation fixtures.
+- `scripts/test_install_bridge.py`: 32 fixtures for guards, backups, ownership, fresh/legacy/0.1.2 patch selection and private cache/label setup/reuse; does not open the game.
+- `tests/runtime_checks.c` and `scripts/test-runtime.sh`: 29,636 strict native guards, including sword/capacity/Slate and mixed shrine-discovery/clear transactions; no gameplay.
+- `tests/horse_checks.c` and `scripts/test-horse.sh`: 16,113 ASan/UBSan assertions with synthetic resources and injected ownership/write failures.
 - `scripts/test-postfx.sh` and `tests/postfx_gpu.m`: 325 synthetic GPU pixel assertions; explicit CI skip only when no Metal device exists.
 - `scripts/test-temporal.sh`, `tests/temporal_config_checks.c`, and `tests/temporal_gpu.m`: ASan/UBSan startup/draw/ordering guards and a 24-completed-frame real MetalFX probe.
 - `tests/upscaling_model_checks.swift`: 90 preset/I/O/status/restart assertions.
-- `scripts/test.sh`: combined Swift model/UI/graphics/upscaling, 224 native assertions, temporal guards, GPU probes and installer checks.
+- `scripts/test.sh`: Swift/model/UI checks, core/horse native assertions, 249 temporal guards, GPU probes, eight label fixtures and 32 installer checks.
 - `scripts/build.sh`: arm64 app/archive packaging, native icon generation, bundled notices, ad hoc signing, and checksum output.
 - `scripts/generate-icon.swift`: original vector app icon, rendered with AppKit.
 - `Assets/`: original editor artwork and editor-only screenshots. Public screenshots must omit extracted terrain/item artwork; the Player and Graphics views are suitable.
@@ -45,7 +49,8 @@ The current inventory scan accepts armor’s -1 no-dye sentinel; per-type weapon
 `botw_postfx.h` filters the final SDR presentation through Off/Natural/Vivid/Cinematic/Custom Metal paths; Off and shader errors use the original image. [Shader contract](../docs/SHADERS.md).
 The 0.1.2 final runtime completed 3,788 GPU temporal frames at 4K with zero GPU errors, camera/walk input and menu/resume. The recorded run retained one initial history reset and one menu-resume reset; `docs/TESTING.md` states its duration and limits. See [temporal details](../docs/TEMPORAL.md).
 Five canonical boot presets drive both guest render dimensions and temporal output. The UI writes `graphics-upscaler.txt` only on explicit save, requires a restart, and distinguishes selected intent from fresh GPU-completed status. Motion is camera-derived and experimental.
-The map displays locally extracted terrain with 120 base shrines, 15 towers, and the player's position. Extracted artwork stays in the player's private cache. Full Access raises towers and skips the opening tower activation sequence; shrine activation does not mark a shrine clear.
+The map combines private terrain, 135 destinations, 557 extracted place labels and the player's position. Labels declutter by zoom; their data and artwork stay private. Full Access raises towers and skips the opening tower sequence; activation/discovery remains separate from explicit clearing.
+The 0.1.3 bridge supports canonical unequipped sword levels, increase-only capacity, two-flag Slate access, nine rune/Slate flags plus a separate selection request, typed shrine discovery/clear transactions and session horse speeds. Each capability is independently gated; older snapshots still decode. `docs/TESTING.md` records the flags-only rune failure, pending helper verification and the player's deliberately kept profile separately from other live/artifact evidence.
 
 ## Public repository boundary
 

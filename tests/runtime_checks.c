@@ -22,6 +22,8 @@ uint8_t *runtime_module_base(const char *name) {
 
 #include "runtime/botw_editor.h"
 #include "runtime/botw_editor_inventory.h"
+#include "runtime/botw_editor_world.h"
+#include "runtime/botw_editor_horse.h"
 
 static unsigned checks;
 static unsigned extension_calls;
@@ -107,9 +109,17 @@ static void check_parser(void) {
         "trainer 13 unlock_all_shrines", "trainer 14 runes", "trainer 15 max_hearts 30",
         "trainer 16 max_stamina 3", "trainer 17 quantity 418 2000",
         "trainer 18 quantity 418 3000", "trainer 19 quantity 0 1",
-        "trainer 20 quantity 419 100000000"
+        "trainer 20 quantity 419 100000000", "trainer 21 master_sword 0", "trainer 22 master_sword 3",
+        "trainer 23 pouch_slots weapons 8", "trainer 24 pouch_slots weapons 20",
+        "trainer 25 pouch_slots bows 5", "trainer 26 pouch_slots bows 14",
+        "trainer 27 pouch_slots shields 4", "trainer 28 pouch_slots shields 20", "trainer 29 map_access",
+        "trainer 30 complete_shrine Dungeon002", "trainer 31 complete_all_shrines",
+        "trainer 32 horse_speed 100", "trainer 33 horse_speed 200", "trainer 34 horse_speed off"
     };
     for (size_t i = 0; i < sizeof valid / sizeof *valid; ++i) expect_parse(valid[i], 1);
+    const char *invalid_horse[] = {"trainer 40 horse_speed 99", "trainer 41 horse_speed 201", "trainer 42 horse_speed 1.5",
+                                  "trainer 43 horse_speed -1", "trainer 44 horse_speed off extra", "trainer 45 complete_all_shrines extra"};
+    for (size_t i = 0; i < sizeof invalid_horse / sizeof *invalid_horse; ++i) expect_parse(invalid_horse[i], 0);
     const char *invalid[] = {
         "trainer 0 status", "trainer -1 status", "trainer 18446744073709551616 status",
         "trainer 2 give ../item 1", "trainer 3 give Item_Fruit_A -1",
@@ -121,7 +131,15 @@ static void check_parser(void) {
         "trainer 17 give Item_Fruit_A 1\ntrainer 18 status", "trainer 19 unknown",
         "trainer 20 quantity 0 0", "trainer 21 quantity 0 -1",
         "trainer 22 quantity 0 100000001", "trainer 23 quantity 0 2147483648",
-        "trainer 24 quantity 0 1.5"
+        "trainer 24 quantity 0 1.5", "trainer 25 master_sword -1", "trainer 26 master_sword 4",
+        "trainer 27 master_sword 1.5", "trainer 28 master_sword 1 extra", "trainer 29 master_sword +1",
+        "trainer 30 pouch_slots weapons 7", "trainer 31 pouch_slots weapons 21",
+        "trainer 32 pouch_slots bows 4", "trainer 33 pouch_slots bows 15",
+        "trainer 34 pouch_slots shields 3", "trainer 35 pouch_slots shields 21",
+        "trainer 36 pouch_slots materials 160", "trainer 37 pouch_slots weapons -1",
+        "trainer 38 pouch_slots bows 10.5", "trainer 39 pouch_slots shields 20 extra",
+        "trainer 40 pouch_slots weapons", "trainer 41 pouch_slots weapons +20",
+        "trainer 42 map_access on", "trainer 43 map_access 1", "trainer 44 map_access extra extra"
     };
     for (size_t i = 0; i < sizeof invalid / sizeof *invalid; ++i) expect_parse(invalid[i], 0);
     char long_command[300];
@@ -137,6 +155,16 @@ static void expect_item_write(BeiItem *item, int value, int accepted, int *store
 }
 
 static void check_inventory_values(void) {
+    BeiItem owned_sword = {.name = "Weapon_Sword_070", .type = 0, .value = 4000};
+    for (int i = 0; i < 3; ++i) {
+        const char *forms[] = {"Weapon_Sword_056", "Weapon_Sword_071", "Weapon_Sword_072"};
+        const char *reason = bei_give_block_reason(forms[i], 1, NULL, 0);
+        require(reason && strstr(reason, "internal Master Sword"), "internal forms explain their non-pouch status before native acquisition");
+    }
+    require(!bei_give_block_reason("Weapon_Sword_070", 1, NULL, 0), "the usable Master Sword can be added when absent");
+    require(bei_give_block_reason("Weapon_Sword_070", 2, NULL, 0) != NULL, "only one Master Sword may be requested");
+    require(bei_give_block_reason("Weapon_Sword_070", 1, &owned_sword, 1) != NULL, "owned Master Sword explains duplicate refusal");
+    require(!bei_give_block_reason("Weapon_Sword_057", 1, &owned_sword, 1), "other swords are not confused with the Master Sword");
     struct { uint64_t prefix[4]; int value; } entry = {0};
     BeiItem item = {.address = (uintptr_t)&entry};
     int *stored = &entry.value;
@@ -250,6 +278,542 @@ static void check_inventory_armor_and_readiness(void) {
     int invalid = -2; memcpy((void *)(manager + BEI_BUFFER + 0x20), &invalid, 4);
     require(!bei_scan(base, manager, items, &count), "unsupported negative armor value still rejects the complete scan");
     free(storage);
+}
+
+static struct {
+    BwMasterSwordValues values[2];
+    const char *expected_s32_name;
+    int reads, writes, fail_read, fail_write, silent_write, fail_rollback;
+} master_fixture;
+
+static BwMasterSwordValues *master_fixture_store(uintptr_t parameter) {
+    require(parameter == 1 || parameter == 2, "flag transaction accesses only its two prepared stores");
+    return &master_fixture.values[parameter - 1];
+}
+static int master_fixture_get_s32(uintptr_t base, uintptr_t parameter, const char *name, int32_t *value) {
+    (void)base;
+    require(!strcmp(name, master_fixture.expected_s32_name), "transaction reads only its exact prepared S32 flag");
+    if (++master_fixture.reads == master_fixture.fail_read) return 0;
+    *value = master_fixture_store(parameter)->power; return 1;
+}
+static int master_fixture_get_bool(uintptr_t base, uintptr_t parameter, const char *name, int *value) {
+    (void)base;
+    require(!strcmp(name, "Open_MasterSword_FullPower"), "transaction reads only the verified full-power flag");
+    if (++master_fixture.reads == master_fixture.fail_read) return 0;
+    *value = master_fixture_store(parameter)->full; return 1;
+}
+static int master_fixture_put_s32(uintptr_t base, uintptr_t parameter, const char *name, int32_t value) {
+    (void)base;
+    require(!strcmp(name, master_fixture.expected_s32_name), "transaction writes only its exact prepared S32 flag");
+    int write = ++master_fixture.writes;
+    if (write == master_fixture.fail_rollback) return 0;
+    if (write != master_fixture.silent_write) master_fixture_store(parameter)->power = value;
+    return write != master_fixture.fail_write;
+}
+static int master_fixture_put_bool(uintptr_t base, uintptr_t parameter, const char *name, int value, int bypass) {
+    (void)base;
+    require(!strcmp(name, "Open_MasterSword_FullPower") && bypass == 1,
+            "exact full-power flag uses native one-trigger bypass for lowering and rollback");
+    int write = ++master_fixture.writes;
+    if (write == master_fixture.fail_rollback) return 0;
+    if (write != master_fixture.silent_write) master_fixture_store(parameter)->full = value;
+    return write != master_fixture.fail_write;
+}
+static const BwWorldFlagAccess master_fixture_access = {
+    master_fixture_get_s32, master_fixture_get_bool, master_fixture_put_s32, master_fixture_put_bool
+};
+static void master_fixture_reset(void) {
+    memset(&master_fixture, 0, sizeof master_fixture);
+    master_fixture.expected_s32_name = "MasterSword_Add_Power";
+    master_fixture.values[0] = (BwMasterSwordValues){10, 0};
+    master_fixture.values[1] = (BwMasterSwordValues){30, 1};
+}
+static void master_fixture_original(void) {
+    require(master_fixture.values[0].power == 10 && master_fixture.values[0].full == 0 &&
+        master_fixture.values[1].power == 30 && master_fixture.values[1].full == 1,
+        "failure restores both original flags in both stores, including distinct prior levels");
+}
+static void check_master_sword_levels(void) {
+    for (int level = 0; level < 4; ++level) {
+        BwMasterSwordValues values = {level * 10, level == 3};
+        require(bw_master_sword_level(&values) == level, "decode canonical 30/40/50/60 base levels");
+    }
+    const BwMasterSwordValues custom[] = {{1, 0}, {30, 0}, {20, 1}, {-1, 0}, {31, 1}, {0, 2}};
+    for (size_t i = 0; i < sizeof custom / sizeof *custom; ++i)
+        require(bw_master_sword_level(&custom[i]) == -1, "custom or invalid flags have no invented level");
+    BeiItem items[2] = {{.type = 0}};
+    snprintf(items[0].name, sizeof items[0].name, "Weapon_Sword_070");
+    require(bw_master_sword_item_block(items, 0) != NULL, "level editing requires an owned canonical Master Sword");
+    require(!bw_master_sword_item_block(items, 1), "an unequipped canonical Master Sword can change level");
+    items[0].equipped = 1;
+    require(bw_master_sword_item_block(items, 1) != NULL, "equipped Master Sword blocks level changes");
+    items[0].equipped = 0; items[1] = items[0];
+    require(bw_master_sword_item_block(items, 2) != NULL, "ambiguous duplicate Master Swords block level changes");
+    items[0].type = 7;
+    require(bw_master_sword_item_block(items, 1) != NULL, "canonical name with wrong inventory type is rejected");
+    items[0].type = 0;
+    for (int variant = 71; variant <= 72; ++variant) {
+        snprintf(items[0].name, sizeof items[0].name, "Weapon_Sword_%03d", variant);
+        require(bw_master_sword_item_block(items, 1) != NULL, "internal forms do not satisfy ownership");
+    }
+    BeWorldRefs refs = {.pending = 1, .primary = 2}; int restored = 0;
+    for (int level = 0; level < 4; ++level) {
+        master_fixture_reset();
+        require(bw_master_sword_transaction(0, &refs, level, &master_fixture_access, &restored) && restored,
+                "native-adapter transaction verifies every canonical target, including lowering from full power");
+        for (int i = 0; i < 2; ++i)
+            require(master_fixture.values[i].power == level * 10 && master_fixture.values[i].full == (level == 3),
+                    "both game-data stores contain the selected target");
+        require(master_fixture.reads == 8 && master_fixture.writes == 4, "success requires both complete readbacks");
+    }
+    for (int failure = 1; failure <= 4; ++failure) {
+        master_fixture_reset(); master_fixture.fail_write = failure;
+        require(!bw_master_sword_transaction(0, &refs, 1, &master_fixture_access, &restored) && restored,
+                "a failed setter after mutation rolls back every store");
+        master_fixture_original();
+    }
+    master_fixture_reset(); master_fixture.fail_read = 5;
+    require(!bw_master_sword_transaction(0, &refs, 1, &master_fixture_access, &restored) && restored,
+            "failed final readback rolls back rather than claiming success");
+    master_fixture_original();
+    master_fixture_reset(); master_fixture.silent_write = 4;
+    require(!bw_master_sword_transaction(0, &refs, 1, &master_fixture_access, &restored) && restored,
+            "incorrect readback detects a setter that silently ignored the edit");
+    master_fixture_original();
+    master_fixture_reset(); master_fixture.fail_read = 1;
+    require(!bw_master_sword_transaction(0, &refs, 1, &master_fixture_access, &restored) && !master_fixture.writes,
+            "unavailable initial flags refuse the entire transaction before any write");
+    master_fixture_reset(); master_fixture.values[1].power = 31;
+    require(!bw_master_sword_transaction(0, &refs, 1, &master_fixture_access, &restored) && !master_fixture.writes,
+            "out-of-range current flags refuse the transaction before any write");
+    master_fixture_reset(); master_fixture.fail_write = 4; master_fixture.fail_rollback = 5;
+    require(!bw_master_sword_transaction(0, &refs, 1, &master_fixture_access, &restored) && !restored,
+            "incomplete rollback is reported honestly");
+    master_fixture_reset();
+    require(!bw_master_sword_transaction(0, &refs, INT_MAX, &master_fixture_access, &restored) && !master_fixture.writes,
+            "invalid direct target refuses without arithmetic overflow or writes");
+    refs.primary = refs.pending;
+    master_fixture_reset();
+    require(bw_master_sword_transaction(0, &refs, 3, &master_fixture_access, &restored) && master_fixture.writes == 2,
+            "aliased primary/pending store is mutated once and verified");
+    char message[256];
+    require(!be_world_features(0), "unavailable native metadata advertises no level capability");
+    require(!be_world_command(0, "master_sword", "", 1, message, sizeof message), "unavailable inventory blocks native level mutation");
+    char *json = NULL; size_t length = 0; FILE *out = open_memstream(&json, &length);
+    require(out != NULL, "open unavailable world snapshot fixture");
+    be_world_snapshot(out, 0, 0);
+    require(!fclose(out) && strstr(json, "\"master_sword_level\":null") &&
+        strstr(json, "\"master_sword_attack\":null") && strstr(json, "\"master_sword_full_power\":null"),
+        "unavailable level fields are null instead of fabricated values");
+    free(json);
+}
+
+static void pouch_fixture_reset(const BwPouchSlotKind *kind) {
+    master_fixture_reset();
+    master_fixture.expected_s32_name = kind->flag;
+    master_fixture.values[0].power = kind->minimum;
+    master_fixture.values[1].power = kind->minimum + 1;
+}
+static void pouch_fixture_original(const BwPouchSlotKind *kind) {
+    require(master_fixture.values[0].power == kind->minimum &&
+        master_fixture.values[1].power == kind->minimum + 1 &&
+        master_fixture.values[0].full == 0 && master_fixture.values[1].full == 1,
+        "slot failure restores distinct capacity stores and preserves unrelated Bool flags");
+}
+static void check_pouch_slots(void) {
+    require(bw_pouch_slot_kind("weapons") == &bw_pouch_slot_kinds[0] &&
+        bw_pouch_slot_kind("bows") == &bw_pouch_slot_kinds[1] &&
+        bw_pouch_slot_kind("shields") == &bw_pouch_slot_kinds[2], "only three equipment categories resolve to native flags");
+    require(!bw_pouch_slot_kind("materials") && !bw_pouch_slot_kind("Weapons") && !bw_pouch_slot_kind("WeaponPorchStockNum"),
+            "arbitrary flag names and unknown categories are refused");
+    BeWorldRefs refs = {.pending = 1, .primary = 2}; int restored = 0;
+    for (size_t k = 0; k < sizeof bw_pouch_slot_kinds / sizeof *bw_pouch_slot_kinds; ++k) {
+        const BwPouchSlotKind *kind = &bw_pouch_slot_kinds[k];
+        require(bw_pouch_slots_valid(kind, kind->minimum) && bw_pouch_slots_valid(kind, kind->maximum) &&
+            !bw_pouch_slots_valid(kind, kind->minimum - 1) && !bw_pouch_slots_valid(kind, kind->maximum + 1),
+            "capacity bounds match the native saved flag minimum and hard maximum");
+        pouch_fixture_reset(kind);
+        require(bw_pouch_slots_transaction(0, &refs, kind, kind->maximum, &master_fixture_access, &restored) && restored,
+                "increase each equipment capacity to its native hard maximum");
+        require(master_fixture.values[0].power == kind->maximum && master_fixture.values[1].power == kind->maximum &&
+            master_fixture.reads == 4 && master_fixture.writes == 2 &&
+            master_fixture.values[0].full == 0 && master_fixture.values[1].full == 1,
+            "capacity success reads both stores back and leaves unrelated flags unchanged");
+        pouch_fixture_reset(kind);
+        require(!bw_pouch_slots_transaction(0, &refs, kind, kind->minimum, &master_fixture_access, &restored) &&
+            !master_fixture.writes, "request below current primary capacity cannot shrink any slots");
+        pouch_fixture_original(kind);
+        pouch_fixture_reset(kind);
+        master_fixture.values[0].power = kind->minimum + 1; master_fixture.values[1].power = kind->minimum;
+        require(!bw_pouch_slots_transaction(0, &refs, kind, kind->minimum, &master_fixture_access, &restored) &&
+            !master_fixture.writes, "request below current pending capacity cannot shrink any slots");
+        for (int invalid = 0; invalid < 2; ++invalid) {
+            pouch_fixture_reset(kind);
+            require(!bw_pouch_slots_transaction(0, &refs, kind, invalid ? kind->maximum + 1 : kind->minimum - 1,
+                &master_fixture_access, &restored) && !master_fixture.writes, "out-of-range direct capacity refuses before writes");
+            pouch_fixture_original(kind);
+        }
+        for (int failure = 1; failure <= 2; ++failure) {
+            pouch_fixture_reset(kind); master_fixture.fail_write = failure;
+            require(!bw_pouch_slots_transaction(0, &refs, kind, kind->maximum, &master_fixture_access, &restored) && restored,
+                    "setter failure after changing capacity rolls both stores back");
+            pouch_fixture_original(kind);
+        }
+        pouch_fixture_reset(kind); master_fixture.fail_read = 3;
+        require(!bw_pouch_slots_transaction(0, &refs, kind, kind->maximum, &master_fixture_access, &restored) && restored,
+                "failed capacity readback rolls back rather than claiming success");
+        pouch_fixture_original(kind);
+        pouch_fixture_reset(kind); master_fixture.silent_write = 2;
+        require(!bw_pouch_slots_transaction(0, &refs, kind, kind->maximum, &master_fixture_access, &restored) && restored,
+                "wrong capacity readback detects a silently ignored setter");
+        pouch_fixture_original(kind);
+        pouch_fixture_reset(kind); master_fixture.values[1].power = kind->maximum + 1;
+        require(!bw_pouch_slots_transaction(0, &refs, kind, kind->maximum, &master_fixture_access, &restored) &&
+            !master_fixture.writes, "invalid current native capacity refuses without normalization");
+        pouch_fixture_reset(kind); master_fixture.fail_read = 1;
+        require(!bw_pouch_slots_transaction(0, &refs, kind, kind->maximum, &master_fixture_access, &restored) &&
+            !master_fixture.writes, "unavailable current capacity refuses before writes");
+        pouch_fixture_reset(kind); master_fixture.fail_write = 2; master_fixture.fail_rollback = 3;
+        require(!bw_pouch_slots_transaction(0, &refs, kind, kind->maximum, &master_fixture_access, &restored) && !restored,
+                "incomplete capacity rollback is reported honestly");
+        pouch_fixture_reset(kind);
+        BeWorldRefs shared = {.pending = 1, .primary = 1};
+        require(bw_pouch_slots_transaction(0, &shared, kind, kind->maximum, &master_fixture_access, &restored) &&
+            master_fixture.writes == 1, "aliased game stores apply capacity once");
+    }
+    char message[256];
+    require(!be_world_command(0, "pouch_slots", "weapons", 20, message, sizeof message), "unavailable native metadata refuses capacity edits");
+    char *json = NULL; size_t length = 0; FILE *out = open_memstream(&json, &length);
+    require(out != NULL, "open capacity snapshot fixture");
+    be_world_snapshot(out, 0, 0);
+    require(!fclose(out) && strstr(json, "\"weapon_slots\":null") && strstr(json, "\"bow_slots\":null") &&
+        strstr(json, "\"shield_slots\":null"), "unknown capacity fields remain null");
+    free(json);
+}
+
+static struct {
+    int values[2][2], reads, writes, fail_read, fail_write, silent_write, fail_rollback;
+} map_fixture;
+static int map_fixture_flag(const char *name) {
+    require(!strcmp(name, "PortableUnit_PowerOn") || !strcmp(name, "IsGet_PortableUnit"),
+            "map access reads/writes only the two verified slate capability flags");
+    return !strcmp(name, "IsGet_PortableUnit");
+}
+static int *map_fixture_value(uintptr_t parameter, const char *name) {
+    require(parameter == 1 || parameter == 2, "map access touches only prepared primary/pending stores");
+    return &map_fixture.values[parameter - 1][map_fixture_flag(name)];
+}
+static int map_fixture_get_bool(uintptr_t base, uintptr_t parameter, const char *name, int *out) {
+    (void)base;
+    if (++map_fixture.reads == map_fixture.fail_read) return 0;
+    *out = *map_fixture_value(parameter, name); return 1;
+}
+static int map_fixture_put_bool(uintptr_t base, uintptr_t parameter, const char *name, int value, int bypass) {
+    (void)base;
+    require((value == 0 || value == 1) && (bypass == 0 || bypass == 1) && (bypass || value == 1),
+            "normal map unlock enables flags; only rollback may restore disabled flags");
+    int write = ++map_fixture.writes;
+    if (write == map_fixture.fail_rollback) return 0;
+    if (write != map_fixture.silent_write) *map_fixture_value(parameter, name) = value;
+    return write != map_fixture.fail_write;
+}
+static const BwWorldFlagAccess map_fixture_access = {.get_bool = map_fixture_get_bool, .put_bool = map_fixture_put_bool};
+static void map_fixture_reset(void) {
+    memset(&map_fixture, 0, sizeof map_fixture);
+    map_fixture.values[0][1] = 1; map_fixture.values[1][0] = 1;
+}
+static void map_fixture_original(void) {
+    require(map_fixture.values[0][0] == 0 && map_fixture.values[0][1] == 1 &&
+        map_fixture.values[1][0] == 1 && map_fixture.values[1][1] == 0,
+        "map transaction restores both original flags in both stores");
+}
+static void check_map_access(void) {
+    BeWorldRefs refs = {.pending = 1, .primary = 2}; int restored = 0;
+    map_fixture_reset();
+    require(bw_unlock_flag_transaction(0, &refs, bw_map_access_flags, 2, &map_fixture_access, &restored) && restored,
+            "map access unlock applies both repeatable native flags");
+    require(map_fixture.reads == 8 && map_fixture.writes == 4 && map_fixture.values[0][0] == 1 &&
+        map_fixture.values[0][1] == 1 && map_fixture.values[1][0] == 1 && map_fixture.values[1][1] == 1,
+        "map access success requires complete readback of both stores");
+    for (int failure = 1; failure <= 4; ++failure) {
+        map_fixture_reset(); map_fixture.fail_write = failure;
+        require(!bw_unlock_flag_transaction(0, &refs, bw_map_access_flags, 2, &map_fixture_access, &restored) && restored,
+                "a map setter failure after mutation rolls every flag back");
+        map_fixture_original();
+    }
+    map_fixture_reset(); map_fixture.fail_read = 5;
+    require(!bw_unlock_flag_transaction(0, &refs, bw_map_access_flags, 2, &map_fixture_access, &restored) && restored,
+            "failed map readback cannot report success");
+    map_fixture_original();
+    map_fixture_reset(); map_fixture.silent_write = 4;
+    require(!bw_unlock_flag_transaction(0, &refs, bw_map_access_flags, 2, &map_fixture_access, &restored) && restored,
+            "ignored map write is detected by final readback");
+    map_fixture_original();
+    map_fixture_reset(); map_fixture.fail_read = 1;
+    require(!bw_unlock_flag_transaction(0, &refs, bw_map_access_flags, 2, &map_fixture_access, &restored) && !map_fixture.writes,
+            "missing map flag refuses before any mutation");
+    map_fixture_reset(); map_fixture.values[1][1] = 2;
+    require(!bw_unlock_flag_transaction(0, &refs, bw_map_access_flags, 2, &map_fixture_access, &restored) && !map_fixture.writes,
+            "invalid Bool refuses rather than normalizing map state");
+    map_fixture_reset(); map_fixture.fail_write = 4; map_fixture.fail_rollback = 6;
+    require(!bw_unlock_flag_transaction(0, &refs, bw_map_access_flags, 2, &map_fixture_access, &restored) && !restored,
+            "map rollback failure is reported honestly");
+    require(map_fixture.values[1][1] == 1, "failed map rollback retains evidence of the unrestored flag");
+    map_fixture_reset(); BeWorldRefs shared = {.pending = 1, .primary = 1};
+    require(bw_unlock_flag_transaction(0, &shared, bw_map_access_flags, 2, &map_fixture_access, &restored) && map_fixture.writes == 2,
+            "aliased game stores apply each map flag once");
+    map_fixture_reset();
+    require(!bw_unlock_flag_transaction(0, &refs, bw_map_access_flags, 0, &map_fixture_access, &restored) && !map_fixture.writes,
+            "empty map transaction refuses without mutation");
+    require(!bw_unlock_flag_transaction(0, &refs, bw_map_access_flags, BW_MAX_TRANSACTION + 1, &map_fixture_access, &restored) && !map_fixture.writes,
+            "oversized Bool transaction refuses before accessing its names");
+    char message[256];
+    require(!be_world_command(0, "map_access", "", 0, message, sizeof message), "unavailable native flags block map access edits");
+    char *json = NULL; size_t length = 0; FILE *out = open_memstream(&json, &length);
+    require(out != NULL, "open map-access snapshot fixture");
+    be_world_snapshot(out, 0, 0);
+    require(!fclose(out) && strstr(json, "\"map_access_unlocked\":null"), "unknown map access is null rather than invented");
+    free(json);
+}
+
+static struct {
+    int32_t values[2][BW_MAX_ACTIVATION_EDITS], original[2][BW_MAX_ACTIVATION_EDITS];
+    BwActivationEdit edits[BW_MAX_ACTIVATION_EDITS];
+    char names[BW_MAX_ACTIVATION_EDITS][40];
+    size_t count;
+    int reads, writes, fail_read, fail_write, silent_write, fail_rollback;
+} activation_fixture;
+static size_t activation_fixture_index(uintptr_t parameter, const char *name, int kind) {
+    require(parameter == 1 || parameter == 2, "mixed transaction touches only its prepared stores");
+    for (size_t i = 0; i < activation_fixture.count; ++i) if (!strcmp(name, activation_fixture.edits[i].name)) {
+        require(kind == activation_fixture.edits[i].kind || (kind == 1 && activation_fixture.edits[i].kind == 2),
+                "mixed transaction uses the verified native flag type");
+        return i;
+    }
+    require(0, "mixed transaction cannot write undeclared Clear/Enter/reward/story flags"); return 0;
+}
+static int activation_fixture_get(uintptr_t parameter, const char *name, int kind, int32_t *out) {
+    if (++activation_fixture.reads == activation_fixture.fail_read) return 0;
+    size_t i = activation_fixture_index(parameter, name, kind);
+    *out = activation_fixture.values[parameter - 1][i]; return 1;
+}
+static int activation_fixture_get_s32(uintptr_t base, uintptr_t parameter, const char *name, int32_t *out) {
+    (void)base; return activation_fixture_get(parameter, name, 1, out);
+}
+static int activation_fixture_get_bool(uintptr_t base, uintptr_t parameter, const char *name, int *out) {
+    (void)base; int32_t value = 0;
+    if (!activation_fixture_get(parameter, name, 0, &value)) return 0;
+    *out = value; return 1;
+}
+static int activation_fixture_put(uintptr_t parameter, const char *name, int kind, int32_t value) {
+    size_t i = activation_fixture_index(parameter, name, kind); int write = ++activation_fixture.writes;
+    if (write == activation_fixture.fail_rollback) return 0;
+    if (write != activation_fixture.silent_write) activation_fixture.values[parameter - 1][i] = value;
+    return write != activation_fixture.fail_write;
+}
+static int activation_fixture_put_s32(uintptr_t base, uintptr_t parameter, const char *name, int32_t value) {
+    (void)base; return activation_fixture_put(parameter, name, 1, value);
+}
+static int activation_fixture_put_bool(uintptr_t base, uintptr_t parameter, const char *name, int value, int rollback) {
+    (void)base;
+    require((value == 0 || value == 1) && (rollback || value == 1), "normal mixed unlock enables Bool flags; only rollback restores false");
+    return activation_fixture_put(parameter, name, 0, value);
+}
+static const BwWorldFlagAccess activation_fixture_access = {
+    activation_fixture_get_s32, activation_fixture_get_bool, activation_fixture_put_s32, activation_fixture_put_bool
+};
+static void activation_fixture_add(const char *name, int kind) {
+    size_t i = activation_fixture.count++;
+    snprintf(activation_fixture.names[i], sizeof activation_fixture.names[i], "%s", name);
+    activation_fixture.edits[i] = (BwActivationEdit){activation_fixture.names[i], kind};
+    activation_fixture.values[0][i] = kind ? (i % 3 ? 0 : 3) : (int)(i % 2);
+    activation_fixture.values[1][i] = kind ? (i % 3 == 1 ? 7 : 0) : 0;
+}
+static void activation_fixture_reset(int full_access) {
+    memset(&activation_fixture, 0, sizeof activation_fixture);
+    for (int i = 0; i < (full_access ? 120 : 2); ++i) {
+        char name[40]; snprintf(name, sizeof name, "Open_Dungeon%03d", i); activation_fixture_add(name, 0);
+        snprintf(name, sizeof name, "Location_Dungeon%03d", i); activation_fixture_add(name, 1);
+    }
+    if (full_access) {
+        for (int i = 1; i <= 15; ++i) { char name[40]; snprintf(name, sizeof name, "MapTower_%02d", i); activation_fixture_add(name, 0); }
+        for (size_t i = 0; i < sizeof bw_rune_flags / sizeof *bw_rune_flags; ++i) activation_fixture_add(bw_rune_flags[i], 0);
+        activation_fixture_add("IsGet_PlayerStole2", 0); activation_fixture_add("MapTower_07_Demo", 0);
+    }
+    memcpy(activation_fixture.original, activation_fixture.values, sizeof activation_fixture.original);
+}
+static void activation_fixture_restored(void) {
+    require(!memcmp(activation_fixture.values, activation_fixture.original, sizeof activation_fixture.values),
+            "mixed rollback restores every original Bool/discovery value in both stores");
+}
+static void check_shrine_activation(void) {
+    require(bw_discovery_permissions("Location_Dungeon000", 1, 0x07) == 1, "ordinary discovery flags retain native permission checks");
+    require(bw_discovery_permissions("Location_Dungeon001", 1, 0x05) == 0, "exact native read-only discovery exception is recognized");
+    require(bw_discovery_permissions("Location_Dungeon001", 1, 0x07) == 1, "writable metadata never requests a permission bypass");
+    const char *not_exceptions[] = {"Location_Dungeon000", "Location_Dungeon002", "Location_Dungeon120", "Dungeon001", "Location_Dungeon001_extra", "DungeonClearCounter", "CurrentRupee"};
+    for (size_t i = 0; i < sizeof not_exceptions / sizeof *not_exceptions; ++i)
+        require(bw_discovery_permissions(not_exceptions[i], 1, 0x05) == -1, "read-only S32 exception never extends to another flag");
+    require(bw_discovery_permissions("Location_Dungeon001", 0, 0x05) == -1 &&
+        bw_discovery_permissions("Location_Dungeon001", 1, 0x0d) == -1 &&
+        bw_discovery_permissions("Location_Dungeon001", 1, 0x04) == -1, "exception rejects wrong type, one-trigger or unreadable metadata");
+    require(!bw_discovery_bypass_code(0), "native permission exception requires matching executable instructions");
+    require(sizeof bw_rune_flags / sizeof *bw_rune_flags == 9 &&
+        !strcmp(bw_rune_flags[7], "PortableUnit_PowerOn") && !strcmp(bw_rune_flags[8], "IsGet_PortableUnit"),
+        "rune unlock includes both verified Slate pickup gates");
+    BeWorldRefs refs = {.pending = 1, .primary = 2}; int restored = 0;
+    activation_fixture_reset(0);
+    require(bw_activation_transaction(0, &refs, activation_fixture.edits, activation_fixture.count, &activation_fixture_access, &restored),
+            "mixed shrine activation commits discovery and Open together");
+    for (size_t i = 0; i < activation_fixture.count; ++i) for (int store = 0; store < 2; ++store) {
+        int32_t old = activation_fixture.original[store][i];
+        require(activation_fixture.values[store][i] == (activation_fixture.edits[i].kind && old > 1 ? old : 1),
+                "each store preserves its own positive discovery state while enabling access");
+    }
+    for (int failure = 1; failure <= 8; ++failure) {
+        activation_fixture_reset(0); activation_fixture.fail_write = failure;
+        require(!bw_activation_transaction(0, &refs, activation_fixture.edits, activation_fixture.count, &activation_fixture_access, &restored) && restored,
+                "each mixed setter failure after mutation rolls every store back");
+        activation_fixture_restored();
+    }
+    activation_fixture_reset(0); activation_fixture.fail_read = 9;
+    require(!bw_activation_transaction(0, &refs, activation_fixture.edits, activation_fixture.count, &activation_fixture_access, &restored) && restored,
+            "mixed final readback failure prevents success");
+    activation_fixture_restored();
+    activation_fixture_reset(0); activation_fixture.silent_write = 8;
+    require(!bw_activation_transaction(0, &refs, activation_fixture.edits, activation_fixture.count, &activation_fixture_access, &restored) && restored,
+            "silently ignored discovery setter is detected and rolled back");
+    activation_fixture_restored();
+    activation_fixture_reset(0); activation_fixture.fail_read = 8;
+    require(!bw_activation_transaction(0, &refs, activation_fixture.edits, activation_fixture.count, &activation_fixture_access, &restored) && !activation_fixture.writes,
+            "all mixed old values must be available before any write");
+    activation_fixture_restored();
+    activation_fixture_reset(0); activation_fixture.values[0][0] = 2;
+    require(!bw_activation_transaction(0, &refs, activation_fixture.edits, activation_fixture.count, &activation_fixture_access, &restored) && !activation_fixture.writes,
+            "invalid current Bool refuses the entire mixed transaction");
+    activation_fixture_reset(0); activation_fixture.edits[0].kind = 3;
+    require(!bw_activation_transaction(0, &refs, activation_fixture.edits, activation_fixture.count, &activation_fixture_access, &restored) && !activation_fixture.writes,
+            "unknown mixed flag type refuses before mutation");
+    activation_fixture_reset(0); activation_fixture.values[0][1] = INT_MAX;
+    require(bw_activation_transaction(0, &refs, activation_fixture.edits, activation_fixture.count, &activation_fixture_access, &restored) &&
+        activation_fixture.values[0][1] == INT_MAX, "large positive discovery values remain unchanged without overflow");
+    activation_fixture_reset(0); activation_fixture.fail_write = 8; activation_fixture.fail_rollback = 9;
+    require(!bw_activation_transaction(0, &refs, activation_fixture.edits, activation_fixture.count, &activation_fixture_access, &restored) && !restored,
+            "mixed rollback failure is reported honestly");
+    activation_fixture_reset(0); BeWorldRefs shared = {.pending = 1, .primary = 1};
+    require(bw_activation_transaction(0, &shared, activation_fixture.edits, activation_fixture.count, &activation_fixture_access, &restored) &&
+        activation_fixture.writes == 4, "aliased stores mutate each mixed flag once");
+    require(!memcmp(activation_fixture.values[1], activation_fixture.original[1], sizeof activation_fixture.values[1]),
+            "aliased transaction does not touch the other fixture store");
+    activation_fixture_reset(1);
+    require(activation_fixture.count == 266, "Full Access includes146 Bool and120 discovery S32 edits within the exact bound");
+    require(bw_activation_transaction(0, &refs, activation_fixture.edits, activation_fixture.count, &activation_fixture_access, &restored) &&
+        activation_fixture.writes == 532 && activation_fixture.reads == 1064, "all120 shrine/FullAccess edits verify both complete stores");
+    activation_fixture_reset(1); activation_fixture.fail_write = 532;
+    require(!bw_activation_transaction(0, &refs, activation_fixture.edits, activation_fixture.count, &activation_fixture_access, &restored) && restored,
+            "failure at the final Full Access setter rolls the entire mixed batch back");
+    activation_fixture_restored();
+    activation_fixture_reset(0);
+    require(!bw_activation_transaction(0, &refs, activation_fixture.edits, 0, &activation_fixture_access, &restored) && !activation_fixture.writes,
+            "empty mixed transaction refuses before access");
+    require(!bw_activation_transaction(0, &refs, activation_fixture.edits, BW_MAX_ACTIVATION_EDITS + 1, &activation_fixture_access, &restored) && !activation_fixture.writes,
+            "oversized mixed transaction refuses before accessing entries");
+    char message[256];
+    require(!be_world_command(0, "unlock_shrine", "Dungeon002", 0, message, sizeof message) &&
+        !be_world_command(0, "unlock_all_shrines", "", 0, message, sizeof message) &&
+        !be_world_command(0, "full_access", "", 0, message, sizeof message), "unavailable native state refuses every shrine-discovery entry point");
+}
+
+static void completion_fixture_reset(int all) {
+    memset(&activation_fixture, 0, sizeof activation_fixture);
+    for (int i = 0; i < (all ? 120 : 2); ++i) {
+        char name[40]; snprintf(name, sizeof name, "Open_Dungeon%03d", i); activation_fixture_add(name, 0);
+        snprintf(name, sizeof name, "Location_Dungeon%03d", i); activation_fixture_add(name, 1);
+        snprintf(name, sizeof name, "Clear_Dungeon%03d", i); activation_fixture_add(name, 0);
+        size_t at = activation_fixture.count - 1;
+        activation_fixture.values[0][at] = activation_fixture.values[1][at] = i % 2;
+    }
+    activation_fixture_add("DungeonClearCounter", 2);
+    size_t at = activation_fixture.count - 1;
+    activation_fixture.values[0][at] = activation_fixture.values[1][at] = 10;
+    memcpy(activation_fixture.original, activation_fixture.values, sizeof activation_fixture.original);
+}
+static int completion_fixture_apply(const BeWorldRefs *refs, int *restored) {
+    return bw_activation_transaction(0, refs, activation_fixture.edits, activation_fixture.count, &activation_fixture_access, restored);
+}
+static void check_shrine_completion(void) {
+    require(bw_completion_counter_permissions("DungeonClearCounter", 1, 0x05) == 0,
+            "only exact read/save counter metadata permits the native completion exception");
+    require(bw_completion_counter_permissions("DungeonClearCounter", 1, 0x07) == -1 &&
+        bw_completion_counter_permissions("DungeonClearCounter", 0, 0x05) == -1 &&
+        bw_completion_counter_permissions("CurrentRupee", 1, 0x05) == -1 &&
+        bw_completion_counter_permissions("Location_Dungeon001", 1, 0x05) == -1,
+        "completion exception cannot bypass another name, type or unexpected metadata");
+    BeWorldRefs refs = {.pending = 1, .primary = 2}; int restored = 0;
+    completion_fixture_reset(0);
+    require(completion_fixture_apply(&refs, &restored) && restored, "separate completion commits activation, discovery, Clear and counter together");
+    require(activation_fixture.values[0][6] == 11 && activation_fixture.values[1][6] == 11,
+            "completion increments its counter once only for the newly cleared shrine");
+    for (size_t i = 0; i < 6; ++i) for (int store = 0; store < 2; ++store) {
+        int32_t old = activation_fixture.original[store][i];
+        require(activation_fixture.values[store][i] == (activation_fixture.edits[i].kind == 1 && old > 1 ? old : 1),
+                "completion preserves discovered states and enables target access/Clear flags");
+    }
+    require(completion_fixture_apply(&refs, &restored) && activation_fixture.values[0][6] == 11 && activation_fixture.values[1][6] == 11,
+            "repeated completion is idempotent and does not add another counter increment");
+    for (int failure = 1; failure <= 14; ++failure) {
+        completion_fixture_reset(0); activation_fixture.fail_write = failure;
+        require(!completion_fixture_apply(&refs, &restored) && restored, "every completion setter failure after mutation rolls the complete batch back");
+        activation_fixture_restored();
+    }
+    completion_fixture_reset(0); activation_fixture.fail_read = 15;
+    require(!completion_fixture_apply(&refs, &restored) && restored, "failed completion readback cannot report success");
+    activation_fixture_restored();
+    completion_fixture_reset(0); activation_fixture.silent_write = 14;
+    require(!completion_fixture_apply(&refs, &restored) && restored, "wrong counter readback rolls Clear and discovery back");
+    activation_fixture_restored();
+    completion_fixture_reset(0); activation_fixture.fail_write = 14; activation_fixture.fail_rollback = 15;
+    require(!completion_fixture_apply(&refs, &restored) && !restored, "incomplete completion rollback is reported honestly");
+    completion_fixture_reset(0); activation_fixture.values[1][6] = 11;
+    require(!completion_fixture_apply(&refs, &restored) && !activation_fixture.writes, "disagreeing native counters refuse before mutation");
+    completion_fixture_reset(0); activation_fixture.values[1][2] = 1;
+    require(!completion_fixture_apply(&refs, &restored) && !activation_fixture.writes, "disagreeing target Clear states cannot double-count completion");
+    completion_fixture_reset(0); activation_fixture.values[0][6] = activation_fixture.values[1][6] = 255;
+    require(!completion_fixture_apply(&refs, &restored) && !activation_fixture.writes, "counter overflow refuses before setting Clear flags");
+    completion_fixture_reset(0); activation_fixture.values[0][6] = activation_fixture.values[1][6] = -1;
+    require(!completion_fixture_apply(&refs, &restored) && !activation_fixture.writes, "invalid current counter refuses without normalization");
+    completion_fixture_reset(0); activation_fixture.values[0][6] = activation_fixture.values[1][6] = 254;
+    require(completion_fixture_apply(&refs, &restored) && activation_fixture.values[0][6] == 255,
+            "last available counter increment remains within the native maximum");
+    require(completion_fixture_apply(&refs, &restored) && activation_fixture.values[0][6] == 255,
+            "already-cleared targets remain idempotent even at the counter maximum");
+    completion_fixture_reset(0); activation_fixture.edits[6].name = "CurrentRupee";
+    require(!completion_fixture_apply(&refs, &restored) && !activation_fixture.writes, "counter edit kind refuses every unowned scalar name");
+    completion_fixture_reset(0); activation_fixture.edits[1].name = activation_fixture.edits[0].name;
+    require(!completion_fixture_apply(&refs, &restored) && !activation_fixture.writes, "duplicate transaction names cannot double-count Clear deltas");
+    completion_fixture_reset(0); activation_fixture.count = 6;
+    require(!completion_fixture_apply(&refs, &restored) && !activation_fixture.writes, "Clear changes require their single counter entry");
+    completion_fixture_reset(0); BeWorldRefs shared = {.pending = 1, .primary = 1};
+    require(completion_fixture_apply(&shared, &restored) && activation_fixture.writes == 7 && activation_fixture.values[0][6] == 11,
+            "aliased stores apply each completion field and counter once");
+    completion_fixture_reset(1);
+    require(activation_fixture.count == 361 && activation_fixture.count <= BW_MAX_ACTIVATION_EDITS,
+            "all120 completion operations and counter fit the bounded mixed transaction");
+    require(completion_fixture_apply(&refs, &restored) && activation_fixture.values[0][360] == 70 &&
+        activation_fixture.values[1][360] == 70 && activation_fixture.writes == 722,
+        "all-shrine completion increments only the60 newly cleared targets");
+    require(completion_fixture_apply(&refs, &restored) && activation_fixture.values[0][360] == 70,
+            "all-shrine completion does not increment counters again");
+    completion_fixture_reset(1); activation_fixture.fail_write = 722;
+    require(!completion_fixture_apply(&refs, &restored) && restored, "final all-shrine counter failure restores every original shrine state");
+    activation_fixture_restored();
+    char message[256];
+    require(!be_world_command(0, "complete_shrine", "Dungeon000", 0, message, sizeof message) &&
+        !be_world_command(0, "complete_all_shrines", "", 0, message, sizeof message), "unavailable native state refuses completion before editing");
+    char *json = NULL; size_t length = 0; FILE *out = open_memstream(&json, &length);
+    require(out != NULL, "open completion snapshot fixture");
+    be_world_snapshot(out, 0, 0);
+    require(!fclose(out) && strstr(json, "\"shrine_clear_count\":null"), "unknown shrine counter remains null");
+    free(json);
 }
 
 static void check_queue_and_unready_state(void) {
@@ -403,6 +967,19 @@ static void check_json_escaping(void) {
     free(text);
 }
 
+static void check_unavailable_horse_adapter(void) {
+    require(!be_horse_features(0), "unknown native code cannot advertise horse editing");
+    char result[256] = {0};
+    require(!be_horse_command(0, "horse_speed", "", 150, result, sizeof result), "unavailable horse resource refuses before a native getter call");
+    require(result[0] != 0, "horse resource refusal explains the unavailable state");
+    char *text = NULL; size_t size = 0;
+    FILE *output = open_memstream(&text, &size);
+    require(output != NULL, "open unavailable horse snapshot fixture");
+    be_horse_snapshot(output, 0, 0);
+    require(!fclose(output) && strstr(text, "\"horse_speed_available\":false") && strstr(text, "\"horse_speed_multiplier\":null"), "horse snapshot does not invent active speed without live data");
+    free(text);
+}
+
 int main(void) {
     /* A caller may have launched these checks from a game development shell.
        Never allow the fixture publisher to use a real profile/control path. */
@@ -413,9 +990,15 @@ int main(void) {
     check_parser();
     check_inventory_values();
     check_inventory_armor_and_readiness();
+    check_master_sword_levels();
+    check_pouch_slots();
+    check_map_access();
+    check_shrine_activation();
+    check_shrine_completion();
     check_queue_and_unready_state();
     check_synthetic_live_values();
     check_json_escaping();
+    check_unavailable_horse_adapter();
     printf("Runtime guard checks passed: %u assertions; synthetic memory only, no game launched.\n", checks);
     return 0;
 }

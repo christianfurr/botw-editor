@@ -275,6 +275,7 @@ struct EditorView: View {
     @State private var maxStamina = "3"
     @State private var showAdd = false
     @State private var showGraphics = false
+    @State private var showPouchSlots = false
     @State private var worldSearch = ""
     @State private var worldKind = "All"
     @State private var selectedDestination: String?
@@ -325,6 +326,7 @@ struct EditorView: View {
         .onChange(of:inventory.map(\.slot)) { _,_ in selectFirstItemIfNeeded() }
         .sheet(isPresented:$showAdd) { AddItemView(model:model) }
         .sheet(isPresented:$showGraphics) { GraphicsSettingsView() }
+        .sheet(isPresented:$showPouchSlots) { PouchSlotsView(model:model) }
         .alert(item:$confirmation) { action in
             let primary: Alert.Button = action.destructive ? .destructive(Text(action.button),action:{ model.send(action.command) }) : .default(Text(action.button),action:{ model.send(action.command) })
             return Alert(title:Text(action.title),message:Text(action.detail),primaryButton:primary,secondaryButton:.cancel())
@@ -465,6 +467,7 @@ struct EditorView: View {
             line()
             HStack(spacing:20) {
                 Button { showAdd=true } label: { Label("Give item…",systemImage:"plus") }.buttonStyle(SlateButtonStyle()).foregroundStyle(Slate.gold)
+                Button { showPouchSlots=true } label: { Label("Pouch slots…",systemImage:"backpack").foregroundStyle(Slate.cyan) }.buttonStyle(SlateButtonStyle())
                 line(vertical:true).frame(height:20)
                 Text("Changes appear in your game").font(.system(size:12,design:.serif)).italic().foregroundStyle(Slate.muted)
                 Spacer()
@@ -546,6 +549,10 @@ struct EditorView: View {
                         Text(model.name(for:item.name)).font(.system(size:28,weight:.medium,design:.serif)).italic().fixedSize(horizontal:false,vertical:true)
                         Label(typeName(item.type),systemImage:typeIcon(item.type)).font(.system(size:14,design:.serif)).italic().foregroundStyle(Slate.ivory.opacity(0.8))
                         line()
+                        if item.name == ItemGrantRules.masterSword {
+                            MasterSwordLevelPanel(model:model,item:item).id(item.slot)
+                            line()
+                        }
                         HStack {
                             Text(item.usesDurability ? "Durability" : item.maximumEditableValue != nil ? "Quantity" : "Item").font(.system(size:14,design:.serif)).italic()
                             Spacer(minLength:8)
@@ -572,7 +579,8 @@ struct EditorView: View {
     }
 
     private var playerTab: some View {
-        VStack(alignment:.leading,spacing:22) {
+        ScrollView {
+          VStack(alignment:.leading,spacing:22) {
             HStack {
                 VStack(alignment:.leading,spacing:5) {
                     Text("Player").font(.system(size:26,weight:.medium,design:.serif)).italic()
@@ -628,9 +636,10 @@ struct EditorView: View {
                     }.padding(18)
                 }.background(Slate.panel).overlay(Rectangle().stroke(Slate.line,lineWidth:1))
             }
-            Spacer(minLength:0)
-            Label("Save in BOTW to keep your changes. Switches reflect the state confirmed by the game.",systemImage:"info.circle").font(.system(size:11)).foregroundStyle(Slate.muted)
-        }.padding(26)
+            PlayerHorseSpeedPanel(model:model)
+            Label("Save in BOTW to keep stat and ability changes. Horse speed applies only to this session.",systemImage:"info.circle").font(.system(size:11)).foregroundStyle(Slate.muted)
+          }.padding(26)
+        }.scrollIndicators(.hidden)
     }
     private func maximumRow(title:String,detail:String,symbol:String,color:Color,value:Binding<String>,range:String,enabled:Bool,action:@escaping ()->Void) -> some View {
         HStack(spacing:13) {
@@ -676,15 +685,34 @@ struct EditorView: View {
                     Button("Get paraglider…") { confirmParaglider() }.disabled(!model.canUse("runes"))
                     Divider()
                     Button("Full access…") { confirmFullAccess() }.disabled(!model.canUse("runes"))
+                    Divider()
+                    Button("Mark all 120 base shrines cleared…") { confirmAllShrinesCleared() }.disabled(!model.canUse("shrine_completion"))
                 } label: { HStack { Image(systemName:"chevron.down").font(.system(size:9));Text("World access").font(.system(size:14,design:.serif)).italic();Spacer() } }
                     .menuStyle(.borderlessButton).padding(.vertical,6)
+                mapAccessControl
                 Button { confirmMap() } label: { Label("Reveal map",systemImage:"map").frame(maxWidth:.infinity,alignment:.leading) }.buttonStyle(SlateButtonStyle()).disabled(!model.canUse("map"))
-                Button { confirmAllShrines() } label: { Label("Unlock shrines",systemImage:"diamond").frame(maxWidth:.infinity,alignment:.leading) }.buttonStyle(SlateButtonStyle()).disabled(!model.canUse("shrines"))
+                Button { confirmAllShrines() } label: { Label("Activate shrine travel…",systemImage:"diamond").frame(maxWidth:.infinity,alignment:.leading) }.buttonStyle(SlateButtonStyle()).disabled(!model.canUse("shrines"))
+                if model.available, let count=model.state?.shrineClearCount {
+                    Text("Shrines cleared: \(count)").font(.system(size:10)).foregroundStyle(Slate.muted).padding(.horizontal,4)
+                }
             }.padding(.horizontal,13).padding(.top,22).padding(.bottom,20).frame(width:224).background { Slate.panel.opacity(0.35);ContourEngraving().clipped() }
             line(vertical:true)
             HyruleMapView(points:destinations,visibleIDs:Set(filteredDestinations.map(\.id)),selected:$selectedDestination,playerPosition:model.available ? model.state?.position : nil)
                 .overlay(alignment:.bottomTrailing) { destinationInspector.padding(.trailing,18).padding(.bottom,18) }
                 .frame(maxWidth:.infinity,maxHeight:.infinity)
+        }
+    }
+    private var mapAccessControl: some View {
+        let unlocked=model.available && model.state?.mapAccessUnlocked == true
+        let supported=model.supports("map_access")
+        return VStack(alignment:.leading,spacing:6) {
+            Button { confirmMapAccess() } label: {
+                Label(unlocked ? "Map access enabled" : "Enable in-game map",systemImage:unlocked ? "checkmark.circle" : "lock.open")
+                    .frame(maxWidth:.infinity,alignment:.leading)
+            }.buttonStyle(SlateButtonStyle()).disabled(unlocked || !model.canUse("map_access"))
+                .help(supported ? "Open the map with Tab or M in BOTW." : "Runtime update required for in-game map access.")
+            Text(supported ? "Tab or M in BOTW" : "Runtime update required")
+                .font(.system(size:10)).foregroundStyle(supported ? Slate.muted : Slate.gold).padding(.horizontal,4)
         }
     }
     private func destinationRow(_ point:WorldDestination) -> some View {
@@ -712,6 +740,10 @@ struct EditorView: View {
                             Image(systemName:point.unlocked == true ? "checkmark" : "lock")
                             Text(point.unlocked == true ? "Activated" : "Not activated")
                         }.font(.system(size:12,design:.serif)).italic().foregroundStyle(point.unlocked == true ? Slate.cyan : Slate.gold)
+                        if !point.kind.localizedCaseInsensitiveContains("tower"), let completed=point.completed {
+                            Label(completed ? "Cleared" : "Not cleared",systemImage:completed ? "checkmark.seal" : "circle")
+                                .font(.system(size:10)).foregroundStyle(completed ? Slate.cyan : Slate.muted)
+                        }
                     }
                     Spacer(minLength:0)
                 }
@@ -721,6 +753,13 @@ struct EditorView: View {
                     if !point.kind.localizedCaseInsensitiveContains("tower") {
                         Button("Activate shrine") { confirmation=ConfirmAction(title:"Activate \(point.name)?",detail:"Enable this shrine's travel point. This does not mark the shrine completed. Save in BOTW to keep it.",button:"Activate shrine",command:.unlockShrine(point.id)) }.buttonStyle(SlateButtonStyle()).disabled(!model.canUse("shrines"))
                     }
+                }
+                if !point.kind.localizedCaseInsensitiveContains("tower") {
+                    Button { confirmShrineCleared(point) } label: {
+                        Label(point.completed == true ? "Shrine marked cleared" : "Mark cleared…",systemImage:"checkmark.seal")
+                            .frame(maxWidth:.infinity)
+                    }.buttonStyle(SlateButtonStyle()).disabled(point.completed == true || !model.canUse("shrine_completion"))
+                        .help(model.supports("shrine_completion") ? "Marks completion without granting Spirit Orbs, quests, chests or rewards." : "Runtime update required to mark shrines cleared.")
                 }
                 if !point.permitsTeleport { Text("Activate the first tower in BOTW or use Full Access before tower travel.").font(.system(size:10)).foregroundStyle(Slate.gold).fixedSize(horizontal:false,vertical:true) }
             } else {
@@ -753,10 +792,238 @@ struct EditorView: View {
         if selectedItem == nil { selectedSlot = filteredInventory.first?.slot ?? inventory.first?.slot }
     }
     private func confirmAllShrines() { confirmation = ConfirmAction(title:"Activate all shrine travel?",detail:"Activate all 120 base shrine travel points. This does not mark shrines completed. Save in BOTW to keep the changes.",button:"Activate travel points",command:.unlockAllShrines) }
+    private func confirmShrineCleared(_ point:WorldDestination) { confirmation = ConfirmAction(title:"Mark \(point.name) cleared?",detail:"Mark this shrine cleared, discover it and activate its travel point. The shrine clear count increases once. This does not grant Spirit Orbs, complete quests, empty chests or grant other rewards. Save in BOTW to keep the change.",button:"Mark cleared",command:.markShrineCleared(point.id)) }
+    private func confirmAllShrinesCleared() { confirmation = ConfirmAction(title:"Mark all 120 base shrines cleared?",detail:"Mark the 120 base-game shrines cleared, discover them and activate their travel points. The clear count increases only for newly cleared shrines. This does not grant Spirit Orbs, complete quests, empty chests or grant other rewards. Save in BOTW to keep these changes.",button:"Mark all cleared",command:.markAllShrinesCleared) }
+    private func confirmMapAccess() { confirmation = ConfirmAction(title:"Enable the in-game map?",detail:"Enable the Slate’s map screen, then open it with Tab or M in BOTW. Map regions are managed separately by Reveal map.",button:"Enable map access",command:.enableMapAccess) }
     private func confirmMap() { confirmation = ConfirmAction(title:"Reveal all map regions?",detail:"Reveal the map regions in your current game. Save in BOTW to keep the change.",button:"Reveal map",command:.revealMap) }
-    private func confirmRunes() { confirmation = ConfirmAction(title:"Unlock runes?",detail:"Enable rune abilities in your current game. Save in BOTW to keep the change.",button:"Unlock runes",command:.runes) }
+    private func confirmRunes() { confirmation = ConfirmAction(title:"Unlock runes?",detail:"Acquire the base runes and enable Sheikah Slate access. In BOTW, hold 3 to choose a rune, then release 3. Press F to use the selected rune. Save in BOTW to keep the change.",button:"Unlock runes",command:.runes) }
     private func confirmParaglider() { confirmation = ConfirmAction(title:"Get the paraglider?",detail:"Grant the paraglider in your current game. Save in BOTW to keep it.",button:"Get paraglider",command:.paraglider) }
     private func confirmFullAccess() { confirmation = ConfirmAction(title:"Unlock exploration access?",detail:"Activate shrine travel, reveal the map, raise every tower, unlock runes, and grant the paraglider. This skips the opening tower activation sequence. It does not directly mark shrines or story quests complete. Save in BOTW to keep these changes.",button:"Unlock full access",command:.fullAccess) }
+}
+
+private struct PlayerHorseSpeedPanel: View {
+    @ObservedObject var model: PlaygroundModel
+    @State private var chosenPercent: Double = 100
+
+    private var supported: Bool { model.supports("horse_speed") }
+    private var currentPercent: Int? {
+        guard model.available, model.state?.horseSpeedAvailable == true,
+              let value=model.state?.horseSpeedMultiplier, value.isFinite, (1...2).contains(value),
+              let active=model.state?.horseSpeedActive else { return nil }
+        let percent=Int((value*100).rounded())
+        return active == (percent > 100) ? percent : nil
+    }
+    private var canApply: Bool { model.canUse("horse_speed") && currentPercent != nil }
+    private var currentLabel: String {
+        guard let percent=currentPercent else { return "Awaiting live values" }
+        return percent == 100 ? "Off · 1.00×" : String(format:"%.2f× active",Double(percent)/100)
+    }
+    private var unavailableReason: String? {
+        if !supported { return "Runtime update required" }
+        if !model.available { return "Load your gameplay session to change horse speed." }
+        if currentPercent == nil { return model.state?.horseSpeedReason ?? "Waiting for verified horse movement data." }
+        return nil
+    }
+    var body: some View {
+        VStack(alignment:.leading,spacing:14) {
+            HStack {
+                Label("Horse speed",systemImage:"figure.equestrian.sports")
+                    .font(.system(size:16,weight:.medium,design:.serif)).italic().foregroundStyle(Slate.cyan)
+                Spacer()
+                Text(currentLabel).font(.system(size:11)).monospacedDigit()
+                    .foregroundStyle(currentPercent.map { $0 > 100 } == true ? Slate.cyan : Slate.muted)
+            }
+            HStack(spacing:14) {
+                Text("1.00×").font(.system(size:10)).foregroundStyle(Slate.muted)
+                Slider(value:$chosenPercent,in:100...200,step:5)
+                    .disabled(!canApply).accessibilityLabel("Standard horse speed multiplier")
+                    .accessibilityValue(String(format:"%.2f times normal",chosenPercent/100))
+                Text("2.00×").font(.system(size:10)).foregroundStyle(Slate.muted)
+                Text(String(format:"%.2f×",chosenPercent/100)).font(.system(size:18,weight:.light)).monospacedDigit().frame(width:65)
+                Button("Apply") { model.send(.horseSpeed(Int(chosenPercent.rounded()))) }
+                    .buttonStyle(SlateButtonStyle(primary:true)).disabled(!canApply)
+                Button("Off") { model.send(.horseSpeed(nil)) }
+                    .buttonStyle(SlateButtonStyle()).disabled(!canApply || model.state?.horseSpeedActive != true)
+            }
+            if let unavailableReason {
+                Label(unavailableReason,systemImage:supported ? "info.circle" : "arrow.down.square")
+                    .font(.system(size:10)).foregroundStyle(Slate.gold).fixedSize(horizontal:false,vertical:true)
+            }
+            Text("Applies to all standard horses this session. Special mounts are unaffected. Restarts at Off; this setting is not saved.")
+                .font(.system(size:10)).foregroundStyle(Slate.muted).fixedSize(horizontal:false,vertical:true)
+        }.padding(18).background(Slate.panel).overlay(Rectangle().stroke(Slate.line,lineWidth:1))
+            .onAppear { synchronizeSelection() }
+            .onChange(of:model.state?.horseSpeedMultiplier) { _,_ in synchronizeSelection() }
+            .onChange(of:model.available) { _,_ in synchronizeSelection() }
+    }
+    private func synchronizeSelection() {
+        if let currentPercent { chosenPercent=Double(currentPercent) }
+    }
+}
+
+private struct PouchSlotsView: View {
+    @ObservedObject var model: PlaygroundModel
+    @Environment(\.dismiss) private var dismiss
+    private var supported: Bool { model.supports("pouch_slots") }
+
+    var body: some View {
+        VStack(alignment:.leading,spacing:16) {
+            HStack {
+                VStack(alignment:.leading,spacing:5) {
+                    Text("Pouch slots").font(.system(size:26,weight:.medium,design:.serif)).italic()
+                    Text("Adds capacity; does not grant items.").font(.system(size:12)).foregroundStyle(Slate.muted)
+                }
+                Spacer()
+                Image(systemName:"backpack").font(.system(size:27,weight:.light)).foregroundStyle(Slate.cyan)
+            }
+            Rectangle().fill(Slate.line).frame(height:1)
+            if !supported {
+                Label("Runtime update required. Install the updated editor bridge to change pouch slots.",systemImage:"arrow.down.square")
+                    .font(.system(size:11)).foregroundStyle(Slate.gold).fixedSize(horizontal:false,vertical:true)
+            } else if !model.available {
+                Label(model.connectionMessage,systemImage:"info.circle").font(.system(size:11)).foregroundStyle(Slate.gold)
+            } else if let reason=model.inventoryBlockedReason {
+                Label(reason,systemImage:"info.circle").font(.system(size:11)).foregroundStyle(Slate.gold).fixedSize(horizontal:false,vertical:true)
+            }
+            VStack(spacing:0) {
+                ForEach(PouchSlotKind.allCases) { kind in
+                    PouchSlotCapacityRow(model:model,kind:kind)
+                    if kind != PouchSlotKind.allCases.last { Rectangle().fill(Slate.line).frame(height:1) }
+                }
+            }.background(Slate.panel.opacity(0.5)).overlay(Rectangle().stroke(Slate.line,lineWidth:1))
+            Text("Capacity can only increase. Each Apply button changes its own pouch.")
+                .font(.system(size:11)).foregroundStyle(Slate.muted)
+            Spacer(minLength:0)
+            Rectangle().fill(Slate.line).frame(height:1)
+            HStack(spacing:10) {
+                if model.pending { ProgressView().controlSize(.small) }
+                Text(model.feedback).font(.system(size:11)).foregroundStyle(model.feedbackIsError ? Slate.orange : Slate.muted).lineLimit(3).fixedSize(horizontal:false,vertical:true)
+                Spacer(minLength:4)
+                Button("Done") { dismiss() }.buttonStyle(SlateButtonStyle()).keyboardShortcut(.cancelAction)
+            }
+        }.padding(25).frame(width:620,height:480).background { Slate.background;ContourEngraving() }
+            .foregroundStyle(Slate.ivory).tint(Slate.cyan).preferredColorScheme(.dark)
+    }
+}
+
+private struct PouchSlotCapacityRow: View {
+    @ObservedObject var model: PlaygroundModel
+    let kind: PouchSlotKind
+    @State private var target: Int
+
+    init(model: PlaygroundModel, kind: PouchSlotKind) {
+        self.model=model
+        self.kind=kind
+        let value=model.available ? model.state?.slots(for:kind) : nil
+        _target=State(initialValue:value.flatMap { (kind.minimum...kind.maximum).contains($0) ? $0 : nil } ?? kind.minimum)
+    }
+    private var current: Int? {
+        guard model.available, let value=model.state?.slots(for:kind), (kind.minimum...kind.maximum).contains(value) else { return nil }
+        return value
+    }
+    private var lowerBound: Int { current ?? kind.minimum }
+    private var icon: String {
+        switch kind { case .weapons:return "figure.fencing";case .bows:return "arrow.up.right";case .shields:return "shield.lefthalf.filled" }
+    }
+    private var canApply: Bool {
+        guard let current else { return false }
+        return model.supports("pouch_slots") && model.canEditInventory(feature:"pouch_slots") &&
+            target > current && target <= kind.maximum
+    }
+    var body: some View {
+        HStack(spacing:15) {
+            Image(systemName:icon).font(.system(size:19)).foregroundStyle(Slate.cyan).frame(width:24)
+            VStack(alignment:.leading,spacing:5) {
+                Text(kind.title).font(.system(size:16,weight:.medium,design:.serif)).italic()
+                Text(current.map { "\($0) / \(kind.maximum) slots" } ?? "Current capacity unavailable")
+                    .font(.system(size:10)).foregroundStyle(Slate.muted)
+            }
+            Spacer(minLength:5)
+            HStack(spacing:10) {
+                Text("\(target)").font(.system(size:17,design:.serif)).monospacedDigit().frame(width:24)
+                Stepper("New \(kind.title.lowercased()) capacity",value:$target,in:lowerBound...kind.maximum).labelsHidden().fixedSize()
+                    .disabled(current == nil || !model.supports("pouch_slots") || model.pending)
+            }
+            Button("Apply") { model.send(.pouchSlots(kind,String(target))) }
+                .buttonStyle(SlateButtonStyle(primary:true)).disabled(!canApply)
+        }.padding(.horizontal,17).frame(height:70)
+            .onAppear { synchronizeTarget() }
+            .onChange(of:current) { _,_ in synchronizeTarget() }
+    }
+    private func synchronizeTarget() {
+        target=max(lowerBound,min(kind.maximum,target))
+    }
+}
+
+private struct MasterSwordLevelPanel: View {
+    @ObservedObject var model: PlaygroundModel
+    let item: InventoryEntry
+    @State private var chosenLevel: MasterSwordLevel?
+
+    private var supported: Bool { model.supports("master_sword") }
+    private var currentLevel: MasterSwordLevel? {
+        guard model.available, let value = model.state?.masterSwordLevel else { return nil }
+        return MasterSwordLevel(rawValue:value)
+    }
+    private var hasLiveValues: Bool {
+        guard model.available, let attack=model.state?.masterSwordAttack,
+              model.state?.masterSwordFullPower != nil else { return false }
+        return (30...60).contains(attack)
+    }
+    private var canApply: Bool {
+        supported && hasLiveValues && chosenLevel != nil && !item.equipped &&
+            model.canEditInventory(feature:"master_sword")
+    }
+    var body: some View {
+        VStack(alignment:.leading,spacing:11) {
+            Label("Awakening level",systemImage:"sparkles")
+                .font(.system(size:15,weight:.medium,design:.serif)).italic().foregroundStyle(Slate.cyan)
+            if !supported {
+                Label("Runtime update required",systemImage:"arrow.down.square")
+                    .font(.system(size:11,weight:.medium)).foregroundStyle(Slate.gold)
+                Text("Install the updated editor bridge to change this level.")
+                    .font(.system(size:10)).foregroundStyle(Slate.muted).fixedSize(horizontal:false,vertical:true)
+            } else {
+                currentReadback
+            }
+            Picker("Master Sword awakening level",selection:$chosenLevel) {
+                Text("Choose level").tag(nil as MasterSwordLevel?)
+                ForEach(MasterSwordLevel.allCases) { level in
+                    Text(level.title).tag(level as MasterSwordLevel?)
+                }
+            }.labelsHidden().pickerStyle(.menu).frame(maxWidth:.infinity)
+                .disabled(!supported || !model.available || item.equipped)
+            Button {
+                if let chosenLevel { model.send(.masterSwordLevel(chosenLevel)) }
+            } label: { Text("Apply level").frame(maxWidth:.infinity) }
+                .buttonStyle(SlateButtonStyle(primary:true)).disabled(!canApply)
+            Text("Normal attack; the game can awaken it near enemies.")
+                .font(.system(size:10)).foregroundStyle(Slate.muted).fixedSize(horizontal:false,vertical:true)
+            if supported && item.equipped {
+                Text("Unequip Master Sword in BOTW first.").font(.system(size:10)).foregroundStyle(Slate.gold)
+            }
+        }
+        .onAppear { chosenLevel=currentLevel }
+        .onChange(of:item.slot) { _,_ in chosenLevel=currentLevel }
+        .onChange(of:model.state?.masterSwordLevel) { _,_ in chosenLevel=currentLevel }
+        .onChange(of:model.available) { _,_ in chosenLevel=currentLevel }
+    }
+    private var currentReadback: some View {
+        VStack(alignment:.leading,spacing:5) {
+            if hasLiveValues {
+                Text(currentLevel.map { "Current: \($0.title)" } ?? "Current: Custom configuration")
+                    .font(.system(size:11)).foregroundStyle(Slate.ivory)
+                if let attack=model.state?.masterSwordAttack {
+                    Text("Normal attack: \(attack)").font(.system(size:10)).foregroundStyle(Slate.muted)
+                }
+                if model.state?.masterSwordFullPower == true {
+                    Label("Full power enabled",systemImage:"checkmark.circle").font(.system(size:10)).foregroundStyle(Slate.cyan)
+                }
+            } else {
+                Text("Waiting for live sword values.").font(.system(size:10)).foregroundStyle(Slate.muted)
+            }
+        }
+    }
 }
 
 private struct TerrainManifest: Decodable {
@@ -791,6 +1058,48 @@ private struct TerrainArtwork {
     }()
 }
 
+private struct TerrainLabel: Decodable {
+    let id: String
+    let name: String
+    let x: Double
+    let z: Double
+    let level: Int
+    let kind: String
+
+    func isVisible(at zoom: CGFloat) -> Bool {
+        switch kind {
+        case "region": return zoom < 1.7
+        case "area": return zoom >= 1.35 && zoom < 3.5
+        case "settlement": return zoom >= 1.8
+        default: return zoom >= (level == 8 ? 4.5 : 2.8)
+        }
+    }
+    var fontSize: CGFloat {
+        switch kind { case "region":return 16;case "area":return 14;case "settlement":return 12;default:return 11 }
+    }
+}
+
+private enum TerrainLabels {
+    private struct Manifest: Decodable {
+        let schema: Int
+        let labels: [TerrainLabel]
+    }
+    static let local: [TerrainLabel] = {
+        let url=GameArtwork.root.appendingPathComponent("map/labels.json")
+        guard let size=try? url.resourceValues(forKeys:[.fileSizeKey]).fileSize,size <= 512*1024,
+              let data=try? Data(contentsOf:url),let manifest=try? JSONDecoder().decode(Manifest.self,from:data),
+              manifest.schema == 1,!manifest.labels.isEmpty,manifest.labels.count <= 1000,
+              Set(manifest.labels.map(\.id)).count == manifest.labels.count,
+              manifest.labels.allSatisfy({ label in
+                  !label.id.isEmpty && label.id.count <= 96 && !label.name.isEmpty && label.name.count <= 96 &&
+                  label.name.unicodeScalars.allSatisfy { !CharacterSet.controlCharacters.contains($0) } &&
+                  label.x.isFinite && label.z.isFinite && abs(label.x) <= 6000 && abs(label.z) <= 5000 &&
+                  [1,2,4,8].contains(label.level) && ["region","area","settlement","landmark"].contains(label.kind)
+              }) else { return [] }
+        return manifest.labels
+    }()
+}
+
 /// A stable north-up world projection. Search changes emphasis, never map bounds.
 private struct HyruleMapView: View {
     let points:[WorldDestination]
@@ -804,6 +1113,7 @@ private struct HyruleMapView: View {
     @State private var hover:String?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private let terrain = TerrainArtwork.local
+    private let labels = TerrainLabels.local
     private var bounds:TerrainManifest.Bounds { terrain?.bounds ?? TerrainManifest.Bounds(minX:-6000,maxX:6000,minZ:-5000,maxZ:5000) }
 
     private func mapRect(_ size:CGSize) -> CGRect {
@@ -825,6 +1135,32 @@ private struct HyruleMapView: View {
         let p = position(point,in:rect)
         return hypot(p.x-location.x,p.y-location.y) <= 15 ? point : nil
     }
+    private func drawPlaceLabels(_ context: inout GraphicsContext, size: CGSize, rect: CGRect) {
+        var occupied=[CGRect(x:size.width-80,y:0,width:80,height:230),CGRect(x:0,y:size.height-54,width:175,height:54)]
+        if selected != nil { occupied.append(CGRect(x:max(0,size.width-330),y:max(0,size.height-220),width:330,height:220)) }
+        for point in points where point.id == selected || point.id == hover {
+            let p=position(point,in:rect)
+            occupied.append(CGRect(x:p.x-15,y:p.y-15,width:30,height:30))
+        }
+        for label in labels where label.isVisible(at:zoom) {
+            let p=CGPoint(x:rect.minX+(label.x-bounds.minX)/(bounds.maxX-bounds.minX)*rect.width,
+                          y:rect.minY+(label.z-bounds.minZ)/(bounds.maxZ-bounds.minZ)*rect.height)
+            guard p.x >= 5,p.y >= 5,p.x <= size.width-5,p.y <= size.height-5 else { continue }
+            let text=Text(label.name).font(.system(size:label.fontSize,weight:label.kind == "settlement" ? .medium : .regular,design:.serif))
+                .italic().tracking(label.kind == "region" ? 1.1 : 0.3)
+            let resolved=context.resolve(text.foregroundStyle(Slate.ivory.opacity(label.kind == "landmark" ? 0.8 : 0.94)))
+            let measured=resolved.measure(in:CGSize(width:220,height:65))
+            let box=CGRect(x:p.x-measured.width/2-5,y:p.y-measured.height/2-3,width:measured.width+10,height:measured.height+6)
+            guard box.minX >= 2,box.maxX <= size.width-2,box.minY >= 2,box.maxY <= size.height-2,
+                  !occupied.contains(where: { $0.intersects(box) }) else { continue }
+            occupied.append(box)
+            let shadow=context.resolve(text.foregroundStyle(Slate.background.opacity(0.95)))
+            for shift in [CGPoint(x:-1,y:0),CGPoint(x:1,y:0),CGPoint(x:0,y:-1),CGPoint(x:0,y:1)] {
+                context.draw(shadow,at:CGPoint(x:p.x+shift.x,y:p.y+shift.y))
+            }
+            context.draw(resolved,at:p)
+        }
+    }
     var body: some View {
         GeometryReader { geo in
             let rect = mapRect(geo.size)
@@ -841,6 +1177,7 @@ private struct HyruleMapView: View {
                         for i in 0...10 { let y = rect.minY+rect.height*CGFloat(i)/10; grid.move(to:CGPoint(x:rect.minX,y:y)); grid.addLine(to:CGPoint(x:rect.maxX,y:y)) }
                         c.stroke(grid,with:.color(Slate.line),lineWidth:0.5)
                     }
+                    drawPlaceLabels(&c,size:size,rect:rect)
                     for point in points where point.x.isFinite && point.z.isFinite {
                         let p = position(point,in:rect)
                         guard p.x >= -15,p.y >= -15,p.x <= size.width+15,p.y <= size.height+15 else { continue }
@@ -961,6 +1298,8 @@ struct AddItemView: View {
     private var filtered:[CatalogItem] { model.catalog.filter { (category == "all" || $0.category == category) && (search.isEmpty || $0.name.localizedCaseInsensitiveContains(search) || $0.id.localizedCaseInsensitiveContains(search)) } }
     private var chosen:String { customID.isEmpty ? selected ?? "" : customID.trimmingCharacters(in:.whitespaces) }
     private var chosenItem:CatalogItem? { model.catalog.first { $0.id == chosen } }
+    private var internalMasterSword:Bool { ItemGrantRules.isInternalMasterSwordForm(chosen) }
+    private var giveBlockedReason:String? { model.giveBlockedReason(for:chosen) }
     private var validQuantity:Bool { (1...999).contains(Int(quantity) ?? 0) }
     private func iconType(_ category:String) -> Int {
         switch category { case "weapons":return 0;case "bows":return 1;case "shields":return 3;case "clothes":return 5;case "materials":return 7;case "food":return 8;default:return 9 }
@@ -1005,6 +1344,9 @@ struct AddItemView: View {
                                             .background(Slate.panel.opacity(0.3)).overlay(RoundedRectangle(cornerRadius:3).stroke(Slate.ivory.opacity(0.25),lineWidth:0.6))
                                             .overlay { if chosen == item.id { SelectionGlow() } }
                                         Text(item.name).font(.system(size:12,design:.serif)).italic().multilineTextAlignment(.center).lineLimit(2).frame(height:29,alignment:.top)
+                                        if ItemGrantRules.isInternalMasterSwordForm(item.id) {
+                                            Text("Internal form").font(.system(size:9)).foregroundStyle(Slate.gold)
+                                        }
                                     }.frame(maxWidth:.infinity).foregroundStyle(Slate.ivory)
                                 }.buttonStyle(.plain).modifier(SlateHover()).accessibilityAddTraits(chosen == item.id ? .isSelected : [])
                             }
@@ -1019,6 +1361,12 @@ struct AddItemView: View {
                             ItemArtwork(actor:chosen,type:iconType(chosenItem?.category ?? "other"),size:145).frame(maxWidth:.infinity).frame(height:158)
                             Text(chosenItem?.name ?? (chosen.isEmpty ? "Select an item" : chosen)).font(.system(size:26,weight:.medium,design:.serif)).italic().fixedSize(horizontal:false,vertical:true)
                             if let chosenItem { Text(categoryName(chosenItem.category)).font(.system(size:13,design:.serif)).italic().foregroundStyle(Slate.muted) }
+                            if internalMasterSword {
+                                Text("The game uses this model for the Master Sword's world or appearance state. It cannot be collected as a separate weapon.")
+                                    .font(.system(size:12)).foregroundStyle(Slate.muted).fixedSize(horizontal:false,vertical:true)
+                                Button("Select usable Master Sword") { selected=ItemGrantRules.masterSword;customID="";quantity="1" }
+                                    .buttonStyle(SlateButtonStyle())
+                            }
                             DisclosureGroup("Custom item ID",isExpanded:$showCustom) { TextField("e.g. Item_Fruit_A",text:$customID).textFieldStyle(.plain).font(.system(size:10,design:.monospaced)).padding(7).overlay(Rectangle().stroke(Slate.line,lineWidth:1)).padding(.top,6) }.font(.system(size:10)).foregroundStyle(Slate.muted)
                         }.padding(21).frame(maxWidth:.infinity,alignment:.leading)
                     }.scrollIndicators(.hidden)
@@ -1028,16 +1376,20 @@ struct AddItemView: View {
                             Text("Quantity").font(.system(size:14,design:.serif)).italic()
                             Spacer()
                             QuantityControl(value:$quantity).frame(width:113)
+                                .disabled(chosen == ItemGrantRules.masterSword || internalMasterSword)
                         }
                         if !model.available {
                             Label(model.connectionMessage,systemImage:"info.circle").font(.system(size:11)).foregroundStyle(Slate.gold).fixedSize(horizontal:false,vertical:true)
                         } else if let reason=model.inventoryBlockedReason {
                             Label(reason,systemImage:"info.circle").font(.system(size:11)).foregroundStyle(Slate.gold).fixedSize(horizontal:false,vertical:true)
                         }
+                        if let reason=giveBlockedReason {
+                            Label(reason,systemImage:"info.circle").font(.system(size:11)).foregroundStyle(Slate.gold).fixedSize(horizontal:false,vertical:true)
+                        }
                         if !validQuantity { Text("Choose a quantity from 1 to 999.").font(.system(size:11)).foregroundStyle(Slate.orange) }
                         Text("The game checks pouch capacity and item restrictions.").font(.system(size:10)).foregroundStyle(Slate.muted).fixedSize(horizontal:false,vertical:true)
                         Button { model.send(.give(chosen,quantity)) } label: { Text(model.pending ? "Waiting for game…" : "Give item").frame(maxWidth:.infinity) }
-                            .buttonStyle(SlateButtonStyle(primary:true)).disabled(chosen.isEmpty || !validQuantity || !model.canEditInventory(feature:"items"))
+                            .buttonStyle(SlateButtonStyle(primary:true)).disabled(chosen.isEmpty || !validQuantity || giveBlockedReason != nil || !model.canEditInventory(feature:"items"))
                         if model.pending { HStack { ProgressView().controlSize(.small);Text("Waiting for confirmation").font(.system(size:10)) } }
                     }.padding(19)
                 }.frame(width:247).frame(maxHeight:.infinity).background(Slate.panel.opacity(0.25))
@@ -1051,5 +1403,6 @@ struct AddItemView: View {
             }.padding(.horizontal,21).frame(height:55).background(Slate.panel.opacity(0.6))
         }.frame(width:940,height:650).background { Slate.background;ContourEngraving() }.foregroundStyle(Slate.ivory).tint(Slate.cyan).preferredColorScheme(.dark)
             .onAppear { if selected == nil { selected=filtered.first?.id } }
+            .onChange(of:chosen) { _,actor in if actor == ItemGrantRules.masterSword || ItemGrantRules.isInternalMasterSwordForm(actor) { quantity="1" } }
     }
 }

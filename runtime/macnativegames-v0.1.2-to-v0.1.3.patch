@@ -1,0 +1,55 @@
+diff --git a/games/totk/runtime/game_patches_botw.c b/games/totk/runtime/game_patches_botw.c
+--- a/games/totk/runtime/game_patches_botw.c
++++ b/games/totk/runtime/game_patches_botw.c
+@@ -25,24 +25,49 @@
+ #include "botw_editor.h"
+ #include "botw_editor_inventory.h"
+ #include "botw_editor_world.h"
++#include "botw_editor_runes.h"
++#include "botw_editor_horse.h"
+ #include "botw_editor_teleport.h"
+ #include "botw_editor_destinations.h"
+ 
+ static unsigned botw_editor_features(uintptr_t base) {
+     bed_load();
+-    return be_inventory_features(base) | be_world_features(base) |
++    return be_inventory_features(base) | be_world_features(base) | be_horse_features(base) |
+         (bed_count ? be_teleport_features(base) : 0);
+ }
+ static int botw_editor_command(uintptr_t base, const char *verb, const char *argument,
+                                int value, char *result, size_t capacity) {
++    if (!strcmp(verb, "horse_speed")) return be_horse_command(base, verb, argument, value, result, capacity);
+     if (!strcmp(verb, "give") || !strcmp(verb, "quantity") || !strcmp(verb, "remove"))
+         return be_inventory_command(base, verb, argument, value, result, capacity);
+     if (!strcmp(verb, "teleport")) return bed_teleport(base, argument, result, capacity);
+-    return be_world_command(base, verb, argument, value, result, capacity);
++    int full_access = !strcmp(verb, "full_access");
++    if (!full_access && strcmp(verb, "runes"))
++        return be_world_command(base, verb, argument, value, result, capacity);
++
++    if (!be_runes_available(base)) {
++        snprintf(result, capacity, "Rune selection is busy or unavailable. Return to gameplay and try again.");
++        return 0;
++    }
++    if (!be_world_command(base, verb, argument, value, result, capacity)) return 0;
++
++    char selection[192];
++    int selected = be_runes_select_if_missing(base, selection, sizeof selection);
++    if (!selected) {
++        snprintf(result, capacity, "%s enabled. Rune selection is unconfirmed. %s",
++            full_access ? "Travel and rune access" : "Rune access", selection);
++    } else if (full_access) {
++        snprintf(result, capacity, "120 shrines discovered, tower maps revealed, towers raised, and paraglider enabled. %s", selection);
++    } else {
++        snprintf(result, capacity, "%s", selection);
++    }
++    return selected;
+ }
+ static void botw_editor_snapshot(FILE *output, uintptr_t base, int ready) {
+     be_inventory_snapshot(output, base, ready);
+     be_world_snapshot(output, base, ready);
++    be_runes_snapshot(output, base, ready);
++    be_horse_snapshot(output, base, ready);
+     be_teleport_snapshot(output, base, ready);
+     bed_snapshot(output, base, ready);
+ }

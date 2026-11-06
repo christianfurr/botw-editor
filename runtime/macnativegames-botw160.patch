@@ -12,10 +12,10 @@ index 254bdf6..513362b 100644
  # The add-on content volumes (games/botw/scripts/extract_aoc_romfs.py -> extracted/botw160/aoc/<index>); a missing index is not listed.
  build/game-data/botw160/aoc-config.txt: scripts/prepare_romfs_backend.py $(wildcard extracted/botw160/aoc/*/index.json)
 diff --git a/games/totk/runtime/game_patches_botw.c b/games/totk/runtime/game_patches_botw.c
-index 2d2397c..53e8e61 100644
+index 2d2397c..7e457ab 100644
 --- a/games/totk/runtime/game_patches_botw.c
 +++ b/games/totk/runtime/game_patches_botw.c
-@@ -16,7 +16,49 @@
+@@ -16,7 +16,74 @@
  #include "botw_shadow_res.h"   /* 1.9.0's sun shadow map at 2048 (TOTK_SHADOW_RES, shadows.txt) */
  #include "botw_fov.h"   /* 1.9.0's field of view (TOTK_FOV_SCALE, graphics-fov.txt) */
  #include <TargetConditionals.h>
@@ -28,24 +28,49 @@ index 2d2397c..53e8e61 100644
 +#include "botw_editor.h"
 +#include "botw_editor_inventory.h"
 +#include "botw_editor_world.h"
++#include "botw_editor_runes.h"
++#include "botw_editor_horse.h"
 +#include "botw_editor_teleport.h"
 +#include "botw_editor_destinations.h"
 +
 +static unsigned botw_editor_features(uintptr_t base) {
 +    bed_load();
-+    return be_inventory_features(base) | be_world_features(base) |
++    return be_inventory_features(base) | be_world_features(base) | be_horse_features(base) |
 +        (bed_count ? be_teleport_features(base) : 0);
 +}
 +static int botw_editor_command(uintptr_t base, const char *verb, const char *argument,
 +                               int value, char *result, size_t capacity) {
++    if (!strcmp(verb, "horse_speed")) return be_horse_command(base, verb, argument, value, result, capacity);
 +    if (!strcmp(verb, "give") || !strcmp(verb, "quantity") || !strcmp(verb, "remove"))
 +        return be_inventory_command(base, verb, argument, value, result, capacity);
 +    if (!strcmp(verb, "teleport")) return bed_teleport(base, argument, result, capacity);
-+    return be_world_command(base, verb, argument, value, result, capacity);
++    int full_access = !strcmp(verb, "full_access");
++    if (!full_access && strcmp(verb, "runes"))
++        return be_world_command(base, verb, argument, value, result, capacity);
++
++    if (!be_runes_available(base)) {
++        snprintf(result, capacity, "Rune selection is busy or unavailable. Return to gameplay and try again.");
++        return 0;
++    }
++    if (!be_world_command(base, verb, argument, value, result, capacity)) return 0;
++
++    char selection[192];
++    int selected = be_runes_select_if_missing(base, selection, sizeof selection);
++    if (!selected) {
++        snprintf(result, capacity, "%s enabled. Rune selection is unconfirmed. %s",
++            full_access ? "Travel and rune access" : "Rune access", selection);
++    } else if (full_access) {
++        snprintf(result, capacity, "120 shrines discovered, tower maps revealed, towers raised, and paraglider enabled. %s", selection);
++    } else {
++        snprintf(result, capacity, "%s", selection);
++    }
++    return selected;
 +}
 +static void botw_editor_snapshot(FILE *output, uintptr_t base, int ready) {
 +    be_inventory_snapshot(output, base, ready);
 +    be_world_snapshot(output, base, ready);
++    be_runes_snapshot(output, base, ready);
++    be_horse_snapshot(output, base, ready);
 +    be_teleport_snapshot(output, base, ready);
 +    bed_snapshot(output, base, ready);
 +}
@@ -65,7 +90,7 @@ index 2d2397c..53e8e61 100644
  uint32_t runtime_thread_current_handle(void);
  static void botw_aspect_install(Module *m);   /* the aspect ratio, end of the file */
  static int patch_output_res(Module *m);   /* native output size, after runtime_output_res */
-@@ -177,6 +219,9 @@ static void pad_tick_advance(void) {
+@@ -177,6 +244,9 @@ static void pad_tick_advance(void) {
      }
  }
  void runtime_frame_step_update(uint64_t now_ns) {
@@ -75,7 +100,7 @@ index 2d2397c..53e8e61 100644
      botw_aspect_apply();   /* the aspect ratio */
      botw_output_tick();    /* key 3 */
      if (!frame_step_data || !now_ns) return;
-@@ -1316,12 +1361,35 @@ static int native_4k_app(void) {
+@@ -1316,12 +1386,35 @@ static int native_4k_app(void) {
      return v;
  }
  #ifdef GAME_BOTW160
@@ -112,7 +137,7 @@ index 2d2397c..53e8e61 100644
      if (sscanf(e, "%ux%u%c", &a, &b, &tail) != 2 || a < 1280 || b < 720 || a > 7680 || b > 4320)
          runtime_fail("TOTK_OUTPUT_RES must be auto, 0 or <width>x<height> (1280x720 .. 7680x4320)");
      g_out_mode = OUT_FIXED; g_out_w = a; g_out_h = b;
-@@ -1386,6 +1454,23 @@ static uint64_t output_floats(unsigned screen, unsigned render) {
+@@ -1386,6 +1479,23 @@ static uint64_t output_floats(unsigned screen, unsigned render) {
  static void output_page(unsigned w, unsigned h) {   /* what the docked branch writes from its next run on */
      const char *e = getenv("TOTK_RENDER_RES");
      unsigned render = w == 1920 && h == 1080 && e && !strcmp(e, "900") ? 1600 : w;   /* the shipped 1600x900 scene at 1080p only */

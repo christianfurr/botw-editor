@@ -4,9 +4,9 @@ A native Mac editor for your running **Breath of the Wild 1.6.0** session in [Ma
 
 Browse your pouch, give items, change player stats, and travel around Hyrule from a separate window. The Sheikah-inspired interface uses compact navigation, an item grid with a persistent inspector, and travel controls over the actual local map.
 
-**0.1.2 is an early prerelease for one specific game/runtime version.** See the [live testing record](docs/TESTING.md) for verified operations and remaining checks.
+**0.1.3 is an early prerelease for one specific game/runtime version.** See the [live testing record](docs/TESTING.md) for verified operations and remaining checks.
 
-[Download 0.1.2](https://github.com/christianfurr/botw-editor/releases/tag/v0.1.2) · [Source and setup](docs/INSTALLATION.md)
+[Download 0.1.3 — BOTW.Editor.zip](https://github.com/christianfurr/botw-editor/releases/download/v0.1.3/BOTW.Editor.zip) · [Release and source](https://github.com/christianfurr/botw-editor/releases/tag/v0.1.3) · [Setup](docs/INSTALLATION.md)
 
 ![BOTW Editor player controls](Assets/screenshots/main.png)
 
@@ -15,20 +15,24 @@ Browse your pouch, give items, change player stats, and travel around Hyrule fro
 | Area | Controls |
 | --- | --- |
 | Inventory | Browse a pouch grid and search a 1,012-item catalog. Add items, change stack quantities or unequipped weapon durability, and remove entries. |
+| Master Sword | Select the usable sword in your pouch and apply awakening levels with 30, 40, 50 or 60 normal attack. The sword must be owned and unequipped. |
+| Pouch slots | Increase weapon, bow and shield capacity up to 20, 14 and 20 slots respectively. Capacity edits do not give items or spend Korok seeds. |
 | Player | Rupees, maximum hearts, maximum stamina, and optional current-health/stamina locks. |
-| World | Activate a selected shrine or all 120 base-game shrine travel points; reveal the 15 tower map regions; acquire base runes and the paraglider. Activation does not clear a shrine. |
-| Full Access | Apply those travel unlocks and raise the world towers. **This skips the opening tower activation sequence.** It does not directly mark shrines or story quests complete. |
-| Map | Browse the game's Hyrule terrain map, search 120 base shrines and 15 towers, and select a destination for travel. A live player marker shows your position. |
+| World | Enable the in-game Sheikah Slate map; discover and activate a selected shrine or all 120 base-game shrine travel points; reveal the 15 tower map regions; acquire base runes and the paraglider. Activation does not clear a shrine. |
+| Shrine completion | Separately mark a selected shrine or all 120 base shrines cleared. The clear count increases only for newly cleared shrines. This grants no Spirit Orbs, quests, chests or other rewards. |
+| Full Access | Activate base-shrine travel, reveal tower regions, acquire base runes and the paraglider, and raise the world towers. **This skips the opening tower activation sequence.** It does not directly mark shrines or story quests complete. |
+| Map | Browse the game's Hyrule terrain with 557 locally extracted place labels, search 120 base shrines and 15 towers, and select a destination for travel. Labels appear by zoom level; a live marker shows your position. |
+| Horse speed | Apply 1.00–2.00× normal land-gear speeds to all 26 standard horse types for this session. Off restores original speeds. Special mounts and unrelated animals are unchanged. |
 | Upscaling | Experimental MetalFX Temporal reconstruction with Quality/Balanced presets for 1440p or 4K output. Preset changes require restarting BOTW. |
 | Color & custom shaders | Use Off, Natural, Vivid, or Cinematic picture filters, adjust strength and sharpness, or write a custom Metal color shader. |
 
-The installer builds the terrain map and item icons **locally from your own game**. They stay in your private Application Support cache and are not included in this repository or the editor download. [Local artwork and map extraction](docs/MAP-EXTRACTION.md)
+The installer builds the terrain map, place labels and item icons **locally from your own game**. They stay in your private Application Support cache and are not included in this repository or the editor download. [Local artwork and map extraction](docs/MAP-EXTRACTION.md)
 
-Version 0.1.1 fixes an inventory scan that treated undyed armor as an invalid entry and incorrectly told players to close the game menu. The catalog now uses the same icon-grid layout as the pouch, keeps quantity and **Give item** visible, and displays the actual inventory blocker when one exists. Browsing remains available while the game is closed.
+The catalog distinguishes the usable Master Sword from its internal world/appearance forms. Choosing an internal form offers a way to select the usable sword; trying to give a duplicate explains the game's one-sword limit. The pouch and catalog share an icon-grid layout, keep quantity and **Give item** visible, and display the actual inventory blocker when one exists. Browsing remains available while the game is closed.
 
 Controls wait for a supported gameplay session and fresh runtime state. The editor displays the game's acknowledgement and readback for each request. During travel, it disables edits while the game loads; an accepted request does not confirm arrival.
 
-The 0.1.0 live checks covered item grants and removal, an unequipped weapon durability round trip, rupees, 30 hearts, three stamina wheels, world-access flags, save/reload persistence, and three travel destinations. The 0.1.1 runtime also passed grants while the system and Materials menus were open, the undyed-armor case, and visible custom-shader/error-recovery checks. The 0.1.2 candidate has also completed real MetalFX temporal frames at 1440p and 4K, including a 4K camera/walk and menu-resume check. The [testing record](docs/TESTING.md) separates candidate execution, final-rebuild replay and their visual-quality limits.
+Earlier live checks covered core inventory/player/world edits, menu-open grants, custom-shader fallback, and real MetalFX temporal frames at 1440p and 4K. The 0.1.3 checks opened the actual in-game map, read back all four sword levels, visibly confirmed attack 60, and granted equipment beyond the original pouch limits. The [testing record](docs/TESTING.md) separates those results from pending rune-selection, shrine, horse movement, persistence and final-release checks.
 
 ## MetalFX Temporal
 
@@ -61,7 +65,7 @@ BOTW 1.9.0, Tears of the Kingdom, physical Switch consoles, and standard Switch 
      --work "/path/to/BotW_build"
    ```
 
-3. Keep the backup paths printed by the installer. It checks compatibility, preserves restore copies, rebuilds the runtime, and extracts your local destinations, terrain map, and item icons.
+3. Keep the backup paths printed by the installer. It checks compatibility, preserves restore copies, rebuilds the runtime, and extracts your local destinations, terrain map, place labels and item icons.
 4. Open BOTW and load your game. Open **BOTW Editor** and wait for its connected state.
 
 The editor release contains no game files, firmware, keys, or saves. The bridge uses the local files already present in your MacNativeGames installation.
@@ -71,12 +75,19 @@ The current app is **ad hoc signed and not Apple-notarized**. If macOS blocks th
 ## Use
 
 - **Inventory:** select a tile to inspect it. Apply a new stack quantity or durability value in the detail pane, or choose **Remove Item…**. Unequip gear before editing its durability or removing it. Use **Give item…** to browse the catalog, choose a quantity, and select **Give item**. A successful grant stays visible in the result bar. If Link is holding cooking materials, put them away before editing inventory.
+- **Master Sword:** select the usable Master Sword (`Weapon_Sword_070`) in Inventory. Unequip it in BOTW, choose an **Awakening level**, then click **Apply level**. The four levels configure 30/40/50/60 normal attack. Nearby evil can still awaken the sword to 60. This control does not change beam power, durability, recharge or Trial of the Sword quest completion.
+- **Pouch slots:** open **Pouch slots…** from the Inventory footer. Choose a larger capacity and click that row's **Apply** button. Supported ranges are weapons 8–20, bows 5–14 and shields 4–20. Capacity can only increase; Korok counts and Hestu quests stay unchanged. Reopen the game's pouch if its displayed capacity is cached.
 - **Player:** use the stat buttons to apply values. Maximum hearts and stamina wait for the live player values to load. The health lock holds your current health; the stamina lock refills stamina. Both locks start off.
-- **World:** select a map marker or destination row for its travel and shrine actions. The **World access** menu contains bulk unlocks. Read the confirmation before applying **Full access**, which also skips the opening tower activation sequence.
+- **World:** **Enable in-game map** enables Sheikah Slate access separately from revealing terrain. Focus BOTW and press **Tab** or **M** afterward. The editor's terrain map remains available for selecting travel destinations. Read the confirmation before applying **Full access**, which also skips the opening tower activation sequence.
+- **Runes:** choose **Unlock runes** to acquire the base kit and enable Slate access. If no rune is selected, the bridge requests a Bomb selection through the same manager field used by the game's download sequence. The normal game update still has to apply that request; a busy selection step asks you to retry. With BOTW focused during ordinary unmounted gameplay, hold **3** to choose a rune, release it, then press **F** to use it. These are the port's default keyboard bindings.
+- **Shrines:** activation discovers a shrine on the in-game map and enables its travel point. Reopen the map after applying it. The separate **Mark cleared** or **Mark all cleared** actions change clear state and its counter; they do not grant rewards or finish quests.
+- **Horse speed:** use the Player panel's speed control and **Apply**. The multiplier affects the four normal land gears of every standard horse type in this running session. **Off** restores the verified original table. It resets when BOTW restarts and does not change saved horse stats.
 - **Upscaling:** open the sliders button and choose **Upscaling**. Save a preset with **Use on next launch**, then fully quit and reopen BOTW. The saved preset and the current session's active status are displayed separately.
 - **Color & custom shaders:** choose this section of the same panel to adjust the final picture. Its **Off** restores unfiltered color without changing the upscaling preset. Custom source and fallback behavior are documented in [Shaders](docs/SHADERS.md).
 - **Tower travel:** activate the first tower in BOTW or use **Full Access** before traveling to a tower that the editor marks unavailable.
 - Read the action result before making another edit. The window disables edits when the game closes, a bridge update is required, or connection data becomes stale.
+
+The new 0.1.3 controls require the updated runtime bridge. Older runtime snapshots remain readable; unsupported controls show **Runtime update required** until the bridge is installed and BOTW is relaunched.
 
 Changes can become permanent when the game saves. Keep a profile backup before changing inventory or progress. See [Installation and recovery](docs/INSTALLATION.md).
 

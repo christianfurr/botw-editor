@@ -104,6 +104,17 @@ static int bei_total(const BeiItem *items, int count, const char *name, int type
     }
     return total;
 }
+/* Only 070 has NX160's CanGetPouch tag. 056/071/072 are internal world or
+   appearance forms; acquiring them is not a capacity/DLC failure. */
+static const char *bei_give_block_reason(const char *name, int amount, const BeiItem *items, int count) {
+    if (!strcmp(name, "Weapon_Sword_056") || !strcmp(name, "Weapon_Sword_071") || !strcmp(name, "Weapon_Sword_072"))
+        return "This is an internal Master Sword form, not a pouch item. Choose Master Sword (Weapon_Sword_070).";
+    if (!strcmp(name, "Weapon_Sword_070")) {
+        if (amount != 1) return "BOTW allows one Master Sword. Choose a quantity of 1.";
+        if (bei_total(items, count, name, 0)) return "The Master Sword is already in your pouch. BOTW allows one.";
+    }
+    return NULL;
+}
 static int bei_value_maximum(int type) {
     if (type == 0 || type == 1 || type == 3) return BE_MAX_RAW_DURABILITY;
     if (type == 2 || type == 7) return BE_MAX_STACK_QUANTITY;
@@ -173,6 +184,8 @@ static int be_inventory_command(uintptr_t base, const char *verb, const char *ar
         if (!bei_name(argument) || strstr(argument, "Default") || strstr(argument, "Extra") || value < 1 || value > BE_MAX_STACK_QUANTITY) {
             snprintf(result, capacity, "Choose a valid item and amount from 1 to 999"); goto done;
         }
+        const char *restriction = bei_give_block_reason(argument, value, items, count);
+        if (restriction) { snprintf(result, capacity, "%s", restriction); goto done; }
         BeiString name = {base + 0x2a6e6c0, argument};
         int type = ((int (*)(const BeiString *, void *))(base + 0x10b8080))(&name, NULL);
         if (type < 0 || type > 9) { snprintf(result, capacity, "This actor is not an inventory item"); goto done; }

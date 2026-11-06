@@ -68,6 +68,34 @@ The Tegra GOB formula is adapted from MacNativeGames' MIT-licensed
 were checked against the local game's BNTX headers. The extractor contains format
 handling code and resource paths, never extracted game bytes.
 
+## Place labels
+
+`scripts/extract_map_labels.py` reads original label positions from
+`Map/MainField/Location.smubin` and `Map/MainField/Static.smubin` and joins them
+to the game's localized `LocationMarker.msbt` text. It keeps the placement for
+the wider map view when a name appears at multiple zoom levels. The verified US
+English cache contains 557 labels across 8 regions, 24 areas, 34 settlements,
+and 491 landmarks.
+
+The bridge installer generates the label cache. You can also regenerate it
+from the matching editor source checkout.
+
+```sh
+python3 scripts/extract_map_labels.py --app '/Applications/Breath of the Wild.app'
+```
+
+The default language is `USen`. Use `--lang` with the four-character code for
+a locale present in your game, or `--romfs` with the extracted RomFS folder.
+The default output is
+`~/Library/Application Support/BOTWEditor/cache/map/labels.json`, written with
+mode `0600`. The manifest records the label digest, source locale, north-up
+world bounds, and each label's original coordinates and visibility level.
+
+The editor displays regions at wider zoom levels and progressively adds more
+local names as you zoom in. Place labels are visual context. Travel uses the
+separate destination catalog. Keep the generated label cache and previews that
+show game data outside the public repository and release assets.
+
 ## Item icons
 
 `scripts/extract_items.py` uses the same local RomFS readers to decode the player's inventory icon textures. It writes PNG files and `manifest.json` under `~/Library/Application Support/BOTWEditor/cache/items/`. Game actor metadata resolves shared icons for upgraded or variant items; the manifest records direct, metadata-based, and catalog-only legacy resolutions separately.

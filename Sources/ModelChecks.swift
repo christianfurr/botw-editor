@@ -31,6 +31,55 @@ struct ModelChecks {
         let rupees = try TrainerCommand.rupees("999999").payload()
         let lift = try TrainerCommand.lift("2").payload()
         precondition(item == "give Item_Fruit_A 20")
+        for actor in ["Weapon_Sword_056", "Weapon_Sword_071", "Weapon_Sword_072"] {
+            reject(.give(actor, "1"))
+            precondition(ItemGrantRules.isInternalMasterSwordForm(actor))
+            precondition(ItemGrantRules.blockedReason(for: actor, inventory: []) != nil)
+        }
+        let singleMasterSword = try TrainerCommand.give("Weapon_Sword_070", "1").payload()
+        precondition(singleMasterSword == "give Weapon_Sword_070 1")
+        reject(.give("Weapon_Sword_070", "2"))
+        precondition(ItemGrantRules.blockedReason(for: "Weapon_Sword_070", inventory: []) == nil)
+        let masterSword = InventoryEntry(slot:409,name:"Weapon_Sword_070",type:0,value:4000,equipped:false)
+        precondition(ItemGrantRules.blockedReason(for: "Weapon_Sword_070", inventory:[masterSword]) != nil)
+        precondition(ItemGrantRules.blockedReason(for: "Weapon_Sword_057", inventory:[masterSword]) == nil)
+        for level in MasterSwordLevel.allCases {
+            let command = TrainerCommand.masterSwordLevel(level)
+            let payload = try command.payload()
+            precondition(payload == "master_sword \(level.rawValue)")
+            precondition(command.feature == "master_sword" && !command.requiresPlayerCache)
+            precondition(level.attack == 30 + level.rawValue * 10)
+        }
+        precondition(state.masterSwordLevel == nil && state.masterSwordAttack == nil && state.masterSwordFullPower == nil)
+        precondition(state.mapAccessUnlocked == nil)
+        let mapAccess = TrainerCommand.enableMapAccess
+        let mapAccessPayload = try mapAccess.payload()
+        precondition(mapAccessPayload == "map_access" && mapAccess.feature == "map_access")
+        let clearPayload = try TrainerCommand.markShrineCleared("Dungeon119").payload()
+        let clearAllPayload = try TrainerCommand.markAllShrinesCleared.payload()
+        precondition(clearPayload == "complete_shrine Dungeon119" && clearAllPayload == "complete_all_shrines")
+        precondition(TrainerCommand.markAllShrinesCleared.feature == "shrine_completion")
+        for id in ["Dungeon120","Tower07","Dungeon001\nhealth on","../Dungeon001"] { reject(.markShrineCleared(id)) }
+        for speed in [100,125,200] {
+            let payload = try TrainerCommand.horseSpeed(speed).payload()
+            precondition(payload == "horse_speed \(speed)")
+        }
+        let horseOff = try TrainerCommand.horseSpeed(nil).payload()
+        precondition(horseOff == "horse_speed off" && TrainerCommand.horseSpeed(nil).feature == "horse_speed")
+        reject(.horseSpeed(99));reject(.horseSpeed(201))
+        precondition(state.shrineClearCount == nil && state.horseSpeedMultiplier == nil && state.horseSpeedAvailable == nil)
+        for kind in PouchSlotKind.allCases {
+            precondition(state.slots(for:kind) == nil)
+            for value in [kind.minimum,kind.maximum] {
+                let command = TrainerCommand.pouchSlots(kind,String(value))
+                let payload = try command.payload()
+                precondition(payload == "pouch_slots \(kind.rawValue) \(value)")
+                precondition(command.feature == "pouch_slots")
+            }
+            for value in [String(kind.minimum-1),String(kind.maximum+1),"-1","2.5","nan","20\nhealth on"] {
+                reject(.pouchSlots(kind,value))
+            }
+        }
         precondition(rupees == "rupees 999999")
         precondition(lift == "lift 2.00")
         let teleport = try TrainerCommand.teleport("Dungeon001").payload()
@@ -75,10 +124,26 @@ struct ModelChecks {
         precondition(hearts == "max_hearts 30" && stamina == "max_stamina 3" && full == "full_access")
         var extended = try JSONSerialization.jsonObject(with: Data(json.utf8)) as! [String:Any]
         extended["features"] = ["health":true,"stamina":true,"items":true,"inventory_edit":true]
+        extended["master_sword_level"] = 3
+        extended["master_sword_attack"] = 60
+        extended["master_sword_full_power"] = true
+        extended["weapon_slots"] = 20
+        extended["bow_slots"] = 14
+        extended["shield_slots"] = 20
+        extended["map_access_unlocked"] = true
+        extended["shrine_clear_count"] = 3
+        extended["horse_speed_multiplier"] = 1.5
+        extended["horse_speed_active"] = true
+        extended["horse_speed_available"] = true
+        extended["horse_speed_reason"] = NSNull()
         extended["inventory"] = [["slot":12,"name":"Item_Fruit_A","type":5,"value":10,"equipped":false]]
         extended["destinations"] = [["id":"Dungeon001","name":"A destination","kind":"shrine","x":10.0,"y":20.0,"z":30.0,"unlocked":false]]
         let extendedState = try decoder.decode(TrainerState.self, from: JSONSerialization.data(withJSONObject: extended))
         precondition(extendedState.inventory?.first?.slot == 12)
+        precondition(extendedState.masterSwordLevel == 3 && extendedState.masterSwordAttack == 60 && extendedState.masterSwordFullPower == true)
+        precondition(extendedState.slots(for:.weapons) == 20 && extendedState.slots(for:.bows) == 14 && extendedState.slots(for:.shields) == 20)
+        precondition(extendedState.mapAccessUnlocked == true)
+        precondition(extendedState.shrineClearCount == 3 && extendedState.horseSpeedMultiplier == 1.5 && extendedState.horseSpeedActive == true && extendedState.horseSpeedAvailable == true)
         precondition(extendedState.destinations?.first?.z == 30)
         precondition(extendedState.destinations?.first?.permitsTeleport == true)
         precondition(TrainerConnection.canEditInventory("items",state:extendedState,alive:true,fresh:true,inputExists:true))

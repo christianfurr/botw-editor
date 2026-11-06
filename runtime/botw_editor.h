@@ -25,6 +25,11 @@
 #define BE_FEATURE_MAP       (1u << 5)
 #define BE_FEATURE_RUNES     (1u << 6)
 #define BE_FEATURE_LIFT      (1u << 7)
+#define BE_FEATURE_MASTER_SWORD (1u << 8)
+#define BE_FEATURE_POUCH_SLOTS (1u << 9)
+#define BE_FEATURE_MAP_ACCESS (1u << 10)
+#define BE_FEATURE_SHRINE_COMPLETION (1u << 11)
+#define BE_FEATURE_HORSE_SPEED (1u << 12)
 
 typedef struct {
     unsigned (*features)(uintptr_t main_base);
@@ -51,7 +56,10 @@ typedef struct {
 enum {
     BE_QUEUE_CAPACITY = 32,
     BE_MAX_STACK_QUANTITY = 999,
-    BE_MAX_RAW_DURABILITY = 100000000
+    BE_MAX_RAW_DURABILITY = 100000000,
+    BE_WEAPON_SLOTS_MIN = 8, BE_WEAPON_SLOTS_MAX = 20,
+    BE_BOW_SLOTS_MIN = 5, BE_BOW_SLOTS_MAX = 14,
+    BE_SHIELD_SLOTS_MIN = 4, BE_SHIELD_SLOTS_MAX = 20
 };
 static BotwEditorExtensions be_extensions;
 static BotwEditorRequest be_queue[BE_QUEUE_CAPACITY];
@@ -202,12 +210,16 @@ static void be_publish(const BotwEditorSnapshot *snapshot) {
         be_health_lock ? "true" : "false", be_stamina_lock ? "true" : "false", request, ok ? "true" : "false");
     be_json_string(output, message);
     unsigned features = ready ? snapshot->extra_features : 0;
-    fprintf(output, ",\"features\":{\"health\":%s,\"stamina\":%s,\"rupees\":%s,\"items\":%s,\"inventory_edit\":%s,\"teleport\":%s,\"shrines\":%s,\"map\":%s,\"runes\":%s,\"lift\":%s}",
+    fprintf(output, ",\"features\":{\"health\":%s,\"stamina\":%s,\"rupees\":%s,\"items\":%s,\"inventory_edit\":%s,\"teleport\":%s,\"shrines\":%s,\"map\":%s,\"runes\":%s,\"lift\":%s,\"master_sword\":%s,\"pouch_slots\":%s,\"map_access\":%s,\"shrine_completion\":%s,\"horse_speed\":%s}",
         ready ? "true" : "false", ready ? "true" : "false",
         features & BE_FEATURE_RUPEES ? "true" : "false", features & BE_FEATURE_ITEMS ? "true" : "false",
         features & BE_FEATURE_INVENTORY ? "true" : "false", features & BE_FEATURE_TELEPORT ? "true" : "false",
         features & BE_FEATURE_SHRINES ? "true" : "false", features & BE_FEATURE_MAP ? "true" : "false",
-        features & BE_FEATURE_RUNES ? "true" : "false", features & BE_FEATURE_LIFT ? "true" : "false");
+        features & BE_FEATURE_RUNES ? "true" : "false", features & BE_FEATURE_LIFT ? "true" : "false",
+        features & BE_FEATURE_MASTER_SWORD ? "true" : "false", features & BE_FEATURE_POUCH_SLOTS ? "true" : "false",
+        features & BE_FEATURE_MAP_ACCESS ? "true" : "false",
+        features & BE_FEATURE_SHRINE_COMPLETION ? "true" : "false",
+        features & BE_FEATURE_HORSE_SPEED ? "true" : "false");
     if (be_extensions.snapshot && snapshot->main_base) be_extensions.snapshot(output, snapshot->main_base, ready);
     fputs("}\n", output);
     int failed = ferror(output);
@@ -254,7 +266,7 @@ static int be_parse(const char *line, BotwEditorRequest *request, char *error, s
     strcpy(request->verb, token[2]);
     const char *verb = request->verb;
     if (!strcmp(verb, "status") || !strcmp(verb, "unlock_all_shrines") || !strcmp(verb, "reveal_map") ||
-        !strcmp(verb, "runes") || !strcmp(verb, "paraglider") || !strcmp(verb, "full_access")) {
+        !strcmp(verb, "runes") || !strcmp(verb, "paraglider") || !strcmp(verb, "full_access") || !strcmp(verb, "map_access") || !strcmp(verb, "complete_all_shrines")) {
         if (count == 3) return 1;
     } else if (!strcmp(verb, "health") || !strcmp(verb, "stamina")) {
         if (count == 4 && (!strcmp(token[3], "on") || !strcmp(token[3], "off"))) { strcpy(request->argument, token[3]); return 1; }
@@ -264,6 +276,19 @@ static int be_parse(const char *line, BotwEditorRequest *request, char *error, s
         if (count == 4 && be_integer(token[3], 1, 30, &request->value)) return 1;
     } else if (!strcmp(verb, "max_stamina")) {
         if (count == 4 && be_integer(token[3], 1, 3, &request->value)) return 1;
+    } else if (!strcmp(verb, "master_sword")) {
+        if (count == 4 && be_integer(token[3], 0, 3, &request->value)) return 1;
+    } else if (!strcmp(verb, "pouch_slots")) {
+        int minimum = 0, maximum = 0;
+        if (count == 5) {
+            if (!strcmp(token[3], "weapons")) { minimum = BE_WEAPON_SLOTS_MIN; maximum = BE_WEAPON_SLOTS_MAX; }
+            else if (!strcmp(token[3], "bows")) { minimum = BE_BOW_SLOTS_MIN; maximum = BE_BOW_SLOTS_MAX; }
+            else if (!strcmp(token[3], "shields")) { minimum = BE_SHIELD_SLOTS_MIN; maximum = BE_SHIELD_SLOTS_MAX; }
+            if (maximum && be_integer(token[4], minimum, maximum, &request->value)) { strcpy(request->argument, token[3]); return 1; }
+        }
+    } else if (!strcmp(verb, "horse_speed")) {
+        if (count == 4 && !strcmp(token[3], "off")) { strcpy(request->argument, "off"); return 1; }
+        if (count == 4 && be_integer(token[3], 100, 200, &request->value)) return 1;
     } else if (!strcmp(verb, "give")) {
         if (count == 5 && be_identifier(token[3]) && be_integer(token[4], 1, BE_MAX_STACK_QUANTITY, &request->value)) { strcpy(request->argument, token[3]); return 1; }
     } else if (!strcmp(verb, "quantity")) {
@@ -273,7 +298,7 @@ static int be_parse(const char *line, BotwEditorRequest *request, char *error, s
     } else if (!strcmp(verb, "remove")) {
         int slot;
         if (count == 4 && be_integer(token[3], 0, 419, &slot)) { strcpy(request->argument, token[3]); return 1; }
-    } else if (!strcmp(verb, "teleport") || !strcmp(verb, "unlock_shrine")) {
+    } else if (!strcmp(verb, "teleport") || !strcmp(verb, "unlock_shrine") || !strcmp(verb, "complete_shrine")) {
         if (count == 4 && be_identifier(token[3])) { strcpy(request->argument, token[3]); return 1; }
     } else if (!strcmp(verb, "lift")) {
         if (count == 4 && be_integer(token[3], 1, 50, &request->value)) return 1;
