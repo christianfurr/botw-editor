@@ -22,8 +22,8 @@ struct BOTWEditorApp: App {
 #endif
 
 enum EditorTab: String, CaseIterable {
-    case inventory = "Inventory", player = "Player", world = "World"
-    var icon: String { switch self { case .inventory: return "square.grid.2x2"; case .player: return "person.crop.circle"; case .world: return "map" } }
+    case inventory = "Inventory", player = "Player", world = "World", mods = "Mods"
+    var icon: String { switch self { case .inventory: return "square.grid.2x2"; case .player: return "person.crop.circle"; case .world: return "map"; case .mods: return "shippingbox" } }
 }
 
 private struct ConfirmAction: Identifiable {
@@ -35,7 +35,7 @@ private struct ConfirmAction: Identifiable {
     var destructive = false
 }
 
-private enum Slate {
+enum Slate {
     static let background = Color(red: 0.035, green: 0.067, blue: 0.105)
     static let panel = Color(red: 0.055, green: 0.095, blue: 0.140)
     static let raised = Color(red: 0.080, green: 0.133, blue: 0.180)
@@ -58,7 +58,7 @@ private struct CutCornerShape: Shape {
     }
 }
 
-private struct SlateButtonStyle: ButtonStyle {
+struct SlateButtonStyle: ButtonStyle {
     var primary = false
     var destructive = false
     @Environment(\.isEnabled) private var enabled
@@ -263,6 +263,7 @@ enum InventoryValuePresentation {
 
 struct EditorView: View {
     @ObservedObject var model: PlaygroundModel
+    @StateObject private var mods = ModsModel()
     @State private var tab: EditorTab = .inventory
     @State private var search = ""
     @State private var category = -1
@@ -311,11 +312,16 @@ struct EditorView: View {
     var body: some View {
         VStack(spacing:0) {
             toolbar
-            if !model.available { connectionNotice }
+            if !model.available && tab != .mods { connectionNotice }
             Group {
-                switch tab { case .inventory: inventoryTab; case .player: playerTab; case .world: worldTab }
+                switch tab {
+                case .inventory: inventoryTab
+                case .player: playerTab
+                case .world: worldTab
+                case .mods: ModsView(model: mods)
+                }
             }.frame(maxWidth:.infinity,maxHeight:.infinity).transition(.opacity)
-            feedbackBar
+            if tab != .mods { feedbackBar }
         }
         .frame(minWidth:1000,minHeight:680)
         .background { Slate.background; ContourEngraving() }.foregroundStyle(Slate.ivory).tint(Slate.cyan).preferredColorScheme(.dark)
