@@ -193,7 +193,6 @@ class Backend:
                 raise ModError(blocked)
             if native_game_running():
                 raise ModError("Quit BOTW before applying mods.")
-            overlay, count = overlay_signature(staged)
             previous_key, previous_failed = library.state["applied"], library.state["applied_failed"]
             if before is not None:
                 backup = self.folder.backup_name(self.load)
@@ -203,6 +202,7 @@ class Backend:
                 if staged.exists():
                     staged.rename(self.load)
                     installed = True
+                overlay, count = overlay_signature(self.load)
                 library.state["applied"] = self.applied.applied_key(library, (self.install.runtime_hash, overlay))
                 library.state["applied_failed"] = False
                 self.lib.save(library)

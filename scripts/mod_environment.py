@@ -153,15 +153,14 @@ def overlay_signature(folder):
     with manifest.open(encoding="utf-8", errors="replace") as stream:
         count = sum(bool(line.strip()) and not line.startswith("#") for line in stream)
     checksum = hashlib.sha256(digest(manifest).encode())
-    # Detect files replaced or edited outside the editor, even when the
-    # manifest still has the same text. A status read does not hash the
-    # potentially large mod assets or claim the game loaded them.
+    # Use file identity and content timestamps. macOS can change directory
+    # timestamps during a game launch without changing any loadable files.
     for root, dirs, files in os.walk(folder, followlinks=False):
         dirs.sort()
-        for name in sorted(dirs + files):
+        for name in sorted(files):
             path = Path(root) / name
             st = path.lstat()
             entry = (path.relative_to(folder).as_posix(), st.st_dev, st.st_ino,
-                     st.st_mode, st.st_size, st.st_mtime_ns, st.st_ctime_ns)
+                     st.st_mode, st.st_size, st.st_mtime_ns)
             checksum.update(json.dumps(entry).encode())
     return checksum.hexdigest(), count
