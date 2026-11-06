@@ -37,3 +37,5 @@
 
 - 2026-11-06: Reuse the pinned MacNativeGames RomFS tools for BOTW 1.6.0. Separate the editor library, prepare overlays under the native game-slot lock, retain prior overlays, and report preparation separately from a successful game launch.
 - 2026-11-06: Import complete Switch RomFS and merged BCML exports. Leave raw BNP and within-file merging to BCML or UKMM. Keep local demo assets outside the repository and match stock resource sizes.
+
+- 2026-11-06: Ship MacNative Mods as a separate application. Select installed Zelda or Octopath apps by their game and version, reuse the pinned loaders, and copy the previous BOTW library on first access.

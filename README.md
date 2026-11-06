@@ -4,11 +4,11 @@ A native Mac editor for your running **Breath of the Wild 1.6.0** session in [Ma
 
 Browse your pouch, give items, change player stats, and travel around Hyrule from a separate window. The Sheikah-inspired interface uses compact navigation, an item grid with a persistent inspector, and travel controls over the actual local map.
 
-**0.1.3 is an early prerelease for one specific game/runtime version.** See the [live testing record](docs/TESTING.md) for verified operations and remaining checks.
+**BOTW Editor targets one game/runtime version.** See the [live testing record](docs/TESTING.md) for verified operations and remaining checks.
 
-[Download 0.1.3 — BOTW.Editor.zip](https://github.com/christianfurr/botw-editor/releases/download/v0.1.3/BOTW.Editor.zip) · [Release and source](https://github.com/christianfurr/botw-editor/releases/tag/v0.1.3) · [Setup](docs/INSTALLATION.md)
+[Download BOTW Editor](https://github.com/christianfurr/botw-editor/releases/tag/v0.1.4) · [Setup](docs/INSTALLATION.md)
 
-Open the **Mods** tab to import Switch RomFS mods and merged BCML Switch exports for BOTW 1.6.0. [Mods guide](docs/MODS.md)
+**MacNative Mods** is a separate app for Switch RomFS mods. It supports compatible MacNativeGames builds of Breath of the Wild, Tears of the Kingdom, and Octopath Traveler 0. [Download MacNative Mods](https://github.com/christianfurr/botw-editor/releases/tag/mods-v0.1.0) [Mods guide](docs/MODS.md)
 
 ![BOTW Editor player controls](Assets/screenshots/main.png)
 
@@ -87,7 +87,6 @@ The current app is **ad hoc signed and not Apple-notarized**. If macOS blocks th
 - **Upscaling:** open the sliders button and choose **Upscaling**. Save a preset with **Use on next launch**, then fully quit and reopen BOTW. The saved preset and the current session's active status are displayed separately.
 - **Color & custom shaders:** choose this section of the same panel to adjust the final picture. Its **Off** restores unfiltered color without changing the upscaling preset. Custom source and fallback behavior are documented in [Shaders](docs/SHADERS.md).
 - **Tower travel:** activate the first tower in BOTW or use **Full Access** before traveling to a tower that the editor marks unavailable.
-- **Mods:** import a Switch pack or choose **Add demo mods**. Enable and order the packs, quit BOTW, then choose **Apply for next launch** and reopen the game. [Supported layouts and BCML export](docs/MODS.md)
 - Read each action result before making another edit. Live trainer edits require a supported game session and fresh connection data.
 
 The new 0.1.3 controls require the updated runtime bridge. Older runtime snapshots remain readable; unsupported controls show **Runtime update required** until the bridge is installed and BOTW is relaunched.

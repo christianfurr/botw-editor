@@ -1,5 +1,5 @@
 ---
-verified_at_sha: db7f7ce
+verified_at_sha: 17b31f0
 verified_at: 2026-11-06
 ---
 
@@ -20,8 +20,8 @@ This repository contains the editor and bridge source, never the game or a playe
 
 - `Sources/BOTWPlayground.swift`: Inventory/Player/World views, Give grid, sword levels, capacity sheet, separate map/activation/clear actions, horse control and zoom-dependent map labels.
 - `Sources/PlaygroundModel.swift`: request acknowledgement, optional old-runtime-compatible readbacks, live/readiness gates, canonical/internal item rules and item-name catalog.
-- `Sources/ModsModel.swift` and `Sources/ModsView.swift`: native Mods tab, serialized helper commands, compatibility and next-launch preparation.
-- `scripts/mods.py`, `mod_environment.py`, and `mod_import.py`: private Switch/BCML export library, checked composition, game-slot exclusion and recoverable overlay swaps.
+- `Sources/ModsModel.swift` and `Sources/ModsView.swift`: standalone MacNative Mods views and command model. `Sources/MacNativeMods.swift` selects installed game apps.
+- `scripts/mods.py`, `mod_environment.py`, and `mod_import.py`: separate per-version libraries, legacy BOTW import, checked composition, game-slot exclusion and recoverable overlay swaps.
 - `scripts/mod_demos.py`: exact-size demo resources generated from the installed game; no retail files in the bundle.
 - `Sources/GraphicsModel.swift`: color/custom-shader settings and presenter acknowledgement.
 - `Sources/UpscalingModel.swift` and `GraphicsSettingsView.swift`: separate restart-required upscaling controls, immutable boot-preset confirmation, and actual GPU/dimension status.
@@ -39,6 +39,7 @@ This repository contains the editor and bridge source, never the game or a playe
 - `scripts/test-temporal.sh`, `tests/temporal_config_checks.c`, and `tests/temporal_gpu.m`: ASan/UBSan startup/draw/ordering guards and a 24-completed-frame real MetalFX probe.
 - `tests/upscaling_model_checks.swift`: 90 preset/I/O/status/restart assertions.
 - `scripts/test.sh`: Swift/model/UI checks, core/horse native assertions, 249 temporal guards, GPU probes, eight label fixtures and 33 installer checks.
+- `scripts/build-mod-manager.sh`: standalone manager app and ZIP.
 - `scripts/build.sh`: arm64 app/archive packaging, native icon generation, bundled notices, ad hoc signing, and checksum output.
 - `scripts/generate-icon.swift`: original vector app icon, rendered with AppKit.
 - `Assets/`: original editor artwork and editor-only screenshots. Public screenshots must omit extracted terrain/item artwork; the Player and Graphics views are suitable.
