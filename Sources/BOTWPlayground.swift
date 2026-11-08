@@ -1294,6 +1294,7 @@ struct AddItemView: View {
     @State private var customID = ""
     @State private var quantity = "1"
     @State private var showCustom = false
+    @State private var confirmOutfits = false
     init(model:PlaygroundModel,initialSelection:String? = nil,initialCategory:String = "all") {
         self.model=model
         _selected=State(initialValue:initialSelection)
@@ -1338,7 +1339,17 @@ struct AddItemView: View {
                 }.padding(.top,19).frame(width:145).background(Slate.panel.opacity(0.25))
                 Rectangle().fill(Slate.line).frame(width:1)
                 VStack(alignment:.leading,spacing:16) {
-                    SearchBox(placeholder:"Search items…",text:$search)
+                    HStack(spacing:10) {
+                        SearchBox(placeholder:"Search items…",text:$search)
+                        if model.givingOutfits {
+                            Button("Stop giving outfits") { model.stopGivingOutfits() }
+                                .buttonStyle(SlateButtonStyle())
+                        } else if category == "clothes" {
+                            Button("Give all outfits…") { confirmOutfits=true }
+                                .buttonStyle(SlateButtonStyle())
+                                .disabled(model.missingOutfits.isEmpty || !model.canEditInventory(feature:"items"))
+                        }
+                    }
                     ScrollView {
                         LazyVGrid(columns:[GridItem(.adaptive(minimum:88,maximum:122),spacing:12)],spacing:13) {
                             ForEach(filtered) { item in
@@ -1406,6 +1417,11 @@ struct AddItemView: View {
                 Button("Done") { dismiss() }.buttonStyle(SlateButtonStyle()).keyboardShortcut(.cancelAction)
             }.padding(.horizontal,21).frame(height:55).background(Slate.panel.opacity(0.6))
         }.frame(width:940,height:650).background { Slate.background;ContourEngraving() }.foregroundStyle(Slate.ivory).tint(Slate.cyan).preferredColorScheme(.dark)
+            .confirmationDialog("Give all outfits?",isPresented:$confirmOutfits,titleVisibility:.visible) {
+                Button("Give missing pieces") { model.giveAllOutfits() }
+            } message: {
+                Text("Add \(model.missingOutfits.count) missing base armor pieces. Owned and upgraded pieces are kept. BOTW checks pouch space and availability.")
+            }
             .onAppear { if selected == nil { selected=filtered.first?.id } }
             .onChange(of:chosen) { _,actor in if actor == ItemGrantRules.masterSword || ItemGrantRules.isInternalMasterSwordForm(actor) { quantity="1" } }
     }

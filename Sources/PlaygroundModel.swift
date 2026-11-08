@@ -28,6 +28,20 @@ enum ItemGrantRules {
     }
 }
 
+enum OutfitGrantRules {
+    static func missingBasePieces(in catalog: [CatalogItem], owned: [InventoryEntry]) -> [CatalogItem] {
+        // Armor_140 is the temporary Snow Boots loan. Armor_141 is the keeper pair.
+        let clothes = catalog.filter { $0.category == "clothes" && $0.id != "Armor_140_Lower" }
+        let ownedIDs = Set(owned.map(\.name))
+        let ownedPieces = Set(clothes.filter { ownedIDs.contains($0.id) }.map { baseName($0.name) })
+        return clothes.filter { !$0.name.contains("★") && !ownedPieces.contains(baseName($0.name)) }
+    }
+
+    private static func baseName(_ name: String) -> String {
+        name.replacingOccurrences(of: " ★+", with: "", options: .regularExpression)
+    }
+}
+
 enum MasterSwordLevel: Int, CaseIterable, Identifiable {
     case base = 0, beginning = 1, middle = 2, final = 3
     var id: Int { rawValue }
@@ -391,6 +405,17 @@ final class PlaygroundModel: ObservableObject {
     private var timer: Timer?
     private var lastRequestID: UInt64 = 0
     private var waiting: (id: UInt64, started: Date, givenActor: String?)?
+    private struct OutfitGrant {
+        let pid: Int32
+        let total: Int
+        var remaining: ArraySlice<CatalogItem>
+        var added = 0
+        var rejected = 0
+        var stopping = false
+    }
+    private var outfitGrant: OutfitGrant?
+    private var lastOutfitSnapshot: Data?
+    @Published private(set) var givingOutfits = false
     private var requestedPID: Int32?
     private var processAlive = false
     private var stateFresh = false
@@ -398,9 +423,16 @@ final class PlaygroundModel: ObservableObject {
 
     init() {
         refresh()
-        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+        startRefreshTimer(every: 1)
+    }
+
+    private func startRefreshTimer(every interval: TimeInterval) {
+        timer?.invalidate()
+        let timer = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.refresh() }
         }
+        RunLoop.main.add(timer, forMode: .common)
+        self.timer = timer
     }
 
     func canUse(_ feature: String) -> Bool {
@@ -428,9 +460,71 @@ final class PlaygroundModel: ObservableObject {
         ItemGrantRules.blockedReason(for: actor, inventory: state?.inventory)
     }
 
+    var missingOutfits: [CatalogItem] {
+        guard let inventory = state?.inventory else { return [] }
+        return OutfitGrantRules.missingBasePieces(in: catalog, owned: inventory)
+    }
+
+    func giveAllOutfits() {
+        refresh()
+        guard canEditInventory(feature: "items"), let state else { return }
+        let pieces = missingOutfits
+        guard !pieces.isEmpty else { return }
+        outfitGrant = OutfitGrant(pid: state.pid, total: pieces.count, remaining: pieces[...])
+        givingOutfits = true
+        // The runtime publishes after each grant and checks for commands about every 100 ms.
+        startRefreshTimer(every: 0.05)
+        giveNextOutfit()
+    }
+
+    func stopGivingOutfits() {
+        outfitGrant?.stopping = true
+        feedback = "Stopping after the current piece is confirmed…"
+    }
+
+    private func giveNextOutfit() {
+        guard var grant = outfitGrant else { return }
+        guard !grant.stopping, let next = grant.remaining.popFirst() else {
+            finishOutfitGrant(grant.stopping ? "Stopped." : nil)
+            return
+        }
+        guard state?.pid == grant.pid, canEditInventory(feature: "items") else {
+            finishOutfitGrant("Stopped because the game or pouch became unavailable.")
+            return
+        }
+        outfitGrant = grant
+        send(.give(next.id, "1"), outfitPiece: true)
+        if waiting == nil {
+            finishOutfitGrant("Stopped before sending the next piece. \(feedback)")
+        } else {
+            feedback = "Giving outfits… \(grant.added + grant.rejected + 1) of \(grant.total) · \(next.name)"
+        }
+    }
+
+    private func finishOutfitGrant(_ reason: String? = nil) {
+        guard let grant = outfitGrant else { return }
+        outfitGrant = nil
+        lastOutfitSnapshot = nil
+        givingOutfits = false
+        startRefreshTimer(every: 1)
+        feedback = "Added \(grant.added) of \(grant.total) missing outfit pieces."
+        if grant.rejected > 0 { feedback += " BOTW refused \(grant.rejected). Check pouch space and DLC." }
+        if let reason { feedback += " \(reason)" }
+        if grant.added > 0 { feedback += " Reopen BOTW’s pouch to refresh it." }
+        feedbackIsError = reason != nil || grant.rejected > 0
+    }
+
     func refresh() {
         do {
             let data = try Data(contentsOf: stateURL)
+            if let grant = outfitGrant {
+                if data == lastOutfitSnapshot, let request = waiting,
+                   Date().timeIntervalSince(request.started) < 10,
+                   TrainerConnection.processExists(grant.pid) {
+                    return
+                }
+                lastOutfitSnapshot = data
+            }
             let next = try JSONDecoder().decode(TrainerState.self, from: data)
             let attributes = try FileManager.default.attributesOfItem(atPath: stateURL.path)
             let modified = attributes[.modificationDate] as? Date ?? .distantPast
@@ -456,7 +550,18 @@ final class PlaygroundModel: ObservableObject {
             }
 
             if let request = waiting {
-                if next.lastRequest == request.id {
+                if let grant = outfitGrant {
+                    if !processAlive || next.pid != grant.pid || Date().timeIntervalSince(request.started) > 10 {
+                        waiting = nil
+                        pending = false
+                        finishOutfitGrant("Stopped before BOTW confirmed the last piece.")
+                    } else if next.lastRequest == request.id {
+                        waiting = nil
+                        pending = false
+                        if next.lastOK { outfitGrant?.added += 1 } else { outfitGrant?.rejected += 1 }
+                        giveNextOutfit()
+                    }
+                } else if next.lastRequest == request.id {
                     feedback = next.lastResult.isEmpty ? (next.lastOK ? "The game confirmed the change." : "The game rejected the request.") : next.lastResult
                     if next.lastOK, let actor = request.givenActor {
                         feedback = feedback.replacingOccurrences(of:actor,with:name(for:actor))
@@ -488,15 +593,24 @@ final class PlaygroundModel: ObservableObject {
             inputExists = false
             connectionMessage = "Waiting for BOTW. Open the game and load your session to connect."
             if let request = waiting, Date().timeIntervalSince(request.started) > 10 {
-                feedback = "The game did not confirm this request."
-                feedbackIsError = true
                 waiting = nil
                 pending = false
+                if givingOutfits {
+                    finishOutfitGrant("Stopped before BOTW confirmed the last piece.")
+                } else {
+                    feedback = "The game did not confirm this request."
+                    feedbackIsError = true
+                }
             }
         }
     }
 
     func send(_ command: TrainerCommand) {
+        guard !givingOutfits else { return }
+        send(command, outfitPiece: false)
+    }
+
+    private func send(_ command: TrainerCommand, outfitPiece: Bool) {
         do {
             let payload = try command.payload()
             guard let current = state, current.schema == 1, current.version == "1.6.0", TrainerConnection.processExists(current.pid), FileManager.default.fileExists(atPath: inputURL.path) else {
@@ -541,7 +655,7 @@ final class PlaygroundModel: ObservableObject {
             if case .give(let actor, _) = command { givenActor = actor } else { givenActor = nil }
             waiting = (requestID, Date(), givenActor)
             pending = true
-            feedback = "Waiting for confirmation from the game…"
+            if !outfitPiece { feedback = "Waiting for confirmation from the game…" }
             feedbackIsError = false
         } catch {
             feedback = error.localizedDescription

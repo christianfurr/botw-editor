@@ -31,6 +31,16 @@ struct ModelChecks {
         let rupees = try TrainerCommand.rupees("999999").payload()
         let lift = try TrainerCommand.lift("2").payload()
         precondition(item == "give Item_Fruit_A 20")
+        let outfits = [
+            CatalogItem(id:"Armor_181_Head",name:"Vah Ruta Divine Helm (v1.3.3)",category:"clothes"),
+            CatalogItem(id:"Armor_186_Head",name:"Vah Ruta Divine Helm ★ (v1.3.3)",category:"clothes"),
+            CatalogItem(id:"Armor_140_Lower",name:"Snow Boots?",category:"clothes"),
+            CatalogItem(id:"Armor_141_Lower",name:"Snow Boots",category:"clothes"),
+            CatalogItem(id:"Weapon_Sword_001",name:"Traveler's Sword",category:"weapons"),
+        ]
+        let upgraded = InventoryEntry(slot:12,name:"Armor_186_Head",type:4,value:-1,equipped:true)
+        precondition(OutfitGrantRules.missingBasePieces(in:outfits,owned:[]).map(\.id) == ["Armor_181_Head","Armor_141_Lower"])
+        precondition(OutfitGrantRules.missingBasePieces(in:outfits,owned:[upgraded]).map(\.id) == ["Armor_141_Lower"])
         for actor in ["Weapon_Sword_056", "Weapon_Sword_071", "Weapon_Sword_072"] {
             reject(.give(actor, "1"))
             precondition(ItemGrantRules.isInternalMasterSwordForm(actor))

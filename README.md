@@ -6,7 +6,7 @@ Browse your pouch, give items, change player stats, and travel around Hyrule fro
 
 **BOTW Editor targets one game/runtime version.** See the [live testing record](docs/TESTING.md) for verified operations and remaining checks.
 
-[Download BOTW Editor](https://github.com/christianfurr/botw-editor/releases/tag/v0.1.4) · [Setup](docs/INSTALLATION.md)
+[Download BOTW Editor](https://github.com/christianfurr/botw-editor/releases/tag/v0.1.5) · [Setup](docs/INSTALLATION.md)
 
 **MacNative Mods** is a separate app for Switch RomFS mods. It supports compatible MacNativeGames builds of Breath of the Wild, Tears of the Kingdom, and Octopath Traveler 0. [Download MacNative Mods](https://github.com/christianfurr/botw-editor/releases/tag/mods-v0.1.0) [Mods guide](docs/MODS.md)
 
@@ -77,6 +77,7 @@ The current app is **ad hoc signed and not Apple-notarized**. If macOS blocks th
 ## Use
 
 - **Inventory:** select a tile to inspect it. Apply a new stack quantity or durability value in the detail pane, or choose **Remove Item…**. Unequip gear before editing its durability or removing it. Use **Give item…** to browse the catalog, choose a quantity, and select **Give item**. A successful grant stays visible in the result bar. If Link is holding cooking materials, put them away before editing inventory.
+- **Outfits.** Open **Inventory → Give item… → Armor → Give all outfits…** to add one copy of each missing base armor piece. An upgraded piece counts as owned. The editor reports how many pieces BOTW accepted, and you can stop after the current request.
 - **Master Sword:** select the usable Master Sword (`Weapon_Sword_070`) in Inventory. Unequip it in BOTW, choose an **Awakening level**, then click **Apply level**. The four levels configure 30/40/50/60 normal attack. Nearby evil can still awaken the sword to 60. This control does not change beam power, durability, recharge or Trial of the Sword quest completion.
 - **Pouch slots:** open **Pouch slots…** from the Inventory footer. Choose a larger capacity and click that row's **Apply** button. Supported ranges are weapons 8–20, bows 5–14 and shields 4–20. Capacity can only increase; Korok counts and Hestu quests stay unchanged. Reopen the game's pouch if its displayed capacity is cached.
 - **Player:** use the stat buttons to apply values. Maximum hearts and stamina wait for the live player values to load. The health lock holds your current health; the stamina lock refills stamina. Both locks start off.
