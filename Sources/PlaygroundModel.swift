@@ -24,11 +24,20 @@ enum ItemGrantRules {
         if actor == masterSword, inventory?.contains(where: { $0.name == masterSword }) == true {
             return "The Master Sword is already in your pouch. BOTW allows one. Equip it in the game, or select its inventory tile to edit durability."
         }
+        if actor.hasPrefix("Armor_"), let inventory, OutfitGrantRules.freeSlots(in: inventory) == 0 {
+            return "Your armor pouch is full (\(OutfitGrantRules.armorCapacity) pieces). Free a slot before adding armor."
+        }
         return nil
     }
 }
 
 enum OutfitGrantRules {
+    static let armorCapacity = 100
+
+    static func freeSlots(in inventory: [InventoryEntry]) -> Int {
+        max(0, armorCapacity - inventory.filter { (4...6).contains($0.type) }.count)
+    }
+
     static func missingBasePieces(in catalog: [CatalogItem], owned: [InventoryEntry]) -> [CatalogItem] {
         // Armor_140 is the temporary Snow Boots loan. Armor_141 is the keeper pair.
         let clothes = catalog.filter { $0.category == "clothes" && $0.id != "Armor_140_Lower" }
@@ -399,12 +408,12 @@ final class PlaygroundModel: ObservableObject {
     @Published private(set) var feedbackIsError = false
     @Published private(set) var pending = false
 
-    let folder = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support/MacNativeGames/BotW", isDirectory: true)
+    let folder: URL
     private var stateURL: URL { folder.appendingPathComponent("trainer-state.json") }
     private var inputURL: URL { folder.appendingPathComponent("input.txt") }
     private var timer: Timer?
     private var lastRequestID: UInt64 = 0
-    private var waiting: (id: UInt64, started: Date, givenActor: String?)?
+    private var waiting: (id: UInt64, pid: Int32, started: Date, givenActor: String?)?
     private struct OutfitGrant {
         let pid: Int32
         let total: Int
@@ -416,12 +425,14 @@ final class PlaygroundModel: ObservableObject {
     private var outfitGrant: OutfitGrant?
     private var lastOutfitSnapshot: Data?
     @Published private(set) var givingOutfits = false
-    private var requestedPID: Int32?
     private var processAlive = false
     private var stateFresh = false
     private var inputExists = false
 
-    init() {
+    init(folder: URL = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(
+        "Library/Application Support/MacNativeGames/BotW", isDirectory: true
+    )) {
+        self.folder = folder
         refresh()
         startRefreshTimer(every: 1)
     }
@@ -465,11 +476,15 @@ final class PlaygroundModel: ObservableObject {
         return OutfitGrantRules.missingBasePieces(in: catalog, owned: inventory)
     }
 
+    var freeArmorSlots: Int? {
+        state?.inventory.map(OutfitGrantRules.freeSlots)
+    }
+
     func giveAllOutfits() {
         refresh()
         guard canEditInventory(feature: "items"), let state else { return }
         let pieces = missingOutfits
-        guard !pieces.isEmpty else { return }
+        guard !pieces.isEmpty, let freeArmorSlots, freeArmorSlots > 0 else { return }
         outfitGrant = OutfitGrant(pid: state.pid, total: pieces.count, remaining: pieces[...])
         givingOutfits = true
         // The runtime publishes after each grant and checks for commands about every 100 ms.
@@ -488,8 +503,12 @@ final class PlaygroundModel: ObservableObject {
             finishOutfitGrant(grant.stopping ? "Stopped." : nil)
             return
         }
-        guard state?.pid == grant.pid, canEditInventory(feature: "items") else {
+        guard state?.pid == grant.pid, canEditInventory(feature: "items"), let freeArmorSlots else {
             finishOutfitGrant("Stopped because the game or pouch became unavailable.")
+            return
+        }
+        if freeArmorSlots == 0 {
+            finishOutfitGrant("Armor pouch full (\(OutfitGrantRules.armorCapacity) pieces).")
             return
         }
         outfitGrant = grant
@@ -550,39 +569,25 @@ final class PlaygroundModel: ObservableObject {
             }
 
             if let request = waiting {
-                if let grant = outfitGrant {
-                    if !processAlive || next.pid != grant.pid || Date().timeIntervalSince(request.started) > 10 {
-                        waiting = nil
-                        pending = false
-                        finishOutfitGrant("Stopped before BOTW confirmed the last piece.")
-                    } else if next.lastRequest == request.id {
-                        waiting = nil
-                        pending = false
+                if !processAlive || next.pid != request.pid {
+                    interruptRequest("BOTW closed or restarted before confirming the change.")
+                } else if connected && next.lastRequest == request.id {
+                    waiting = nil
+                    pending = false
+                    if givingOutfits {
                         if next.lastOK { outfitGrant?.added += 1 } else { outfitGrant?.rejected += 1 }
                         giveNextOutfit()
+                    } else {
+                        feedback = next.lastResult.isEmpty ? (next.lastOK ? "The game confirmed the change." : "The game rejected the request.") : next.lastResult
+                        if next.lastOK, let actor = request.givenActor {
+                            feedback = feedback.replacingOccurrences(of:actor,with:name(for:actor))
+                            feedback += ". If BOTW’s pouch was open, close and reopen it to refresh its display."
+                        }
+                        feedbackIsError = !next.lastOK
                     }
-                } else if next.lastRequest == request.id {
-                    feedback = next.lastResult.isEmpty ? (next.lastOK ? "The game confirmed the change." : "The game rejected the request.") : next.lastResult
-                    if next.lastOK, let actor = request.givenActor {
-                        feedback = feedback.replacingOccurrences(of:actor,with:name(for:actor))
-                        feedback += ". If BOTW’s pouch was open, close and reopen it to refresh its display."
-                    }
-                    feedbackIsError = !next.lastOK
-                    waiting = nil
-                    pending = false
                 } else if Date().timeIntervalSince(request.started) > 10 {
-                    feedback = "No confirmation received. The change has not been verified."
-                    feedbackIsError = true
-                    waiting = nil
-                    pending = false
+                    interruptRequest("BOTW did not confirm the change.")
                 }
-            }
-
-            if processAlive && inputExists && requestedPID != next.pid && !pending {
-                requestedPID = next.pid
-                #if !UI_SNAPSHOT
-                send(.status)
-                #endif
             }
         } catch {
             state = nil
@@ -591,17 +596,25 @@ final class PlaygroundModel: ObservableObject {
             processAlive = false
             stateFresh = false
             inputExists = false
-            connectionMessage = "Waiting for BOTW. Open the game and load your session to connect."
-            if let request = waiting, Date().timeIntervalSince(request.started) > 10 {
-                waiting = nil
-                pending = false
-                if givingOutfits {
-                    finishOutfitGrant("Stopped before BOTW confirmed the last piece.")
-                } else {
-                    feedback = "The game did not confirm this request."
-                    feedbackIsError = true
+            connectionMessage = "Open BOTW and load a save. If you’re already playing, check the bridge setup."
+            if let request = waiting {
+                if !TrainerConnection.processExists(request.pid) {
+                    interruptRequest("BOTW closed before confirming the change.")
+                } else if Date().timeIntervalSince(request.started) > 10 {
+                    interruptRequest("BOTW did not confirm the change.")
                 }
             }
+        }
+    }
+
+    private func interruptRequest(_ reason: String) {
+        waiting = nil
+        pending = false
+        if givingOutfits {
+            finishOutfitGrant(reason)
+        } else {
+            feedback = reason
+            feedbackIsError = true
         }
     }
 
@@ -653,7 +666,7 @@ final class PlaygroundModel: ObservableObject {
             try handle.write(contentsOf: Data(line.utf8))
             let givenActor: String?
             if case .give(let actor, _) = command { givenActor = actor } else { givenActor = nil }
-            waiting = (requestID, Date(), givenActor)
+            waiting = (requestID, current.pid, Date(), givenActor)
             pending = true
             if !outfitPiece { feedback = "Waiting for confirmation from the game…" }
             feedbackIsError = false

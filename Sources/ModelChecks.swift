@@ -41,6 +41,11 @@ struct ModelChecks {
         let upgraded = InventoryEntry(slot:12,name:"Armor_186_Head",type:4,value:-1,equipped:true)
         precondition(OutfitGrantRules.missingBasePieces(in:outfits,owned:[]).map(\.id) == ["Armor_181_Head","Armor_141_Lower"])
         precondition(OutfitGrantRules.missingBasePieces(in:outfits,owned:[upgraded]).map(\.id) == ["Armor_141_Lower"])
+        precondition(OutfitGrantRules.freeSlots(in:[upgraded, inventoryItem(type:7)]) == 99)
+        precondition(OutfitGrantRules.freeSlots(in:Array(repeating:upgraded,count:101)) == 0)
+        let fullArmor = Array(repeating:upgraded,count:100)
+        precondition(ItemGrantRules.blockedReason(for:"Armor_001_Head",inventory:fullArmor)?.contains("full") == true)
+        precondition(ItemGrantRules.blockedReason(for:"Item_Fruit_A",inventory:fullArmor) == nil)
         for actor in ["Weapon_Sword_056", "Weapon_Sword_071", "Weapon_Sword_072"] {
             reject(.give(actor, "1"))
             precondition(ItemGrantRules.isInternalMasterSwordForm(actor))

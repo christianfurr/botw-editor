@@ -15,6 +15,11 @@ xcrun swiftc -O -target arm64-apple-macosx26.0 -D MODEL_CHECKS \
     "$REPO_ROOT/Sources/ModelChecks.swift" \
     -o "$BUILD_DIR/model-checks"
 "$BUILD_DIR/model-checks"
+xcrun swiftc -O -target arm64-apple-macosx26.0 \
+    "$REPO_ROOT/Sources/PlaygroundModel.swift" \
+    "$REPO_ROOT/tests/trainer_session_checks.swift" \
+    -o "$BUILD_DIR/trainer-session-checks"
+"$BUILD_DIR/trainer-session-checks"
 # Compile the real UI formatting helpers without starting an app or game session.
 xcrun swiftc -O -target arm64-apple-macosx26.0 -D UI_SNAPSHOT \
     "$REPO_ROOT/Sources/PlaygroundModel.swift" \

@@ -2,6 +2,8 @@ import SwiftUI
 import AppKit
 import ImageIO
 
+private let setupGuide = URL(string:"https://github.com/christianfurr/botw-editor/blob/v0.1.5/docs/INSTALLATION.md")!
+
 #if !UI_SNAPSHOT
 @main
 struct BOTWEditorApp: App {
@@ -15,6 +17,9 @@ struct BOTWEditorApp: App {
                 CommandGroup(after: .toolbar) {
                     Button("Refresh Connection") { model.refresh(); if model.connected { model.send(.status) } }
                         .keyboardShortcut("r", modifiers: .command)
+                }
+                CommandGroup(replacing: .help) {
+                    Link("BOTW Editor Setup and Recovery", destination:setupGuide)
                 }
             }
     }
@@ -349,7 +354,7 @@ struct EditorView: View {
             }
             HStack(spacing:6) {
                 Circle().fill(model.available ? Color.green : Slate.gold).frame(width:5,height:5)
-                Text(model.available ? "Connected" : model.connected ? "Waiting" : "Game closed").font(.system(size:11,design:.serif)).italic()
+                Text(model.available ? "Connected" : model.connected ? "Waiting" : "Disconnected").font(.system(size:11,design:.serif)).italic()
             }.help(model.connectionMessage)
             hud("diamond.fill",value:liveRupees,color:Slate.cyan)
             Button { showGraphics=true } label: { Image(systemName:"slider.horizontal.3").font(.system(size:12)) }.buttonStyle(.plain).accessibilityLabel("Graphics and shader settings").help("Graphics and shaders")
@@ -420,6 +425,9 @@ struct EditorView: View {
             Image(systemName:model.state?.teleportBusy == true ? "arrow.trianglehead.2.clockwise.rotate.90" : "info.circle").foregroundStyle(Slate.gold)
             Text(model.connectionMessage).font(.system(size:11)).lineLimit(2)
             Spacer()
+            if !model.connected {
+                Link("Setup guide",destination:setupGuide).font(.system(size:11,weight:.semibold)).foregroundStyle(Slate.cyan)
+            }
         }.padding(.horizontal,20).padding(.vertical,10).background(Slate.gold.opacity(0.06))
             .overlay(alignment:.bottom) { Rectangle().fill(Slate.gold.opacity(0.12)).frame(height:1) }
     }
@@ -1347,8 +1355,12 @@ struct AddItemView: View {
                         } else if category == "clothes" {
                             Button("Give all outfits…") { confirmOutfits=true }
                                 .buttonStyle(SlateButtonStyle())
-                                .disabled(model.missingOutfits.isEmpty || !model.canEditInventory(feature:"items"))
+                                .disabled(model.missingOutfits.isEmpty || model.freeArmorSlots == 0 || !model.canEditInventory(feature:"items"))
                         }
+                    }
+                    if category == "clothes", model.available, let slots = model.freeArmorSlots {
+                        Text(slots == 0 ? "Armor pouch full (\(OutfitGrantRules.armorCapacity) pieces)." : "\(slots) of \(OutfitGrantRules.armorCapacity) armor slots free")
+                            .font(.system(size:11)).foregroundStyle(slots == 0 ? Slate.gold : Slate.muted)
                     }
                     ScrollView {
                         LazyVGrid(columns:[GridItem(.adaptive(minimum:88,maximum:122),spacing:12)],spacing:13) {
@@ -1420,7 +1432,7 @@ struct AddItemView: View {
             .confirmationDialog("Give all outfits?",isPresented:$confirmOutfits,titleVisibility:.visible) {
                 Button("Give missing pieces") { model.giveAllOutfits() }
             } message: {
-                Text("Add \(model.missingOutfits.count) missing base armor pieces. Owned and upgraded pieces are kept. BOTW checks pouch space and availability.")
+                Text("Add up to \(min(model.freeArmorSlots ?? 0, model.missingOutfits.count)) of \(model.missingOutfits.count) missing base pieces. Owned and upgraded pieces are kept.")
             }
             .onAppear { if selected == nil { selected=filtered.first?.id } }
             .onChange(of:chosen) { _,actor in if actor == ItemGrantRules.masterSword || ItemGrantRules.isInternalMasterSwordForm(actor) { quantity="1" } }

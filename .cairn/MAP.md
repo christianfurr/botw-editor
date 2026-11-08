@@ -1,6 +1,6 @@
 ---
-verified_at_sha: 17b31f0
-verified_at: 2026-11-06
+verified_at_sha: 3a09e5a
+verified_at: 2026-11-08
 ---
 
 # BOTW Editor
@@ -15,11 +15,12 @@ This repository contains the editor and bridge source, never the game or a playe
 - [Mods](../docs/MODS.md): Switch formats, BCML export, demos, and recovery.
 - [Architecture](../docs/ARCHITECTURE.md): command acknowledgement and runtime bridge.
 - [Testing](../docs/TESTING.md): evidence and live verification requirements.
+- [First stable release](../docs/FIRST-RELEASE.md): readiness checklist, live recovery evidence, and signing steps.
 
 ## Source layout
 
 - `Sources/BOTWPlayground.swift`: Inventory/Player/World views, Give grid, sword levels, capacity sheet, separate map/activation/clear actions, horse control and zoom-dependent map labels.
-- `Sources/PlaygroundModel.swift`: request acknowledgement, optional old-runtime-compatible readbacks, live/readiness gates, canonical/internal item rules and item-name catalog.
+- `Sources/PlaygroundModel.swift`: session-bound acknowledgement, live/readiness gates, item rules, bulk armor grants, and the item catalog. `tests/trainer_session_checks.swift` checks stale replies, reconnects, and process exit.
 - `Sources/ModsModel.swift` and `Sources/ModsView.swift`: standalone MacNative Mods views and command model. `Sources/MacNativeMods.swift` selects installed game apps.
 - `scripts/mods.py`, `mod_environment.py`, and `mod_import.py`: separate per-version libraries, legacy BOTW import, checked composition, game-slot exclusion and recoverable overlay swaps.
 - `scripts/mod_demos.py`: exact-size demo resources generated from the installed game; no retail files in the bundle.

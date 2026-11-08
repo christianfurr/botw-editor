@@ -16,7 +16,7 @@ BOTW Editor requires a working MacNativeGames BOTW **1.6.0** app and the matchin
    ```
 
 4. Read the result and preserve the backup locations printed by the installer. It extracts 135 travel destinations, terrain, localized place labels, and item icons from the local game into the editor's private cache.
-5. Launch BOTW and load your gameplay session, then open BOTW Editor.
+5. Launch BOTW and load your gameplay session, then open BOTW Editor. The toolbar should say **Connected**. The **Setup guide** link and the app's Help menu open these instructions.
 
 The release app alone cannot edit an unmodified game runtime. Installing the bridge does not require uploading the game, saves, firmware, or keys.
 
@@ -87,6 +87,8 @@ Restart the editor after extraction. A missing icon uses a system-symbol fallbac
 ## Restore
 
 Quit BOTW and BOTW Editor before restoring files. Use the application/profile copies created before the change and the paths printed by the installer.
+
+To make a fresh save backup before bulk edits, quit BOTW and copy the complete `profile` folder listed below to a separate folder. Keep that copy until you have opened the save and checked the results of your edits.
 
 - To remove the bridge, restore the backed-up **game app**. This does not revert saved inventory or world changes.
 - To undo saved gameplay changes, restore the matching **profile** backup. Move the current profile aside first, then restore the complete backed-up profile rather than merging old and new files.
