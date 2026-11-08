@@ -12,6 +12,7 @@ import stat
 import subprocess
 
 PINNED_COMMIT = "b1a49a26650eb31a986e7841f449bb44446c5208"
+SUPPORTED_CHECKOUTS = {PINNED_COMMIT, "9fe3fdc1d08ce5e1a64d120f257d79cc2dc7c0ca"}
 
 @dataclass(frozen=True)
 class Game:
@@ -99,8 +100,8 @@ def legacy_repo():
 def verify_checkout(repo):
     git = subprocess.run(["/usr/bin/git", "-C", str(repo), "rev-parse", "HEAD"],
                          capture_output=True, text=True, timeout=10)
-    if git.returncode or git.stdout.strip() != PINNED_COMMIT:
-        raise ModError("Choose the MacNativeGames checkout at supported revision b1a49a2.")
+    if git.returncode or git.stdout.strip() not in SUPPORTED_CHECKOUTS:
+        raise ModError("Choose a supported MacNativeGames checkout at b1a49a2 or 9fe3fdc.")
     tools = ("tools/builder", "tools/__init__.py", "games/totk/scripts",
              "games/ot0/scripts/make_mod_manifest.py")
     status = subprocess.run(["/usr/bin/git", "--no-optional-locks", "-C", str(repo), "status", "--porcelain",
@@ -127,7 +128,18 @@ def installation(app, repo=None):
         if (versions != {version} or not regular(romfs / "runtime-index.bin") or not regular(runtime)
                 or (game.resources == "game" and info.get("OT0Version") != version)):
             raise ModError("The app's game files do not match its advertised version.")
-        repo = repo or legacy_repo()
+        if repo is None:
+            stamped = info.get("MNGSourceRepo")
+            if isinstance(stamped, str):
+                candidate = Path(stamped)
+                if candidate.is_absolute() and candidate.is_dir():
+                    try:
+                        verify_checkout(candidate)
+                    except ModError:
+                        pass
+                    else:
+                        repo = candidate
+            repo = repo or legacy_repo()
         if repo is None:
             raise ModError("Choose your MacNativeGames checkout to use its RomFS tools.")
         repo = repo.expanduser().resolve(strict=True)

@@ -21,3 +21,5 @@ jobs:
         run: ./scripts/build.sh
       - name: Build the standalone mod manager
         run: ./scripts/build-mod-manager.sh
+      - name: Test the mod resource-table merger
+        run: python3 -B scripts/test_mod_rstb.py

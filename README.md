@@ -8,7 +8,7 @@ Browse your pouch, give items, change player stats, and travel around Hyrule fro
 
 [Download BOTW Editor](https://github.com/christianfurr/botw-editor/releases/tag/v0.1.4) · [Setup](docs/INSTALLATION.md)
 
-**MacNative Mods** is a separate app for Switch RomFS mods. It supports compatible MacNativeGames builds of Breath of the Wild, Tears of the Kingdom, and Octopath Traveler 0. [Download MacNative Mods](https://github.com/christianfurr/botw-editor/releases/tag/mods-v0.1.0) [Mods guide](docs/MODS.md)
+**MacNative Mods** is a separate app for managing Switch RomFS mods and loadouts on compatible MacNativeGames builds. The public beta leads with Breath of the Wild 1.6.0. [MacNative Mods site](https://christianfurr.github.io/botw-editor/) · [Download 0.2.4](https://github.com/christianfurr/botw-editor/releases/tag/mods-v0.2.4) · [Mods guide](docs/MODS.md)
 
 ![BOTW Editor player controls](Assets/screenshots/main.png)
 

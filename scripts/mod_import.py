@@ -1,6 +1,7 @@
 """Inspect Switch mod packages and import their RomFS through MacNativeGames."""
 
 import os
+import json
 from pathlib import Path
 import re
 import stat
@@ -9,6 +10,39 @@ import unicodedata
 
 from mod_environment import ModError, present, regular
 from mod_demos import make_demos
+from mod_models import import_obj
+from mod_profiles import DEPENDENCIES, dependencies
+
+
+DESCRIPTION_FILE = ".description.txt"
+README_FILES = ("readme.md", "readme.txt")
+
+
+def read_description(path):
+    try:
+        if not regular(path):
+            return None
+        with path.open("rb") as stream:
+            return stream.read(8192).decode("utf-8-sig", errors="ignore").strip() or None
+    except OSError:
+        return None
+
+
+def package_description(romfs, source, single):
+    wrapper = romfs.parent if romfs.name == "romfs" else romfs
+    folders = (wrapper, source) if single and source != wrapper and source.name != "romfs" else (wrapper,)
+    for folder in folders:
+        for path in sorted(folder.iterdir()):
+            if path.name.casefold() not in README_FILES:
+                continue
+            if text := read_description(path):
+                for paragraph in re.split(r"\n\s*\n", text):
+                    lines = [line.strip() for line in paragraph.splitlines()
+                             if line.strip() and not line.lstrip().startswith("#")]
+                    if lines:
+                        summary = " ".join(lines)
+                        return summary if len(summary) <= 600 else summary[:597].rsplit(" ", 1)[0] + "…"
+    return None
 
 
 REFUSALS = {
@@ -150,26 +184,58 @@ def import_romfs(backend, source, name):
 
 
 def import_candidates(backend, source, candidates, name):
-    original = backend.find.find
+    original_find = backend.find.find
+    original_clone = backend.lib.clone
+    descriptions = {candidate.romfs: package_description(candidate.romfs, source, len(candidates) == 1)
+                    for candidate in candidates}
+    required = {}
+    for candidate in candidates:
+        romfs = candidate.romfs
+        wrapper = romfs.parent if romfs.name == "romfs" else romfs
+        locations = (wrapper, source) if len(candidates) == 1 else (wrapper,)
+        metadata = next((folder for folder in locations if present(folder / DEPENDENCIES)), None)
+        required[romfs] = dependencies(metadata) if metadata is not None else ()
+
+    def clone(runner, folder, destination):
+        original_clone(runner, folder, destination)
+        if folder.name != "romfs":
+            # Flat exports can put their README alongside the RomFS top-level folders.
+            for path in destination.iterdir():
+                if path.name.casefold() in (*README_FILES, DEPENDENCIES) and regular(path):
+                    path.unlink()
+        if description := descriptions.get(folder):
+            (destination.parent / DESCRIPTION_FILE).write_text(description + "\n", encoding="utf-8")
+        if required[folder]:
+            (destination.parent / DEPENDENCIES).write_text(
+                json.dumps({"requires": required[folder]}, ensure_ascii=False) + "\n", encoding="utf-8")
+
     try:
-        # Retain the pinned importer's atomic copy, with only the validated data trees.
+        # Keep the description within the upstream importer's rollback boundary.
         backend.find.find = lambda picked, tops, title: candidates
+        backend.lib.clone = clone
         return backend.add.add(backend.runner, backend.install.repo, backend.install.app, backend.install.version,
                                backend.library, source, name=name)
     finally:
-        backend.find.find = original
+        backend.find.find = original_find
+        backend.lib.clone = original_clone
 
 
-def import_mod(backend, source):
+def import_mod(backend, source, *, attack=None, durability=None, fire_capacity=None):
     source = source.expanduser()
     if not present(source):
         raise ModError("Choose a mod folder or archive that exists.")
     if source.is_symlink():
         raise ModError("Choose the original mod folder or archive.")
+    if any(value is not None for value in (attack, durability, fire_capacity)) and (
+            source.suffix.lower() != ".obj" or not regular(source)):
+        raise ModError("Weapon stats require a regular Flameblade OBJ file.")
     if source.is_dir():
         return import_folder(backend, source)
     if not regular(source):
-        raise ModError("Choose a regular mod archive.")
+        raise ModError("Choose a regular mod archive or OBJ model.")
+    if source.suffix.lower() == ".obj":
+        return import_obj(backend, source, import_romfs, attack=attack, durability=durability,
+                          fire_capacity=fire_capacity)
     with tempfile.TemporaryDirectory(prefix="import-", dir=backend.root) as scratch:
         extracted = extract_archive(backend.archive, source, Path(scratch) / "files")
         return import_folder(backend, extracted, source.stem)

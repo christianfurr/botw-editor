@@ -42,48 +42,102 @@ private struct ModManagerWindow: View {
     @AppStorage("addedGames") private var addedGames = ""
     @State private var games: [ModTarget] = []
     @State private var selection: URL?
+    @State private var model: ModsModel?
     @State private var selectionError = false
+    @State private var openedBNPs: [URL] = []
+    @State private var needsBNPGame = false
 
     var body: some View {
         NavigationSplitView {
-            List(selection: $selection) {
-                Section("Games") {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("Games")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 9).padding(.bottom, 3)
+                        .accessibilityAddTraits(.isHeader)
                     ForEach(games) { game in
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(game.name)
-                            Text(game.version).font(.caption).foregroundStyle(.secondary)
+                        Button { selection = game.id } label: {
+                            HStack(spacing: 9) {
+                                Image(systemName: "gamecontroller").frame(width: 17)
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(game.name).font(.system(size: 12, weight: .medium))
+                                    Text(game.version).font(.caption2).foregroundStyle(.secondary)
+                                }
+                                Spacer(minLength: 0)
+                            }
+                            .padding(.horizontal, 9).padding(.vertical, 7)
+                            .contentShape(Rectangle())
+                            .background(selection == game.id ? Color.accentColor.opacity(0.18) : Color.clear,
+                                        in: RoundedRectangle(cornerRadius: 6))
                         }
-                        .tag(game.id)
+                        .buttonStyle(.plain)
+                        .accessibilityAddTraits(selection == game.id ? .isSelected : [])
+                    }
+                    if let model {
+                        Divider().padding(.vertical, 10)
+                        ModsProfileSidebar(model: model).id(model.target.id)
                     }
                 }
+                .padding(.horizontal, 10).padding(.vertical, 14)
             }
-            .navigationSplitViewColumnWidth(min: 200, ideal: 220)
+            .navigationSplitViewColumnWidth(min: 176, ideal: 197, max: 250)
             .safeAreaInset(edge: .bottom) {
-                Button("Add Game…", systemImage: "plus") { chooseGame() }
-                    .padding(10)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                VStack(alignment: .leading, spacing: 7) {
+                    Divider()
+                    Button("Add Game…", systemImage: "plus") { chooseGame() }
+                    Button("Game tools folder…", systemImage: "gearshape") { chooseCheckout() }
+                        .help(checkout.isEmpty ? "Choose your MacNativeGames checkout folder." : checkout)
+                }
+                .buttonStyle(.plain)
+                .font(.system(size: 12))
+                .padding(11)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(.bar)
             }
         } detail: {
-            if let game = games.first(where: { $0.id == selection }) {
-                GameLibrary(game: game, checkout: checkout)
-                    .id([game.url.path, checkout])
+            if let model {
+                ModsView(model: model, openedBNPs: $openedBNPs).id(ObjectIdentifier(model))
             } else {
                 ContentUnavailableView("Select a game", systemImage: "shippingbox",
                                        description: Text("Add a MacNativeGames app to manage its RomFS mods."))
             }
         }
-        .frame(minWidth: 940, minHeight: 530)
-        .toolbar {
-            Button("MacNativeGames Folder…", systemImage: "folder") { chooseCheckout() }
-                .help(checkout.isEmpty ? "Use the checkout from BOTW setup or select a folder." : checkout)
-        }
+        .frame(minWidth: 940, minHeight: 545)
+        .preferredColorScheme(.dark)
         .task { scan() }
-        .onChange(of: selection) { _, url in if let url { selectedPath = url.path } }
+        .onChange(of: selection, initial: true) { _, url in
+            if let url { selectedPath = url.path }
+            openLibrary()
+        }
+        .onChange(of: checkout) { openLibrary() }
+        .onOpenURL(perform: openBNP)
         .alert("Choose a supported game", isPresented: $selectionError) {
             Button("OK", role: .cancel) {}
         } message: {
             Text("Select a MacNativeGames build of Breath of the Wild, Tears of the Kingdom, or Octopath Traveler 0.")
         }
+        .alert("Breath of the Wild 1.6.0 required", isPresented: $needsBNPGame) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Add a MacNativeGames Breath of the Wild 1.6.0 app before opening a Switch BNP pack.")
+        }
+    }
+
+    private func openBNP(_ url: URL) {
+        guard url.isFileURL, url.pathExtension.lowercased() == "bnp" else { return }
+        if games.isEmpty { scan() }
+        let matches = games.filter { $0.dataFolder == "BotW" && $0.version == "1.6.0" }
+        guard let game = matches.first(where: { $0.id == selection }) ?? matches.first else {
+            needsBNPGame = true
+            return
+        }
+        selection = game.id
+        if !openedBNPs.contains(url) { openedBNPs.append(url) }
+    }
+
+    private func openLibrary() {
+        model = games.first(where: { $0.id == selection }).map { ModsModel(target: $0, checkout: checkout) }
     }
 
     private func scan() {
@@ -121,14 +175,4 @@ private struct ModManagerWindow: View {
         panel.prompt = "Choose Folder"
         if panel.runModal() == .OK, let url = panel.url { checkout = url.path }
     }
-}
-
-private struct GameLibrary: View {
-    @StateObject private var model: ModsModel
-
-    init(game: ModTarget, checkout: String) {
-        _model = StateObject(wrappedValue: ModsModel(target: game, checkout: checkout))
-    }
-
-    var body: some View { ModsView(model: model) }
 }

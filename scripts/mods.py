@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 import re
 import shutil
+import subprocess
 import sys
 import tempfile
 
@@ -22,7 +23,10 @@ from mod_environment import (
     game_running, installation, lock_file, native_game_running, overlay_signature,
     present, regular,
 )
-from mod_import import REFUSALS, check_composition_paths, demos, import_mod, inspect_tree
+from mod_import import DESCRIPTION_FILE, REFUSALS, check_composition_paths, demos, import_mod, inspect_tree, read_description
+from mod_bcml import import_bnps
+from mod_profiles import dependency_issues, export_profile, import_profile
+import mod_rstb
 
 
 LIBRARY_MARKER = ".botw-editor-library-v1"
@@ -62,13 +66,15 @@ class Backend:
         self.root = manager_data() / "mod-library" / self.version
         self.library = None
         self.ot_manifest = None
+        self.romfs_image = install.romfs / "romfs.bin"
         if self.game.data_folder == "OT0":
             self.configure_octopath()
         else:
             manifest.IMAGE_DIR = None
             if not (install.romfs / "romfs.bin").is_file():
                 manifest.IMAGE_DIR = manifest.app_image_dir(install.app, self.version)
-                if not manifest.image_file(install.romfs).is_file():
+                self.romfs_image = manifest.image_file(install.romfs)
+                if not self.romfs_image.is_file():
                     raise ModError("Open the game once to locate its data folder.")
 
     def configure_octopath(self):
@@ -139,6 +145,63 @@ class Backend:
                     raise ModError("An imported mod folder is missing or invalid.")
                 inspect_tree(folder)
         self.library = self.lib.open_library(manager_data(), self.version, self.load)
+        state = self.library.state
+        state.setdefault("profiles", {"Default": {"order": [], "enabled": []}})
+        state.setdefault("selected_profile", "Default")
+        profiles = state["profiles"]
+        if (not isinstance(profiles, dict) or not 1 <= len(profiles) <= 64
+                or not isinstance(state["selected_profile"], str)
+                or state["selected_profile"] not in profiles):
+            raise ModError("The mod profile record is invalid.")
+        for name, profile in profiles.items():
+            if (not valid_profile_name(name) or not isinstance(profile, dict)
+                    or any(not isinstance(profile.get(key), list)
+                           or any(not isinstance(i, str) or not MOD_ID.fullmatch(i) for i in profile[key])
+                           or len(set(profile[key])) != len(profile[key]) for key in ("order", "enabled"))
+                    or not set(profile["enabled"]).issubset(profile["order"])):
+                raise ModError("The mod profile record is invalid.")
+
+    def profile_command(self, args):
+        state = self.library.state
+        profiles = state["profiles"]
+        current = state["selected_profile"]
+        name = args.name.strip()
+        if args.action in ("profile-create", "profile-rename"):
+            if not valid_profile_name(name):
+                raise ModError("Enter a profile name between 1 and 48 characters.")
+            duplicate = next((existing for existing in profiles if existing.casefold() == name.casefold()), None)
+            if duplicate is not None and not (args.action == "profile-rename" and duplicate == current):
+                raise ModError("A profile already uses that name.")
+        snapshot = {key: list(state[key]) for key in ("order", "enabled")}
+        if args.action == "profile-rename":
+            profiles[name] = profiles.pop(current)
+        elif args.action == "profile-create":
+            if len(profiles) >= 64:
+                raise ModError("This game already has 64 profiles.")
+            profiles[current] = snapshot
+            profiles[name] = {"order": snapshot["order"], "enabled": snapshot["enabled"] if args.copy else []}
+        elif name not in profiles:
+            raise ModError("The selected profile no longer exists.")
+        elif args.action == "profile-select":
+            if name == current:
+                return f"{name} is already selected.", {}
+            profiles[current] = snapshot
+        else:
+            if len(profiles) == 1 or name != current:
+                raise ModError("Select a profile to delete and keep at least one profile.")
+            del profiles[current]
+            name = next(iter(profiles))
+        if args.action != "profile-rename":
+            order = snapshot["order"]
+            saved = profiles[name]
+            restored = [i for i in saved["order"] if i in order]
+            restored.extend(i for i in order if i not in restored)
+            state["order"] = restored
+            state["enabled"] = [i for i in restored if i in saved["enabled"]
+                                and self.lib.validation(self.library, i).valid]
+        state["selected_profile"] = name
+        self.lib.save(self.library)
+        return f"Profile selected: {name}.", {}
 
     def blocked(self):
         keyboard = self.load.with_name(self.version + "-keyboard") / "manifest.tsv"
@@ -152,29 +215,62 @@ class Backend:
     def state(self, ok, message, **extra):
         overlay, count = overlay_signature(self.load)
         library = self.library
-        key = self.applied.applied_key(library, (self.install.runtime_hash, overlay))
-        pending = library.state["applied_failed"] or (
-            (library.state["applied"] is not None or library.state["enabled"])
-            and library.state["applied"] != key
-        )
+        mods = self.lib.mods(library)
+        requirements = dependency_issues(library, mods)
+        tables = self.resource_tables()
         return {
             "ok": ok, "message": message, "version": self.install.display_version,
             "game_name": self.game.name,
             "can_make_demos": self.version == "botw160",
-            "game_running": game_running(self.slot, self.game), "pending": bool(pending),
+            "game_running": game_running(self.slot, self.game), "pending": self.pending(overlay, count, tables),
+            "profiles": list(library.state["profiles"]), "selected_profile": library.state["selected_profile"],
             "applied_files": count, "blocked_reason": self.blocked(),
+            "dependency_blocker": self.dependency_blocker(mods, requirements),
+            "merged_paths": [mod_rstb.RESOURCE.as_posix()] if tables else [],
             "mods": [
                 {"id": mod.id, "name": mod.name, "enabled": mod.enabled,
                  "valid": mod.validation.valid,
+                 "description": read_description(library.path(mod.id) / DESCRIPTION_FILE),
                  "detail": VALIDATION.get(mod.validation.reason, "Ready for Switch RomFS") + (
                      " ExeFS patches and cheats are ignored." if mod.validation.code == "not_for_game"
                      or {"exefs_ignored", "cheats_ignored"}.intersection(mod.notes) else ""),
                  "replaced": mod.validation.replaced, "added": mod.validation.added,
+                 "dependency_issues": requirements.get(mod.id, []),
                  "conflicts": list(mod.conflicts)}
-                for mod in self.lib.mods(library)
+                for mod in mods
             ],
             **extra,
         }
+
+    def dependency_blocker(self, mods=None, issues=None):
+        mods = self.lib.mods(self.library) if mods is None else mods
+        issues = dependency_issues(self.library, mods) if issues is None else issues
+        for mod in mods:
+            if mod.enabled and mod.id in issues:
+                return f"{mod.name} needs attention. " + " ".join(issues[mod.id])
+        return None
+
+    def resource_tables(self):
+        if self.version != "botw160":
+            return []
+        state = self.library.state
+        tables = []
+        for mod_id in state["enabled"]:
+            path = self.library.path(mod_id) / "romfs" / mod_rstb.RESOURCE
+            if path.is_file():
+                tables.append((state["names"].get(mod_id, mod_id), path))
+        return tables if len(tables) > 1 else []
+
+    def applied_key(self, overlay, tables):
+        extra = (self.install.runtime_hash, overlay)
+        if tables:
+            extra += (mod_rstb.POLICY,)
+        return self.applied.applied_key(self.library, extra)
+
+    def pending(self, overlay, count, tables=None):
+        state = self.library.state
+        key = self.applied_key(overlay, self.resource_tables() if tables is None else tables)
+        return state["applied_failed"] or (bool(count or state["enabled"]) and state["applied"] != key)
 
     def remove(self, mod_id):
         # Retain the imported copy, including any files added after import.
@@ -182,6 +278,9 @@ class Backend:
         destination = recovery / mod_id
         self.library.path(mod_id).rename(destination)
         try:
+            for profile in self.library.state["profiles"].values():
+                for key in ("order", "enabled"):
+                    profile[key] = [item for item in profile[key] if item != mod_id]
             self.lib.remove(self.library, mod_id)
         except Exception:
             destination.rename(self.library.path(mod_id))
@@ -204,12 +303,15 @@ class Backend:
 
     def apply_locked(self):
         library = self.library
-        if not library.state["enabled"] and library.state["applied"] is None:
+        if reason := self.dependency_blocker():
+            raise ModError(reason)
+        if not library.state["enabled"] and library.state["applied"] is None and not present(self.load):
             raise ModError("Enable a mod before applying. Any existing overlay stays in place.")
         check_composition_paths(library.path(mod_id) / "romfs" for mod_id in library.state["enabled"])
         before = self.load.lstat() if present(self.load) else None
         previous_overlay = overlay_signature(self.load)
         backup = None
+        tables = self.resource_tables()
         with tempfile.TemporaryDirectory(prefix=".botw-editor-stage-", dir=self.load.parent) as directory:
             scratch = Path(directory)
             source = scratch / "source"
@@ -219,6 +321,8 @@ class Backend:
                     raise ModError("An enabled mod no longer matches this app. Disable it or import it again before applying.")
                 shutil.copytree(library.path(mod_id) / "romfs", source / "romfs",
                                 dirs_exist_ok=True, copy_function=self.lib.clone_file)
+            if tables:
+                mod_rstb.compose(self.install.romfs, self.romfs_image, tables, source / "romfs" / mod_rstb.RESOURCE)
             staged = scratch / self.version
             if library.state["enabled"]:
                 self.stage_overlay(source, staged)
@@ -239,7 +343,7 @@ class Backend:
                     staged.rename(self.load)
                     installed = True
                 overlay, count = overlay_signature(self.load)
-                library.state["applied"] = self.applied.applied_key(library, (self.install.runtime_hash, overlay))
+                library.state["applied"] = self.applied_key(overlay, tables)
                 library.state["applied_failed"] = False
                 self.lib.save(library)
             except Exception:
@@ -250,6 +354,8 @@ class Backend:
                     backup.rename(self.load)
                 raise
         message = f"Applied {count} RomFS files. Open the game to load them." if count else "Mods are disabled for the next game launch."
+        if tables:
+            message += f" Merged resource sizes from {len(tables)} packs."
         return message, {"backup": backup.name} if backup is not None else {}
 
     def stage_overlay(self, source, staged):
@@ -279,16 +385,34 @@ class Backend:
         action = args.action
         if action == "status":
             return "Mod library ready.", {}
+        if action == "profile-export":
+            return export_profile(self, args.path)
+        if action == "profile-import":
+            return import_profile(self, args.path)
+        if action.startswith("profile-"):
+            return self.profile_command(args)
         if blocked := self.blocked():
             raise ModError(blocked)
         if action == "import":
-            return import_mod(self, args.path), {}
+            return import_mod(self, args.path, attack=args.attack, durability=args.durability,
+                              fire_capacity=args.fire_capacity), {}
+        if action == "import-bnp":
+            return import_bnps(self, args.paths, args.name), {}
         if action == "demos":
             if self.version != "botw160":
                 raise ModError("The demos are for Breath of the Wild 1.6.0.")
             return demos(self), {}
         if action == "apply":
             return self.apply()
+        if action == "prepare-launch":
+            if reason := self.dependency_blocker():
+                raise ModError(reason)
+            if game_running(self.slot, self.game) or native_game_running(self.game):
+                raise ModError(f"{self.game.name} is already running.")
+            extra = {}
+            if self.pending(*overlay_signature(self.load)):
+                _, extra = self.apply()
+            return "Profile ready to launch.", extra
         if args.id not in self.library.state["order"]:
             raise ModError("The selected mod is no longer in the library.")
         if action == "toggle":
@@ -297,9 +421,23 @@ class Backend:
             self.lib.set_enabled(self.library, args.id, args.setting == "on")
         elif action == "move":
             self.lib.move(self.library, args.id, -1 if args.direction == "up" else 1)
+        elif action == "move-to":
+            order = self.library.state["order"]
+            if args.anchor not in order:
+                raise ModError("The drop target is no longer in the library.")
+            if args.id != args.anchor:
+                order.remove(args.id)
+                order.insert(order.index(args.anchor) + (args.side == "after"), args.id)
+                enabled = set(self.library.state["enabled"])
+                self.library.state["enabled"] = [item for item in order if item in enabled]
+                self.lib.save(self.library)
         elif action == "remove":
             return self.remove(args.id), {}
         return "Selection saved. Choose Apply to update the next game launch.", {}
+
+
+def valid_profile_name(name):
+    return 1 <= len(name) <= 48 and name == name.strip() and name.isprintable()
 
 
 def arguments(argv):
@@ -307,15 +445,33 @@ def arguments(argv):
     parser.add_argument("--app", required=True, type=Path)
     parser.add_argument("--repo", type=Path)
     commands = parser.add_subparsers(dest="action", required=True, parser_class=JSONParser)
-    for action in ("status", "apply", "demos"):
+    for action in ("status", "apply", "demos", "prepare-launch"):
         commands.add_parser(action)
-    commands.add_parser("import").add_argument("path", type=Path)
+    for action in ("profile-create", "profile-select", "profile-rename", "profile-delete"):
+        profile = commands.add_parser(action)
+        profile.add_argument("name")
+        if action == "profile-create":
+            profile.add_argument("--copy", action="store_true")
+    for action in ("profile-export", "profile-import"):
+        commands.add_parser(action).add_argument("path", type=Path)
+    importing = commands.add_parser("import")
+    importing.add_argument("path", type=Path)
+    importing.add_argument("--attack", type=int)
+    importing.add_argument("--durability", type=int)
+    importing.add_argument("--fire-capacity", type=int)
+    bnp = commands.add_parser("import-bnp")
+    bnp.add_argument("--name")
+    bnp.add_argument("paths", type=Path, nargs="+")
     toggle = commands.add_parser("toggle")
     toggle.add_argument("id")
     toggle.add_argument("setting", choices=("on", "off"))
     move = commands.add_parser("move")
     move.add_argument("id")
     move.add_argument("direction", choices=("up", "down"))
+    reorder = commands.add_parser("move-to")
+    reorder.add_argument("id")
+    reorder.add_argument("anchor")
+    reorder.add_argument("side", choices=("before", "after"))
     commands.add_parser("remove").add_argument("id")
     return parser.parse_args(argv)
 
@@ -335,6 +491,8 @@ def execute(args):
                 return backend.state(False, "The game rejected the staged mod files. Check for wrong-case names or conflicting assets.")
             except ModError as error:
                 return backend.state(False, str(error))
+            except subprocess.TimeoutExpired:
+                return backend.state(False, "The mod operation timed out. Try importing fewer packages.")
             except (OSError, ValueError):
                 return backend.state(False, "Could not finish the mod operation. Check free space and file permissions.")
     except BlockingIOError as error:
